@@ -1,0 +1,120 @@
+[ {
+  "id" : 1,
+  "categoria" : "Produção Agrícola",
+  "item" : "Banana Orgânica",
+  "quantidade" : 150,
+  "unidade" : "kg",
+  "status" : "Pronto para colheita"
+}, {
+  "id" : 2,
+  "categoria" : "Produção Agrícola",
+  "item" : "Limão Taiti",
+  "quantidade" : 80,
+  "unidade" : "kg",
+  "status" : "Crescendo"
+}, {
+  "id" : 3,
+  "categoria" : "Produção Agrícola",
+  "item" : "Mandioca (Macaxeira)",
+  "quantidade" : 300,
+  "unidade" : "kg",
+  "status" : "No solo"
+}, {
+  "id" : 4,
+  "categoria" : "Criação",
+  "item" : "Galinha Caipira",
+  "quantidade" : 42,
+  "unidade" : "unidades",
+  "status" : "Ativo"
+}, {
+  "id" : 5,
+  "categoria" : "Criação",
+  "item" : "Pintos (Reposição)",
+  "quantidade" : 25,
+  "unidade" : "unidades",
+  "status" : "Crescimento"
+}, {
+  "id" : 6,
+  "categoria" : "Criação",
+  "item" : "Ovos Caipira",
+  "quantidade" : 12,
+  "unidade" : "dúzias",
+  "status" : "Estoque"
+}, {
+  "id" : 7,
+  "categoria" : "Ferramentas - Marcenaria",
+  "item" : "Serra Circular",
+  "quantidade" : 1,
+  "unidade" : "unidade",
+  "status" : "Operacional"
+}, {
+  "id" : 8,
+  "categoria" : "Ferramentas - Marcenaria",
+  "item" : "Madeira de Lei (Sobras)",
+  "quantidade" : 15,
+  "unidade" : "tábuas",
+  "status" : "Armazenado"
+}, {
+  "id" : 9,
+  "categoria" : "Ferramentas - Serralheria",
+  "item" : "Máquina de Solda Inverter",
+  "quantidade" : 1,
+  "unidade" : "unidade",
+  "status" : "Manutenção"
+}, {
+  "id" : 10,
+  "categoria" : "Manutenção Veicular",
+  "item" : "Óleo para L200 Outdoor",
+  "quantidade" : 7,
+  "unidade" : "litros",
+  "status" : "Estoque"
+}, {
+  "id" : 11,
+  "categoria" : "Manutenção Veicular",
+  "item" : "Pneu ZX10R (Traseiro)",
+  "quantidade" : 1,
+  "unidade" : "unidade",
+  "status" : "Necessário comprar"
+}, {
+  "id" : 12,
+  "categoria" : "Insumos",
+  "item" : "Milho para Galinha",
+  "quantidade" : 3,
+  "unidade" : "sacas",
+  "status" : "Estoque Baixo"
+}, {
+  "id" : 13,
+  "categoria" : "Insumos",
+  "item" : "Adubo Orgânico",
+  "quantidade" : 10,
+  "unidade" : "sacos",
+  "status" : "Estoque"
+}, {
+  "id" : 14,
+  "categoria" : "Infraestrutura",
+  "item" : "Arame Farpado (Rolo)",
+  "quantidade" : 2,
+  "unidade" : "rolos",
+  "status" : "Para reforma de cerca"
+}, {
+  "id" : 15,
+  "categoria" : "Ferramentas - Geral",
+  "item" : "Roçadeira à Gasolina",
+  "quantidade" : 1,
+  "unidade" : "unidade",
+  "status" : "Operacional"
+}, {
+  "id" : 16,
+  "categoria" : "Produção Agrícola",
+  "item" : "Café",
+  "quantidade" : 10,
+  "unidade" : "kg",
+  "status" : "Crescendo"
+}, {
+  "id" : 17,
+  "categoria" : "Máquina Agrícola",
+  "item" : "Trator John Deere 5075E",
+  "quantidade" : 1,
+  "unidade" : "unidade",
+  "status" : "Operacional"
+} ]
