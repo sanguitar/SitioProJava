@@ -17,6 +17,6 @@ public interface ProducaoRepository extends JpaRepository<Producao, Long> {
 
     Page<Producao> findByCategoriaId(Long id, Pageable pageable);
 
-    // ADICIONE ESTA LINHA EXATA AQUI:
+    // O SEGREDO ESTÁ NESTA LINHA ABAIXO:
     long countByCategoria(Categoria categoria);
 }

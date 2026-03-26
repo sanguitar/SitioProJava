@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Sítio PRO - Dashboard SQL</title>
+    <title>Sítio PRO - Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,6 +14,7 @@
         }
         body { background-color: #f0f2f5; overflow-x: hidden; font-family: 'Segoe UI', sans-serif; }
         
+        /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
             height: 100vh;
@@ -35,6 +36,11 @@
             background: var(--agro-dark);
             color: white;
             border-left: 5px solid #8dbd31;
+        }
+        .sidebar-link.small {
+            font-size: 0.85rem;
+            padding: 10px 25px 10px 50px;
+            background: #1a1d20;
         }
 
         .main-content { margin-left: var(--sidebar-width); padding: 30px; }
@@ -78,8 +84,22 @@
             <h4 class="fw-bold"><i class="fa-solid fa-tractor me-2 text-success"></i>SÍTIO PRO</h4>
             <small class="text-muted">Systems Analyst v2.0</small>
         </div>
+        
         <a th:href="@{/sitio/painel}" class="sidebar-link active"><i class="fa-solid fa-chart-line me-2"></i> Dashboard</a>
         <a th:href="@{/sitio/cadastro}" class="sidebar-link"><i class="fa-solid fa-plus-circle me-2"></i> Novo Cadastro</a>
+        
+        <div>
+            <a class="sidebar-link d-flex justify-content-between align-items-center" 
+               data-bs-toggle="collapse" href="#collapseFrota" role="button">
+                <span><i class="fa-solid fa-truck-pickup me-2"></i> Frota</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse" id="collapseFrota">
+                <a th:href="@{/sitio/frota}" class="sidebar-link small"><i class="fa-solid fa-list me-2"></i> Listar Veículos</a>
+                <a th:href="@{/sitio/frota/novo}" class="sidebar-link small"><i class="fa-solid fa-plus me-2"></i> Novo Veículo</a>
+            </div>
+        </div>
+
         <a th:href="@{/sitio/configuracoes}" class="sidebar-link"><i class="fa-solid fa-gears me-2"></i> Configurações</a>
     </div>
 
@@ -87,7 +107,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold text-dark mb-0">Monitoramento de Ativos</h2>
-                <small class="text-muted">Porto Velho - RO | Dados vindos do MySQL</small>
+                <small class="text-muted">Porto Velho - RO | Gestão de Produção e Frota</small>
             </div>
             <span class="badge bg-dark p-2 px-3 shadow-sm" th:text="${usuario}"></span>
         </div>
@@ -95,10 +115,10 @@
         <div class="table-container mb-4">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-filter me-2"></i>Filtrar por Categoria</h5>
+                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-filter me-2 text-success"></i>Filtrar por Categoria</h5>
                 </div>
                 <div class="col-md-6">
-                    <form th:action="@{/sitio/painel}" method="get" id="formFiltro">
+                    <form th:action="@{/sitio/painel}" method="get">
                         <select name="categoriaId" class="form-select shadow-sm" onchange="this.form.submit()">
                             <option value="">-- Ver Todos os Itens --</option>
                             <option th:each="cat : ${categorias}" 
@@ -135,10 +155,10 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card card-agro p-3 h-100">
+                <div class="card card-agro p-3 h-100" style="background: linear-gradient(135deg, #0d6efd 0%, #212529 100%);">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <small class="opacity-75">Categorias Ativas</small>
+                            <small class="opacity-75">Categorias</small>
                             <h2 class="fw-bold mb-0" th:text="${totalCategorias}">0</h2>
                         </div>
                         <i class="fa-solid fa-tags fs-1 opacity-25"></i>
@@ -150,15 +170,15 @@
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="bg-white p-4 rounded-4 shadow-sm h-100 text-center">
-                    <h5 class="fw-bold mb-4">Divisão por Categoria</h5>
-                    <div style="position: relative; height:250px;">
+                    <h5 class="fw-bold mb-4">Divisão do Sítio</h5>
+                    <div style="position: relative; height:280px;">
                         <canvas id="agroChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-8">
-                <div class="table-container h-100">
+                <div class="table-container h-100 shadow-sm">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -180,98 +200,63 @@
                                            th:style="'color: ' + ${p.categoria.corHex}"></i>
                                         <span th:text="${p.categoria.nome}">Categoria</span>
                                     </span>
-                                    <span th:unless="${p.categoria != null}" class="text-muted small italic">Sem Categoria</span>
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark border" th:text="${p.quantidade} + ' ' + ${p.unidade}"></span>
                                 </td>
                                 <td class="text-center">
-                                    <a th:href="@{/sitio/editar/{id}(id=${p.id})}" class="btn-edit mx-2" title="Editar">
-                                        <i class="fa-solid fa-pen-to-square fs-5"></i>
-                                    </a>
-                                    <a th:href="@{/sitio/excluir/{id}(id=${p.id})}" class="btn-delete mx-2" 
-                                       onclick="return confirm('Tem certeza que deseja excluir este item?')" title="Excluir">
-                                        <i class="fa-solid fa-trash-can fs-5"></i>
-                                    </a>
+                                    <a th:href="@{/sitio/editar/{id}(id=${p.id})}" class="btn-edit mx-2"><i class="fa-solid fa-pen-to-square fs-5"></i></a>
+                                    <a th:href="@{/sitio/excluir/{id}(id=${p.id})}" class="btn-delete mx-2" onclick="return confirm('Excluir item?')"><i class="fa-solid fa-trash-can fs-5"></i></a>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <small class="text-muted">
-                            Página <span th:text="${paginaAtual + 1}">1</span> de <span th:text="${totalPaginas}">1</span>
-                        </small>
-                        <nav th:if="${totalPaginas > 1}">
-                            <ul class="pagination mb-0">
+                    <div class="d-flex justify-content-between align-items-center mt-4" th:if="${totalPaginas > 1}">
+                        <small class="text-muted">Pág. <span th:text="${paginaAtual + 1}"></span> de <span th:text="${totalPaginas}"></span></small>
+                        <nav>
+                            <ul class="pagination mb-0 small">
                                 <li class="page-item" th:classappend="${paginaAtual == 0} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual - 1}, categoriaId=${categoriaSelecionada})}">
-                                        <i class="fa-solid fa-chevron-left"></i>
-                                    </a>
+                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual - 1}, categoriaId=${categoriaSelecionada})}"><i class="fa-solid fa-chevron-left"></i></a>
                                 </li>
-                                
-                                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}"
-                                    th:classappend="${i == paginaAtual} ? 'active'">
+                                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaAtual} ? 'active'">
                                     <a class="page-link" th:href="@{/sitio/painel(page=${i}, categoriaId=${categoriaSelecionada})}" th:text="${i + 1}">1</a>
                                 </li>
-
                                 <li class="page-item" th:classappend="${paginaAtual + 1 == totalPaginas} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual + 1}, categoriaId=${categoriaSelecionada})}">
-                                        <i class="fa-solid fa-chevron-right"></i>
-                                    </a>
+                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual + 1}, categoriaId=${categoriaSelecionada})}"><i class="fa-solid fa-chevron-right"></i></a>
                                 </li>
                             </ul>
                         </nav>
                     </div>
-                    </div>
+                </div>
             </div>
         </div>
     </div>
 
- <script th:inline="javascript">
-    const ctx = document.getElementById('agroChart').getContext('2d');
-    
-    // PEGANDO OS DADOS REAIS DO JAVA (SÍTIO TODO)
-    // O Thymeleaf converte as listas do Java para arrays do JS automaticamente
-    const labelsProcessadas = [[${labelsGrafico}]];
-    const dadosProcessados = [[${dadosGrafico}]];
-
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labelsProcessadas, // Agora aparece Banana, Gado, Máquinas, etc.
-            datasets: [{
-                data: dadosProcessados, // Quantidade total de cada um no banco
-                backgroundColor: [
-                    '#1e3d1a', // Verde Agro
-                    '#8dbd31', // Verde Lima
-                    '#212529', // Preto
-                    '#ffc107', // Amarelo Alerta
-                    '#dc3545', // Vermelho Crítico
-                    '#0d6efd', // Azul Operacional
-                    '#6c757d'  // Cinza Manutenção
-                ],
-                hoverOffset: 15,
-                borderWidth: 2,
-                borderColor: '#ffffff'
-            }]
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%', 
-            plugins: { 
-                legend: { 
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 12,
-                        padding: 15,
-                        font: { size: 12 }
-                    }
-                }
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const ctx = document.getElementById('agroChart').getContext('2d');
+        const labelsJava = [[${labelsGrafico}]];
+        const dadosJava = [[${dadosGrafico}]];
+        
+        // Cores Dinâmicas (Podemos até puxar as cores do banco se quiser!)
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labelsJava,
+                datasets: [{
+                    data: dadosJava,
+                    backgroundColor: ['#1e3d1a', '#8dbd31', '#212529', '#ffc107', '#dc3545', '#0d6efd', '#6c757d'],
+                    hoverOffset: 15,
+                    borderWidth: 2
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
             }
-        }
-    });
-</script>
+        });
+    </script>
 </body>
 </html>

@@ -66,8 +66,8 @@
                 <div class="card card-custom">
                     <div class="header-agro p-4">
                         <h3 class="mb-0 text-center">
-                            <i th:class="${producao.id == null || producao.id == 0} ? 'fa-solid fa-plus-circle' : 'fa-solid fa-pen-to-square'"></i>
-                            <span th:text="${producao.id == null || producao.id == 0 ? ' Novo Registro no MySQL' : ' Atualizar Registro'}"></span>
+                            <i th:class="${producao.id == null} ? 'fa-solid fa-plus-circle' : 'fa-solid fa-pen-to-square'"></i>
+                            <span th:text="${producao.id == null ? ' Novo Cadastro Rural' : ' Atualizar Registro'}"></span>
                         </h3>
                     </div>
                     
@@ -80,28 +80,28 @@
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label">Categoria do Recurso</label>
                                     <select th:field="*{categoria}" class="form-select form-select-lg" required>
-                                        <option value="">-- Selecionar do Banco --</option>
+                                        <option value="">-- Selecione a Categoria --</option>
                                         <option th:each="cat : ${categorias}" 
                                                 th:value="${cat.id}" 
                                                 th:text="${cat.nome}"></option>
                                     </select>
-                                    <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Vem da tabela 'categorias' do MySQL.</small>
+                                    <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Obrigatório para o gráfico e organização.</small>
                                 </div>
                                 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label">Nome / Descrição do Item</label>
-                                    <input type="text" th:field="*{item}" class="form-control form-select-lg" placeholder="Ex: Soja Safra 2026" required>
+                                    <input type="text" th:field="*{item}" class="form-control form-control-lg" placeholder="Ex: Milho Grão" required>
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Quantidade Atual</label>
-                                    <input type="number" th:field="*{quantidade}" class="form-control form-select-lg" min="0" required>
+                                    <input type="number" th:field="*{quantidade}" class="form-control form-control-lg" step="0.01" min="0" required>
                                 </div>
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Unidade de Medida</label>
-                                    <input type="text" th:field="*{unidade}" class="form-control form-select-lg" placeholder="Ex: kg, sacas, un" required>
+                                    <input type="text" th:field="*{unidade}" class="form-control form-control-lg" placeholder="Ex: kg, saca, L" required>
                                 </div>
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Status do Ativo</label>

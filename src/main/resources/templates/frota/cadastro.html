@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sítio PRO - Novo Veículo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white p-4">
+                <h3 class="mb-0"><i class="fa-solid fa-truck-pickup me-2"></i> Cadastro de Frota</h3>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="@{/sitio/frota/salvar}" th:object="${veiculo}" method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nome do Veículo</label>
+                            <input type="text" th:field="*{nome}" class="form-control" placeholder="Ex: L200 do Sítio" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Tipo</label>
+                            <select th:field="*{tipo}" class="form-select">
+                                <option value="Carro">Carro</option>
+                                <option value="Moto">Moto</option>
+                                <option value="Trator">Trator</option>
+                                <option value="Caminhão">Caminhão</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Placa/Prefixo</label>
+                            <input type="text" th:field="*{placa}" class="form-control">
+                        </div>
+
+                        <hr class="my-3">
+                        <h5 class="text-muted"><i class="fa-solid fa-magnifying-glass-chart me-2"></i>Dados para Tabela Fipe</h5>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Marca (Fipe)</label>
+                            <input type="text" th:field="*{marcaFipe}" class="form-control" placeholder="Toyota, Kawasaki...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Modelo (Fipe)</label>
+                            <input type="text" th:field="*{modeloFipe}" class="form-control" placeholder="Corolla XEi, ZX-10R...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ano Modelo</label>
+                            <input type="number" th:field="*{anoModelo}" class="form-control" placeholder="2012">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">KM Atual</label>
+                            <input type="number" th:field="*{kmAtual}" class="form-control" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a th:href="@{/sitio/frota}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success px-5 fw-bold">SALVAR VEÍCULO</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
