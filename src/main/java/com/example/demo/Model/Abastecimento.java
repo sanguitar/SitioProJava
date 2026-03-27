@@ -1,26 +1,43 @@
 package com.example.demo.Model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
 @Entity
+@Table(name = "abastecimentos")
 public class Abastecimento {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "veiculo_id")
+    @ManyToOne(fetch = FetchType.LAZY) // Evita gargalo de performance (Lazy Loading)
+    @JoinColumn(name = "veiculo_id", nullable = false)
+    @NotNull(message = "Veículo é obrigatório")
     private Veiculo veiculo;
 
+    @NotNull(message = "Data é obrigatória")
     private LocalDate data;
-    private Double litros;
-    private Double precoPorLitro;
-    private Double valorTotal;
-    private Double kmAtual;
-    private String local; // "Posto Cidade" ou "Tanque Sítio"
 
-    // Getters and Setters
+    @Positive(message = "Quantidade de litros deve ser positiva")
+    private Double litros;
+
+    @Positive(message = "Preço deve ser positivo")
+    private Double precoPorLitro;
+
+    private Double valorTotal;
+
+    @PositiveOrZero(message = "KM não pode ser negativa")
+    private Double kmNoAto;
+
+    @NotBlank(message = "Local é obrigatório")
+    private String local; // Posto ou Tanque Sítio
+
+    public Abastecimento() {
+    }
+
+    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -61,20 +78,12 @@ public class Abastecimento {
         this.precoPorLitro = precoPorLitro;
     }
 
-    public Double getValorTotal() {
-        return valorTotal;
+    public Double getKmNoAto() {
+        return kmNoAto;
     }
 
-    public void setValorTotal(Double valorTotal) {
-        this.valorTotal = valorTotal;
-    }
-
-    public Double getKmAtual() {
-        return kmAtual;
-    }
-
-    public void setKmAtual(Double kmAtual) {
-        this.kmAtual = kmAtual;
+    public void setKmNoAto(Double kmNoAto) {
+        this.kmNoAto = kmNoAto;
     }
 
     public String getLocal() {
@@ -83,5 +92,18 @@ public class Abastecimento {
 
     public void setLocal(String local) {
         this.local = local;
+    }
+
+    // Business Logic: Garante que o total esteja sempre certo antes de persistir
+    @PrePersist
+    @PreUpdate
+    public void calcularTotal() {
+        if (this.litros != null && this.precoPorLitro != null) {
+            this.valorTotal = this.litros * this.precoPorLitro;
+        }
+    }
+
+    public Double getValorTotal() {
+        return valorTotal;
     }
 }

@@ -1,29 +1,46 @@
 package com.example.demo.Model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.io.Serializable;
 
 @Entity
-public class Veiculo {
+@Table(name = "veiculos")
+public class Veiculo implements Serializable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nome; // Ex: Kawasaki ZX-10R
-    private String placa; // Ou identificação interna para tratores
-    private String tipo; // Carro, Moto, Trator, Caminhão
-    private String marcaFipe; // Ex: Kawasaki
-    private String modeloFipe; // Ex: NINJA ZX-10R 1000cc
-    private Integer anoModelo; // 2012
+    @NotBlank(message = "Nome é obrigatório")
+    @Column(nullable = false, length = 100)
+    private String nome;
 
+    @Column(length = 20)
+    private String placa;
+
+    @NotBlank(message = "Tipo é obrigatório")
+    @Column(nullable = false, length = 30)
+    private String tipo; // Sugestão Futura: Usar um Enum aqui
+
+    private String marcaFipe;
+    private String modeloFipe;
+    private Integer anoModelo;
+
+    @PositiveOrZero(message = "KM não pode ser negativa")
     private Double kmAtual;
-    private String situacao; // "Em Uso", "Manutenção", "Parado"
-    private Double valorFipe; // Valor atualizado via API
-    private String ultimaConsultaFipe; // Mês/Ano da consulta
 
-    // Getters and Setters
+    @Column(nullable = false, length = 30)
+    private String situacao = "DISPONIVEL";
+
+    private Double valorFipe;
+    private String ultimaConsultaFipe;
+
+    // Construtor padrão obrigatório pelo JPA
+    public Veiculo() {
+    }
+
+    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -110,5 +127,33 @@ public class Veiculo {
 
     public void setUltimaConsultaFipe(String ultimaConsultaFipe) {
         this.ultimaConsultaFipe = ultimaConsultaFipe;
+    }
+
+    // Dentro de Veiculo.java
+    private String icone; // Ex: "fa-car", "fa-motorcycle", "fa-tractor"
+
+    // Não esqueça do Getter e Setter!
+    public String getIcone() {
+        return icone;
+    }
+
+    public void setIcone(String icone) {
+        this.icone = icone;
+    }
+
+    // Regra Sênior: Equals e HashCode baseados no ID (Garante consistência em Sets)
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        Veiculo veiculo = (Veiculo) o;
+        return id != null && id.equals(veiculo.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
