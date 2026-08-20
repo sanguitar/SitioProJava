@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Dashboard')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></aside>
+
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-dark mb-0">Monitoramento de Ativos</h2>
+                <small class="text-muted">Porto Velho - RO | Gestão de Produção e Frota</small>
+            </div>
+            <span class="badge bg-dark p-2 px-3 shadow-sm" th:text="${usuario}"></span>
+        </div>
+
+        <div class="table-container mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-filter me-2 text-success"></i>Filtrar por Categoria</h5>
+                </div>
+                <div class="col-md-6">
+                    <form th:action="@{/sitio/painel}" method="get">
+                        <select name="categoriaId" class="form-select shadow-sm" data-auto-submit>
+                            <option value="">-- Ver Todos os Itens --</option>
+                            <option th:each="cat : ${categorias}"
+                                    th:value="${cat.id}"
+                                    th:text="${cat.nome}"
+                                    th:selected="${cat.id == categoriaSelecionada}"></option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card card-agro p-3 h-100">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <small class="opacity-75">Total de Itens</small>
+                            <h2 class="fw-bold mb-0" th:text="${totalItens}">0</h2>
+                        </div>
+                        <i class="fa-solid fa-boxes-stacked fs-1 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-agro card-alert p-3 h-100">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <small class="opacity-75">Alertas Críticos</small>
+                            <h2 class="fw-bold mb-0" th:text="${itensAlerta}">0</h2>
+                        </div>
+                        <i class="fa-solid fa-triangle-exclamation fs-1 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-agro card-category p-3 h-100">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <small class="opacity-75">Categorias</small>
+                            <h2 class="fw-bold mb-0" th:text="${totalCategorias}">0</h2>
+                        </div>
+                        <i class="fa-solid fa-tags fs-1 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="chart-card bg-white p-4 rounded-4 shadow-sm h-100 text-center">
+                    <h5 class="fw-bold mb-4">Divisão do Sítio</h5>
+                    <div class="chart-wrapper">
+                        <canvas id="agroChart"
+                                th:attr="data-labels=${labelsGraficoJson},data-values=${dadosGraficoJson}"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="table-container h-100 shadow-sm">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item / Descrição</th>
+                                <th>Categoria</th>
+                                <th>Qtd / Unidade</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${itens}">
+                                <td>
+                                    <div class="fw-bold text-dark" th:text="${p.item}">Item</div>
+                                    <small class="text-muted badge border badge-status" th:text="${p.status}"></small>
+                                </td>
+                                <td>
+                                    <span th:if="${p.categoria != null}">
+                                        <i th:class="'fa-solid ' + ${p.categoria.icone} + ' me-2'"
+                                           th:style="'color: ' + ${p.categoria.corHex}"></i>
+                                        <span th:text="${p.categoria.nome}">Categoria</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border" th:text="${p.quantidade} + ' ' + ${p.unidade}"></span>
+                                </td>
+                                <td class="text-center">
+                                    <a th:href="@{/sitio/editar/{id}(id=${p.id})}" class="btn-edit mx-2">
+                                        <i class="fa-solid fa-pen-to-square fs-5"></i>
+                                    </a>
+                                    <a th:href="@{/sitio/excluir/{id}(id=${p.id})}"
+                                       class="btn-delete mx-2"
+                                       data-confirm-message="Excluir item?">
+                                        <i class="fa-solid fa-trash-can fs-5"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4" th:if="${totalPaginas > 1}">
+                        <small class="text-muted">Pág. <span th:text="${paginaAtual + 1}"></span> de <span th:text="${totalPaginas}"></span></small>
+                        <nav>
+                            <ul class="pagination mb-0 small">
+                                <li class="page-item" th:classappend="${paginaAtual == 0} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual - 1}, categoriaId=${categoriaSelecionada})}">
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaAtual} ? 'active'">
+                                    <a class="page-link" th:href="@{/sitio/painel(page=${i}, categoriaId=${categoriaSelecionada})}" th:text="${i + 1}">1</a>
+                                </li>
+                                <li class="page-item" th:classappend="${paginaAtual + 1 == totalPaginas} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual + 1}, categoriaId=${categoriaSelecionada})}">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/dashboard.js}"></script>
+</body>
+</html>

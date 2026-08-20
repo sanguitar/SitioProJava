@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Roadmap')}"></th:block>
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide roadmap-page">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
+            <div>
+                <small class="module-group">Administração</small>
+                <h1 class="roadmap-title">Roadmap do SitioPro</h1>
+                <p class="roadmap-subtitle">Mapa visual dos módulos atuais, em revisão e planejados.</p>
+            </div>
+            <span class="badge bg-dark p-2 px-3 shadow-sm" th:text="${usuario}"></span>
+        </div>
+
+        <section class="status-legend" aria-label="Legenda de status">
+            <div class="legend-item" th:each="status : ${statusDisponiveis}">
+                <div th:replace="~{fragments/ui :: statusBadge(${status})}"></div>
+            </div>
+        </section>
+
+        <section class="roadmap-groups">
+            <article class="roadmap-group" th:each="grupo : ${roadmapGrupos}">
+                <header>
+                    <h2 th:text="${grupo.key}">Grupo</h2>
+                    <span th:text="${grupo.value.size()} + ' módulos'">0 módulos</span>
+                </header>
+
+                <div class="roadmap-list">
+                    <a class="roadmap-item" th:each="item : ${grupo.value}" th:href="@{${item.rota}}">
+                        <div>
+                            <strong th:text="${item.titulo}">Módulo</strong>
+                            <p th:text="${item.descricao}">Descrição</p>
+                        </div>
+                        <div th:replace="~{fragments/ui :: statusBadge(${item.status})}"></div>
+                    </a>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

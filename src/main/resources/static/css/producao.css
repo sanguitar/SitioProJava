@@ -1,0 +1,25 @@
+.header-agro {
+    background: #212529;
+    border-bottom: 4px solid var(--agro-dark);
+    color: white;
+}
+
+.btn-save {
+    background: var(--agro-dark);
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 12px;
+    transition: 0.3s;
+}
+
+.btn-save:hover {
+    background: #2d5a27;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.page-footer {
+    line-height: 1.4;
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead(${tituloPagina})}"></th:block>
+    <link rel="stylesheet" th:href="@{${cssPath}}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide module-shell" th:classappend="${modulo.domainClass}">
+        <div th:replace="~{fragments/ui :: breadcrumbs(${breadcrumbs})}"></div>
+        <div th:replace="~{fragments/ui :: moduleHeader(${modulo}, ${statusPagina})}"></div>
+
+        <section class="module-stage">
+            <div class="module-stage-main">
+                <div class="module-kicker">
+                    <i class="fa-solid" th:classappend="${acaoAtual.icon}"></i>
+                    <span th:text="${acaoAtual.titulo}">Visão geral</span>
+                </div>
+                <h2>Não implementado</h2>
+                <p th:text="${acaoAtual.descricao}">
+                    Esta tela é uma representação visual do fluxo planejado.
+                </p>
+                <div class="planned-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Esta página ainda não executa operações, não consulta banco de dados e não grava informações.</span>
+                </div>
+            </div>
+
+            <aside class="module-stage-side">
+                <small>Status da tela</small>
+                <div th:replace="~{fragments/ui :: statusBadge(${statusPagina})}"></div>
+                <span class="module-stage-route" th:text="${acaoAtual.rota}">/rota</span>
+            </aside>
+        </section>
+
+        <section class="module-actions" aria-label="Navegação da funcionalidade">
+            <a th:each="acao : ${modulo.acoes}"
+               th:href="@{${acao.rota}}"
+               class="module-action"
+               th:classappend="${acao.chave == acaoAtual.chave} ? ' active'">
+                <i class="fa-solid" th:classappend="${acao.icon}"></i>
+                <span th:text="${acao.titulo}">Ação</span>
+            </a>
+        </section>
+
+        <section class="row g-4">
+            <div class="col-lg-8">
+                <div class="module-panel">
+                    <div class="panel-heading">
+                        <h3>Funcionalidades previstas</h3>
+                        <span th:text="${modulo.funcionalidades.size()} + ' itens'">0 itens</span>
+                    </div>
+                    <div class="planned-grid">
+                        <article class="planned-card" th:each="funcionalidade : ${modulo.funcionalidades}">
+                            <i class="fa-solid fa-check"></i>
+                            <span th:text="${funcionalidade}">Funcionalidade prevista</span>
+                        </article>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="module-panel h-100">
+                    <div class="panel-heading">
+                        <h3>Atalhos úteis</h3>
+                    </div>
+                    <div class="quick-links" th:if="${!modulo.atalhos.isEmpty()}">
+                        <a th:each="atalho : ${modulo.atalhos}" th:href="@{${atalho.rota}}">
+                            <i class="fa-solid" th:classappend="${atalho.icon}"></i>
+                            <span th:text="${atalho.rotulo}">Atalho</span>
+                        </a>
+                    </div>
+                    <div class="empty-shortcuts" th:if="${modulo.atalhos.isEmpty()}">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                        <p>Os atalhos serão ligados quando o módulo receber implementação funcional.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

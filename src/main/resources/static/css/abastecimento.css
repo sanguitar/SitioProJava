@@ -1,0 +1,24 @@
+.domain-abastecimento {
+    --module-color: #b45309;
+    --module-accent: #16a34a;
+}
+
+.abastecimento-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.abastecimento-header {
+    background: #212529;
+    border-bottom: 4px solid var(--agro-dark);
+    color: white;
+}
+
+.total-preview {
+    align-items: center;
+    background: #f8f9fa;
+    display: flex;
+    font-weight: 700;
+}

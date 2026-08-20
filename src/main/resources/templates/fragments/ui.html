@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="statusBadge(status)">
+    <span class="status-badge-visual" th:classappend="${status.classe}" th:text="${status.rotulo}">PLANEJADO</span>
+</th:block>
+
+<th:block th:fragment="moduleHeader(modulo, statusPagina)">
+    <section class="module-header">
+        <div class="module-title-group">
+            <div class="module-icon">
+                <i th:class="'fa-solid ' + ${modulo.icon}"></i>
+            </div>
+            <div>
+                <small class="module-group" th:text="${modulo.grupo}">Grupo</small>
+                <h1 th:text="${modulo.titulo}">Funcionalidade</h1>
+                <p th:text="${modulo.descricao}">Descrição curta.</p>
+            </div>
+        </div>
+        <div th:replace="~{fragments/ui :: statusBadge(${statusPagina})}"></div>
+    </section>
+</th:block>
+
+<th:block th:fragment="breadcrumbs(items)">
+    <nav aria-label="breadcrumb" class="module-breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item" th:each="item : ${items}" th:classappend="${item.ativo} ? ' active'">
+                <a th:if="${!item.ativo}" th:href="@{${item.rota}}" th:text="${item.rotulo}">Seção</a>
+                <span th:if="${item.ativo}" th:text="${item.rotulo}">Atual</span>
+            </li>
+        </ol>
+    </nav>
+</th:block>
+</body>
+</html>

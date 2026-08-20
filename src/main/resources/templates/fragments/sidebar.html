@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside th:fragment="sidebar(active)" class="sidebar shadow">
+    <div class="sidebar-brand px-4 mb-3">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="fa-solid fa-tractor me-2 text-success"></i>SÍTIO PRO</h4>
+            <small class="text-muted">Systems Analyst v2.0</small>
+        </div>
+        <button class="sidebar-mobile-toggle d-lg-none" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainSidebarNav" aria-controls="mainSidebarNav" aria-expanded="false"
+                aria-label="Abrir menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <nav id="mainSidebarNav" class="collapse d-lg-block sidebar-nav">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Início</div>
+            <a th:href="@{/sitio/painel}" class="sidebar-link"
+               th:classappend="${active == 'dashboard'} ? ' active'">
+                <i class="fa-solid fa-chart-line me-2"></i> Dashboard
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'producao'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapseGestao" role="button">
+                <span><i class="fa-solid fa-clipboard-list me-2"></i> Gestão</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapseGestao"
+                 th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'producao'} ? ' show'">
+                <a th:href="@{/gestao/estoque}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'estoque' or active == 'producao'} ? ' active'">
+                    <i class="fa-solid fa-boxes-stacked me-2"></i> Estoque
+                </a>
+                <a th:href="@{/sitio/cadastro}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'producao'} ? ' active'">
+                    <i class="fa-solid fa-plus me-2"></i> Novo Cadastro
+                </a>
+                <a th:href="@{/gestao/compras}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'compras'} ? ' active'">
+                    <i class="fa-solid fa-cart-shopping me-2"></i> Compras
+                </a>
+                <a th:href="@{/gestao/tarefas}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'tarefas'} ? ' active'">
+                    <i class="fa-solid fa-list-check me-2"></i> Tarefas
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'aves' or active == 'suinos' or active == 'piscicultura'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapseCriacoes" role="button">
+                <span><i class="fa-solid fa-egg me-2"></i> Criações</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapseCriacoes"
+                 th:classappend="${active == 'aves' or active == 'suinos' or active == 'piscicultura'} ? ' show'">
+                <a th:href="@{/criacoes/aves}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'aves'} ? ' active'">
+                    <i class="fa-solid fa-egg me-2"></i> Aves
+                </a>
+                <a th:href="@{/criacoes/aves/chocadeira}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-temperature-half me-2"></i> Chocadeira
+                </a>
+                <a th:href="@{/criacoes/aves/pinteiro}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-feather me-2"></i> Pinteiro
+                </a>
+                <a th:href="@{/criacoes/aves/galinheiro}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-house-chimney me-2"></i> Galinheiro
+                </a>
+                <a th:href="@{/criacoes/suinos}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'suinos'} ? ' active'">
+                    <i class="fa-solid fa-bacon me-2"></i> Suínos
+                </a>
+                <a th:href="@{/criacoes/piscicultura}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'piscicultura'} ? ' active'">
+                    <i class="fa-solid fa-fish me-2"></i> Piscicultura
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'agricultura' or active == 'agua'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapseAgricultura" role="button">
+                <span><i class="fa-solid fa-seedling me-2"></i> Agricultura</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapseAgricultura"
+                 th:classappend="${active == 'agricultura' or active == 'agua'} ? ' show'">
+                <a th:href="@{/agricultura/plantios}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'agricultura'} ? ' active'">
+                    <i class="fa-solid fa-wheat-awn me-2"></i> Plantios
+                </a>
+                <a th:href="@{/agricultura/areas-talhoes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-map-location-dot me-2"></i> Áreas/Talhões
+                </a>
+                <a th:href="@{/agricultura/culturas}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-seedling me-2"></i> Culturas
+                </a>
+                <a th:href="@{/agricultura/adubacao}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-flask me-2"></i> Adubação
+                </a>
+                <a th:href="@{/agricultura/tratamentos}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-spray-can-sparkles me-2"></i> Tratamentos
+                </a>
+                <a th:href="@{/agricultura/colheitas}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-basket-shopping me-2"></i> Colheitas
+                </a>
+                <a th:href="@{/agua/irrigacao}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'agua'} ? ' active'">
+                    <i class="fa-solid fa-droplet me-2"></i> Água / Irrigação
+                </a>
+                <a th:href="@{/agua/reservatorios}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-water me-2"></i> Reservatórios
+                </a>
+                <a th:href="@{/agua/bombas}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-gears me-2"></i> Bombas
+                </a>
+                <a th:href="@{/agua/registros}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-clipboard-list me-2"></i> Registros
+                </a>
+                <a th:href="@{/agua/manutencoes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Manutenções
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapsePropriedade" role="button">
+                <span><i class="fa-solid fa-house me-2"></i> Propriedade</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapsePropriedade"
+                 th:classappend="${active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' show'">
+                <a th:href="@{/propriedade/casa}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'casa'} ? ' active'">
+                    <i class="fa-solid fa-house me-2"></i> Casa
+                </a>
+                <a th:href="@{/propriedade/despensa}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-jar me-2"></i> Despensa
+                </a>
+                <a th:href="@{/propriedade/manutencao}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'manutencao'} ? ' active'">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Manutenção
+                </a>
+                <a th:href="@{/propriedade/ar-condicionado}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-wind me-2"></i> Ar-condicionado
+                </a>
+                <a th:href="@{/propriedade/dedetizacao}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-shield-halved me-2"></i> Dedetização
+                </a>
+                <a th:href="@{/propriedade/reformas}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-person-digging me-2"></i> Reformas
+                </a>
+                <a th:href="@{/propriedade/deterioracoes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> Deteriorações
+                </a>
+                <a th:href="@{/propriedade/patrimonio}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'patrimonio'} ? ' active'">
+                    <i class="fa-solid fa-box-archive me-2"></i> Patrimônio
+                </a>
+                <a th:href="@{/propriedade/seguranca-cameras}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'seguranca'} ? ' active'">
+                    <i class="fa-solid fa-video me-2"></i> Segurança
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'frota' or active == 'abastecimento'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapseVeiculos" role="button">
+                <span><i class="fa-solid fa-truck-pickup me-2"></i> Veículos</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapseVeiculos"
+                 th:classappend="${active == 'frota' or active == 'abastecimento'} ? ' show'">
+                <a th:href="@{/sitio/frota}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'frota'} ? ' active'">
+                    <i class="fa-solid fa-list me-2"></i> Frota
+                </a>
+                <a th:href="@{/sitio/frota/novo}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-plus me-2"></i> Novo Veículo
+                </a>
+                <a th:href="@{/sitio/abastecimento}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'abastecimento'} ? ' active'">
+                    <i class="fa-solid fa-gas-pump me-2"></i> Abastecimentos
+                </a>
+                <a th:href="@{/sitio/abastecimento/novo}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-plus me-2"></i> Novo Abastecimento
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
+               th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' active'"
+               data-bs-toggle="collapse" href="#collapseAdministracao" role="button">
+                <span><i class="fa-solid fa-gears me-2"></i> Administração</span>
+                <i class="fa-solid fa-chevron-down small"></i>
+            </a>
+            <div class="collapse"
+                 id="collapseAdministracao"
+                 th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' show'">
+                <a th:href="@{/administracao/usuarios}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'usuarios'} ? ' active'">
+                    <i class="fa-solid fa-users me-2"></i> Usuários
+                </a>
+                <a th:href="@{/sitio/configuracoes}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'categoria' or active == 'configuracoes'} ? ' active'">
+                    <i class="fa-solid fa-sliders me-2"></i> Configurações
+                </a>
+                <a th:href="@{/configuracoes/roadmap}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'roadmap'} ? ' active'">
+                    <i class="fa-solid fa-map me-2"></i> Roadmap
+                </a>
+                <a th:href="@{/administracao/centros-custo}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'centros-custo'} ? ' active'">
+                    <i class="fa-solid fa-coins me-2"></i> Centros de custo
+                </a>
+                <a th:href="@{/administracao/unidades-medida}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'unidades-medida'} ? ' active'">
+                    <i class="fa-solid fa-ruler-combined me-2"></i> Unidades
+                </a>
+                <a th:href="@{/administracao/dados-propriedade}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'dados-propriedade'} ? ' active'">
+                    <i class="fa-solid fa-location-dot me-2"></i> Dados da propriedade
+                </a>
+            </div>
+        </div>
+    </nav>
+</aside>
+</body>
+</html>

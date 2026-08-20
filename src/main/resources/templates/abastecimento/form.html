@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Abastecimento')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/abastecimento.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar('abastecimento')}"></aside>
+
+    <main class="main-content main-content-wide">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb bg-white p-3 rounded-3 shadow-sm">
+                <li class="breadcrumb-item">
+                    <a th:href="@{/sitio/painel}" class="text-success text-decoration-none">
+                        <i class="fa-solid fa-house me-1"></i> Home
+                    </a>
+                </li>
+                <li class="breadcrumb-item"><a th:href="@{/sitio/frota}" class="text-success text-decoration-none">Minha Frota</a></li>
+                <li class="breadcrumb-item active">Novo Abastecimento</li>
+            </ol>
+        </nav>
+
+        <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+
+        <div class="card abastecimento-card">
+            <div class="abastecimento-header p-4">
+                <h3 class="mb-0 text-center"><i class="fa-solid fa-gas-pump me-2"></i>Registrar Abastecimento</h3>
+            </div>
+            <div class="card-body p-5 bg-white">
+                <form th:action="@{/sitio/abastecimento/salvar}" th:object="${abastecimento}" method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label">Veículo</label>
+                            <select th:field="*{veiculo}" class="form-select form-select-lg" required>
+                                <option value="">-- Selecione o veículo --</option>
+                                <option th:each="veiculo : ${veiculos}"
+                                        th:value="${veiculo.id}"
+                                        th:text="${veiculo.nome}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label">Data</label>
+                            <input type="date" th:field="*{data}" class="form-control form-control-lg" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <label class="form-label">Litros</label>
+                            <input type="number" step="0.01" min="0" th:field="*{litros}" class="form-control form-control-lg" data-litros required>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <label class="form-label">Preço por Litro</label>
+                            <input type="number" step="0.01" min="0" th:field="*{precoPorLitro}" class="form-control form-control-lg" data-preco required>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <label class="form-label">KM no Ato</label>
+                            <input type="number" step="0.1" min="0" th:field="*{kmNoAto}" class="form-control form-control-lg">
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <label class="form-label">Total Estimado</label>
+                            <div class="total-preview form-control form-control-lg" data-total-preview>R$ 0,00</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Local</label>
+                        <input type="text" th:field="*{local}" class="form-control form-control-lg" placeholder="Ex: Posto ou Tanque Sítio" required>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-5">
+                        <a th:href="@{/sitio/frota}" class="text-decoration-none text-muted fw-bold">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Voltar à Frota
+                        </a>
+                        <button type="submit" class="btn btn-success px-5 py-2 fw-bold shadow">
+                            <i class="fa-solid fa-floppy-disk me-2"></i>SALVAR ABASTECIMENTO
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+    <script th:src="@{/js/abastecimento.js}"></script>
+</body>
+</html>

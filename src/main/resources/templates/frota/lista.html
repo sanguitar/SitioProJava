@@ -1,29 +1,22 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Sítio PRO - Minha Frota</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root { --agro-dark: #1e3d1a; --sidebar-width: 260px; }
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
-        .main-content { margin-left: var(--sidebar-width); padding: 40px; }
-        .card-veiculo { border: none; border-radius: 15px; background: white; transition: 0.3s; cursor: pointer; border-bottom: 4px solid transparent; }
-        .card-veiculo:hover { transform: translateY(-5px); border-bottom: 4px solid var(--agro-dark); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .icon-box { width: 50px; height: 50px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: var(--agro-dark); }
-    </style>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Minha Frota')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/frota.css}">
 </head>
 <body>
+    <aside th:replace="~{fragments/sidebar :: sidebar('frota')}"></aside>
 
-    <div class="main-content">
+    <main class="main-content main-content-wide">
         <div class="container-fluid">
-            
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb bg-white p-3 rounded-3 shadow-sm">
-                    <li class="breadcrumb-item"><a th:href="@{/sitio/painel}" class="text-success text-decoration-none"><i class="fa-solid fa-house me-1"></i> Home</a></li>
-                    <li class="breadcrumb-item active" aria-current="page text-muted">Minha Frota</li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/sitio/painel}" class="text-success text-decoration-none">
+                            <i class="fa-solid fa-house me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Minha Frota</li>
                 </ol>
             </nav>
 
@@ -34,22 +27,27 @@
                 </a>
             </div>
 
+            <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
             <div class="row g-4">
                 <div class="col-md-4" th:each="v : ${veiculos}">
-                    <div class="card card-veiculo p-4 shadow-sm" 
-                         th:data-id="${v.id}" 
+                    <div class="card card-veiculo p-4 shadow-sm"
+                         data-veiculo-card
+                         th:data-id="${v.id}"
                          th:data-nome="${v.nome}"
-                         th:data-historico="${v.ultimaConsultaFipe}"
-                         onclick="abrirAnalise(this)">
-                        
+                         th:data-historico="${v.ultimaConsultaFipe}">
+
                         <div class="d-flex justify-content-between mb-3">
                             <div class="icon-box"><i th:class="'fa-solid ' + ${v.icone}"></i></div>
                             <span class="badge bg-success-subtle text-success rounded-pill" th:text="${v.situacao}">Ativo</span>
                         </div>
-                        
+
                         <h4 class="fw-bold mb-1" th:text="${v.nome}">Palio Attractive</h4>
-                        <p class="text-muted small mb-0"><i class="fa-solid fa-barcode me-1"></i> <span th:text="${v.placa}">ABC-1234</span></p>
-                        
+                        <p class="text-muted small mb-0">
+                            <i class="fa-solid fa-barcode me-1"></i>
+                            <span th:text="${v.placa}">ABC-1234</span>
+                        </p>
+
                         <div class="row mt-4 border-top pt-3">
                             <div class="col-6 border-end text-center">
                                 <small class="text-muted d-block small">KM ATUAL</small>
@@ -57,7 +55,7 @@
                             </div>
                             <div class="col-6 ps-3 text-center">
                                 <small class="text-muted d-block small">VALOR FIPE</small>
-                                <strong class="text-success fs-5" 
+                                <strong class="text-success fs-5"
                                         th:text="${v.valorFipe != null ? 'R$ ' + #numbers.formatDecimal(v.valorFipe, 1, 'POINT', 2, 'COMMA') : 'R$ 0,00'}">
                                 </strong>
                             </div>
@@ -66,7 +64,9 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    </body>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+    <script th:src="@{/js/frota.js}"></script>
+</body>
 </html>
