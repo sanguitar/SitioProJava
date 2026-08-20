@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <aside th:fragment="sidebar(active)" class="sidebar shadow">
     <div class="sidebar-brand px-4 mb-3">
         <div>
-            <h4 class="fw-bold mb-0"><i class="fa-solid fa-tractor me-2 text-success"></i>SÍTIO PRO</h4>
-            <small class="text-muted">Systems Analyst v2.0</small>
+            <h4 class="fw-bold mb-0"><i class="fa-solid fa-tractor me-2 text-success"></i>Sítio Guaratinguetá</h4>
+            <small class="text-muted">Gestão rural v2.0</small>
         </div>
         <button class="sidebar-mobile-toggle d-lg-none" type="button" data-bs-toggle="collapse"
                 data-bs-target="#mainSidebarNav" aria-controls="mainSidebarNav" aria-expanded="false"
@@ -15,6 +16,16 @@
     </div>
 
     <nav id="mainSidebarNav" class="collapse d-lg-block sidebar-nav">
+        <div class="sidebar-user" sec:authorize="isAuthenticated()">
+            <div class="sidebar-user-avatar">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div>
+                <strong th:text="${#authentication.principal instanceof T(com.example.sitiopro.usuario.security.UsuarioPrincipal) ? #authentication.principal.nome : #authentication.name}">Usuário</strong>
+                <span th:text="${#authorization.expression('hasRole(''ADMIN'')') ? 'Administrador' : 'Operador'}">Perfil</span>
+            </div>
+        </div>
+
         <div class="sidebar-section">
             <div class="sidebar-section-title">Início</div>
             <a th:href="@{/sitio/painel}" class="sidebar-link"
@@ -33,19 +44,19 @@
             <div class="collapse"
                  id="collapseGestao"
                  th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'producao'} ? ' show'">
-                <a th:href="@{/gestao/estoque}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/estoque}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'estoque' or active == 'producao'} ? ' active'">
                     <i class="fa-solid fa-boxes-stacked me-2"></i> Estoque
                 </a>
-                <a th:href="@{/sitio/cadastro}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/cadastro}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'producao'} ? ' active'">
                     <i class="fa-solid fa-plus me-2"></i> Novo Cadastro
                 </a>
-                <a th:href="@{/gestao/compras}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/compras}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'compras'} ? ' active'">
                     <i class="fa-solid fa-cart-shopping me-2"></i> Compras
                 </a>
-                <a th:href="@{/gestao/tarefas}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/tarefas}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'tarefas'} ? ' active'">
                     <i class="fa-solid fa-list-check me-2"></i> Tarefas
                 </a>
@@ -62,24 +73,24 @@
             <div class="collapse"
                  id="collapseCriacoes"
                  th:classappend="${active == 'aves' or active == 'suinos' or active == 'piscicultura'} ? ' show'">
-                <a th:href="@{/criacoes/aves}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/aves}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'aves'} ? ' active'">
                     <i class="fa-solid fa-egg me-2"></i> Aves
                 </a>
-                <a th:href="@{/criacoes/aves/chocadeira}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/aves/chocadeira}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-temperature-half me-2"></i> Chocadeira
                 </a>
-                <a th:href="@{/criacoes/aves/pinteiro}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/aves/pinteiro}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-feather me-2"></i> Pinteiro
                 </a>
-                <a th:href="@{/criacoes/aves/galinheiro}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/aves/galinheiro}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-house-chimney me-2"></i> Galinheiro
                 </a>
-                <a th:href="@{/criacoes/suinos}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/suinos}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'suinos'} ? ' active'">
                     <i class="fa-solid fa-bacon me-2"></i> Suínos
                 </a>
-                <a th:href="@{/criacoes/piscicultura}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/piscicultura}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'piscicultura'} ? ' active'">
                     <i class="fa-solid fa-fish me-2"></i> Piscicultura
                 </a>
@@ -96,39 +107,39 @@
             <div class="collapse"
                  id="collapseAgricultura"
                  th:classappend="${active == 'agricultura' or active == 'agua'} ? ' show'">
-                <a th:href="@{/agricultura/plantios}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/agricultura/plantios}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'agricultura'} ? ' active'">
                     <i class="fa-solid fa-wheat-awn me-2"></i> Plantios
                 </a>
-                <a th:href="@{/agricultura/areas-talhoes}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agricultura/areas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-map-location-dot me-2"></i> Áreas/Talhões
                 </a>
-                <a th:href="@{/agricultura/culturas}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agricultura/culturas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-seedling me-2"></i> Culturas
                 </a>
-                <a th:href="@{/agricultura/adubacao}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agricultura/adubacao}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-flask me-2"></i> Adubação
                 </a>
-                <a th:href="@{/agricultura/tratamentos}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agricultura/tratamentos}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-spray-can-sparkles me-2"></i> Tratamentos
                 </a>
-                <a th:href="@{/agricultura/colheitas}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agricultura/colheitas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-basket-shopping me-2"></i> Colheitas
                 </a>
-                <a th:href="@{/agua/irrigacao}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/agua/irrigacao}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'agua'} ? ' active'">
                     <i class="fa-solid fa-droplet me-2"></i> Água / Irrigação
                 </a>
-                <a th:href="@{/agua/reservatorios}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agua/reservatorios}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-water me-2"></i> Reservatórios
                 </a>
-                <a th:href="@{/agua/bombas}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agua/bombas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-gears me-2"></i> Bombas
                 </a>
-                <a th:href="@{/agua/registros}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agua/registros}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-clipboard-list me-2"></i> Registros
                 </a>
-                <a th:href="@{/agua/manutencoes}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/agua/manutencoes}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-screwdriver-wrench me-2"></i> Manutenções
                 </a>
             </div>
@@ -144,34 +155,34 @@
             <div class="collapse"
                  id="collapsePropriedade"
                  th:classappend="${active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' show'">
-                <a th:href="@{/propriedade/casa}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/casa}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'casa'} ? ' active'">
                     <i class="fa-solid fa-house me-2"></i> Casa
                 </a>
-                <a th:href="@{/propriedade/despensa}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/despensa}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-jar me-2"></i> Despensa
                 </a>
-                <a th:href="@{/propriedade/manutencao}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/manutencao}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'manutencao'} ? ' active'">
                     <i class="fa-solid fa-screwdriver-wrench me-2"></i> Manutenção
                 </a>
-                <a th:href="@{/propriedade/ar-condicionado}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/ar-condicionado}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-wind me-2"></i> Ar-condicionado
                 </a>
-                <a th:href="@{/propriedade/dedetizacao}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/dedetizacao}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-shield-halved me-2"></i> Dedetização
                 </a>
-                <a th:href="@{/propriedade/reformas}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/reformas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-person-digging me-2"></i> Reformas
                 </a>
-                <a th:href="@{/propriedade/deterioracoes}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/deterioracoes}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-triangle-exclamation me-2"></i> Deteriorações
                 </a>
-                <a th:href="@{/propriedade/patrimonio}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/patrimonio}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'patrimonio'} ? ' active'">
                     <i class="fa-solid fa-box-archive me-2"></i> Patrimônio
                 </a>
-                <a th:href="@{/propriedade/seguranca-cameras}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/seguranca}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'seguranca'} ? ' active'">
                     <i class="fa-solid fa-video me-2"></i> Segurança
                 </a>
@@ -195,17 +206,17 @@
                 <a th:href="@{/sitio/frota/novo}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-plus me-2"></i> Novo Veículo
                 </a>
-                <a th:href="@{/sitio/abastecimento}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/abastecimentos}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'abastecimento'} ? ' active'">
                     <i class="fa-solid fa-gas-pump me-2"></i> Abastecimentos
                 </a>
-                <a th:href="@{/sitio/abastecimento/novo}" class="sidebar-link sidebar-grandchild">
+                <a th:href="@{/sitio/abastecimentos/novo}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-plus me-2"></i> Novo Abastecimento
                 </a>
             </div>
         </div>
 
-        <div class="sidebar-section">
+        <div class="sidebar-section" sec:authorize="hasRole('ADMIN')">
             <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
                th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' active'"
                data-bs-toggle="collapse" href="#collapseAdministracao" role="button">
@@ -215,31 +226,49 @@
             <div class="collapse"
                  id="collapseAdministracao"
                  th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' show'">
-                <a th:href="@{/administracao/usuarios}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/admin/usuarios}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'usuarios'} ? ' active'">
                     <i class="fa-solid fa-users me-2"></i> Usuários
                 </a>
-                <a th:href="@{/sitio/configuracoes}" class="sidebar-link sidebar-child"
-                   th:classappend="${active == 'categoria' or active == 'configuracoes'} ? ' active'">
+                <a th:href="@{/sitio/admin/configuracoes}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'configuracoes'} ? ' active'">
                     <i class="fa-solid fa-sliders me-2"></i> Configurações
                 </a>
-                <a th:href="@{/configuracoes/roadmap}" class="sidebar-link sidebar-grandchild"
+                <a th:href="@{/sitio/configuracoes}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'categoria'} ? ' active'">
+                    <i class="fa-solid fa-tags me-2"></i> Categorias atuais
+                </a>
+                <a th:href="@{/sitio/admin/roadmap}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'roadmap'} ? ' active'">
                     <i class="fa-solid fa-map me-2"></i> Roadmap
                 </a>
-                <a th:href="@{/administracao/centros-custo}" class="sidebar-link sidebar-grandchild"
+                <a th:href="@{/sitio/admin/centros-custo}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'centros-custo'} ? ' active'">
                     <i class="fa-solid fa-coins me-2"></i> Centros de custo
                 </a>
-                <a th:href="@{/administracao/unidades-medida}" class="sidebar-link sidebar-grandchild"
+                <a th:href="@{/sitio/admin/unidades-medida}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'unidades-medida'} ? ' active'">
                     <i class="fa-solid fa-ruler-combined me-2"></i> Unidades
                 </a>
-                <a th:href="@{/administracao/dados-propriedade}" class="sidebar-link sidebar-grandchild"
+                <a th:href="@{/sitio/admin/propriedade}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'dados-propriedade'} ? ' active'">
                     <i class="fa-solid fa-location-dot me-2"></i> Dados da propriedade
                 </a>
             </div>
+        </div>
+
+        <div class="sidebar-section" sec:authorize="isAuthenticated()">
+            <div class="sidebar-section-title">Conta</div>
+            <a th:href="@{/sitio/perfil}" class="sidebar-link"
+               th:classappend="${active == 'perfil'} ? ' active'">
+                <i class="fa-solid fa-id-card me-2"></i> Minha conta
+            </a>
+            <form th:action="@{/logout}" method="post" class="sidebar-logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="sidebar-link sidebar-button">
+                    <i class="fa-solid fa-right-from-bracket me-2"></i> Sair
+                </button>
+            </form>
         </div>
     </nav>
 </aside>

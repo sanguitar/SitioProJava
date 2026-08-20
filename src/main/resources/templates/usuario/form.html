@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Usuário')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/usuario.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide">
+        <section class="user-form-panel">
+            <div class="panel-heading">
+                <h1 th:text="${modo == 'novo' ? 'Novo usuário' : 'Editar usuário'}">Usuário</h1>
+                <a th:href="@{/sitio/admin/usuarios}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left me-1"></i>Voltar
+                </a>
+            </div>
+
+            <form th:action="${modo == 'novo'} ? @{/sitio/admin/usuarios} : @{/sitio/admin/usuarios/{id}(id=${usuario.id})}"
+                  th:object="${usuarioForm}" method="post" class="row g-3">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Nome</label>
+                    <input type="text" th:field="*{nome}" class="form-control" required>
+                    <div class="text-danger small" th:errors="*{nome}"></div>
+                </div>
+
+                <div class="col-md-6" th:if="${modo == 'novo'}">
+                    <label class="form-label">Login</label>
+                    <input type="text" th:field="*{login}" class="form-control" autocomplete="username" required>
+                    <div class="text-danger small" th:errors="*{login}"></div>
+                </div>
+
+                <div class="col-md-6" th:if="${modo == 'novo'}">
+                    <label class="form-label">Senha inicial</label>
+                    <input type="password" th:field="*{senhaInicial}" class="form-control" autocomplete="new-password" required>
+                    <div class="text-danger small" th:errors="*{senhaInicial}"></div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Perfil</label>
+                    <select th:field="*{perfil}" class="form-select" required>
+                        <option th:each="perfil : ${perfis}" th:value="${perfil}" th:text="${perfil.rotulo}"></option>
+                    </select>
+                    <div class="text-danger small" th:errors="*{perfil}"></div>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check form-switch pb-2">
+                        <input type="checkbox" th:field="*{ativo}" class="form-check-input" role="switch">
+                        <label class="form-check-label">Ativo</label>
+                    </div>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Salvar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

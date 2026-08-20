@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Novo Veículo')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Novo Veículo')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/frota.css}">
 </head>
 <body>
@@ -24,6 +24,7 @@
             <h4 class="mb-4"><i class="fa-solid fa-car-side me-2 text-primary"></i> Cadastro com Inteligência de Cache</h4>
 
             <form th:action="@{/sitio/frota/salvar}" th:object="${veiculo}" method="post" id="formCadastro">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" id="historicoFipeJson" th:field="*{ultimaConsultaFipe}">
                 <input type="hidden" id="valorFipe" th:field="*{valorFipe}">
 
@@ -70,6 +71,8 @@
                 </div>
             </form>
         </div>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
     </main>
 
     <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>

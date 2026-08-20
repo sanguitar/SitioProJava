@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Abastecimento')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Abastecimento')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/abastecimento.css}">
 </head>
 <body>
@@ -28,6 +28,8 @@
             </div>
             <div class="card-body p-5 bg-white">
                 <form th:action="@{/sitio/abastecimento/salvar}" th:object="${abastecimento}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
                     <div class="row">
                         <div class="col-md-6 mb-4">
                             <label class="form-label">Veículo</label>
@@ -79,6 +81,8 @@
                 </form>
             </div>
         </div>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
     </main>
 
     <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>

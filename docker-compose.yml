@@ -1,15 +1,37 @@
 services:
+  nginx:
+    image: nginx:1.28.3-alpine
+    container_name: sitiopro-nginx
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sitiopro-sqlserver
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: ${MSSQL_PID:-Developer}
-      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
-    ports:
-      - "${DB_PORT:-1433}:1433"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Defina MSSQL_SA_PASSWORD no arquivo .env}
+    expose:
+      - "1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+    networks:
+      - backend
     healthcheck:
       test:
         [
@@ -29,15 +51,44 @@ services:
         condition: service_healthy
     environment:
       DB_NAME: ${DB_NAME:-sitio_db}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Defina MSSQL_SA_PASSWORD no arquivo .env}
+      DB_USERNAME: ${DB_USERNAME:-sitiopro_app}
       DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
+      FLYWAY_USERNAME: ${FLYWAY_USERNAME:-sitiopro_migration}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD:?Defina FLYWAY_PASSWORD no arquivo .env}
     command:
       - /bin/bash
       - -c
       - |
         SQLCMD=/opt/mssql-tools18/bin/sqlcmd
         if [ ! -x "$$SQLCMD" ]; then SQLCMD=/opt/mssql-tools/bin/sqlcmd; fi
-        "$$SQLCMD" -S sqlserver -U sa -P "$$DB_PASSWORD" -C -Q "IF DB_ID(N'$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME]"
+        "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
+          IF DB_ID(N'$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME];
+
+          IF SUSER_ID(N'$$DB_USERNAME') IS NULL
+              CREATE LOGIN [$$DB_USERNAME] WITH PASSWORD = N'$$DB_PASSWORD', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+          ELSE
+              ALTER LOGIN [$$DB_USERNAME] WITH PASSWORD = N'$$DB_PASSWORD';
+          ALTER LOGIN [$$DB_USERNAME] ENABLE;
+
+          IF SUSER_ID(N'$$FLYWAY_USERNAME') IS NULL
+              CREATE LOGIN [$$FLYWAY_USERNAME] WITH PASSWORD = N'$$FLYWAY_PASSWORD', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+          ELSE
+              ALTER LOGIN [$$FLYWAY_USERNAME] WITH PASSWORD = N'$$FLYWAY_PASSWORD';
+          ALTER LOGIN [$$FLYWAY_USERNAME] ENABLE;
+
+          USE [$$DB_NAME];
+
+          IF USER_ID(N'$$DB_USERNAME') IS NULL CREATE USER [$$DB_USERNAME] FOR LOGIN [$$DB_USERNAME];
+          IF IS_ROLEMEMBER(N'db_datareader', N'$$DB_USERNAME') = 0 ALTER ROLE db_datareader ADD MEMBER [$$DB_USERNAME];
+          IF IS_ROLEMEMBER(N'db_datawriter', N'$$DB_USERNAME') = 0 ALTER ROLE db_datawriter ADD MEMBER [$$DB_USERNAME];
+
+          IF USER_ID(N'$$FLYWAY_USERNAME') IS NULL CREATE USER [$$FLYWAY_USERNAME] FOR LOGIN [$$FLYWAY_USERNAME];
+          IF IS_ROLEMEMBER(N'db_owner', N'$$FLYWAY_USERNAME') = 0 ALTER ROLE db_owner ADD MEMBER [$$FLYWAY_USERNAME];
+          "
     restart: "no"
+    networks:
+      - backend
 
   app:
     build:
@@ -57,10 +108,22 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
       DB_ENCRYPT: "false"
       DB_TRUST_SERVER_CERTIFICATE: "true"
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       JPA_SHOW_SQL: ${JPA_SHOW_SQL:-true}
-    ports:
-      - "${SERVER_PORT:-8083}:8083"
+      FLYWAY_ENABLED: ${FLYWAY_ENABLED:-true}
+      FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-true}
+      FLYWAY_USERNAME: ${FLYWAY_USERNAME:-sitiopro_migration}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD:?Defina FLYWAY_PASSWORD no arquivo .env}
+      SERVER_FORWARD_HEADERS_STRATEGY: ${SERVER_FORWARD_HEADERS_STRATEGY:-native}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SITIOPRO_INITIAL_ADMIN_ENABLED: ${SITIOPRO_INITIAL_ADMIN_ENABLED:-false}
+      SITIOPRO_INITIAL_ADMIN_LOGIN: ${SITIOPRO_INITIAL_ADMIN_LOGIN:-}
+      SITIOPRO_INITIAL_ADMIN_PASSWORD: ${SITIOPRO_INITIAL_ADMIN_PASSWORD:-}
+      SITIOPRO_INITIAL_ADMIN_NAME: ${SITIOPRO_INITIAL_ADMIN_NAME:-}
+    expose:
+      - "8083"
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/health || exit 1"]
       interval: 30s
@@ -70,3 +133,7 @@ services:
 
 volumes:
   sqlserver_data:
+
+networks:
+  frontend:
+  backend:

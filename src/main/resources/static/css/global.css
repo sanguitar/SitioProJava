@@ -33,6 +33,11 @@ body {
     justify-content: space-between;
 }
 
+.sidebar-brand h4 {
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
 .sidebar-mobile-toggle {
     align-items: center;
     background: #2f363d;
@@ -47,6 +52,45 @@ body {
 
 .sidebar-nav {
     padding-bottom: 24px;
+}
+
+.sidebar-user {
+    align-items: center;
+    background: #1a1d20;
+    border: 1px solid #343a40;
+    border-radius: 8px;
+    display: flex;
+    gap: 11px;
+    margin: 0 16px 12px;
+    padding: 12px;
+}
+
+.sidebar-user-avatar {
+    align-items: center;
+    background: #dcfce7;
+    border-radius: 8px;
+    color: #166534;
+    display: flex;
+    height: 38px;
+    justify-content: center;
+    width: 38px;
+}
+
+.sidebar-user strong,
+.sidebar-user span {
+    display: block;
+}
+
+.sidebar-user strong {
+    color: #ffffff;
+    font-size: 0.9rem;
+    line-height: 1.25;
+}
+
+.sidebar-user span {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 .sidebar-section {
@@ -76,6 +120,17 @@ body {
     background: var(--agro-dark);
     color: white;
     border-left: 5px solid #8dbd31;
+}
+
+.sidebar-logout-form {
+    margin: 0;
+}
+
+.sidebar-button {
+    background: transparent;
+    border: 0;
+    text-align: left;
+    width: 100%;
 }
 
 .sidebar-link.sidebar-child,
@@ -553,6 +608,23 @@ body {
 .domain-admin {
     --module-color: #374151;
     --module-accent: #f59e0b;
+}
+
+.app-footer {
+    align-items: center;
+    border-top: 1px solid var(--line);
+    color: var(--text-soft);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    gap: 8px 14px;
+    justify-content: space-between;
+    margin-top: 32px;
+    padding-top: 18px;
+}
+
+.app-footer strong {
+    color: #111827;
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Minha conta')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/usuario.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide">
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Conta</small>
+                <h1>Minha conta</h1>
+            </div>
+        </div>
+
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <section class="row g-4">
+            <div class="col-lg-5">
+                <div class="user-form-panel h-100">
+                    <h2>Dados de acesso</h2>
+                    <dl class="profile-summary">
+                        <dt>Nome</dt>
+                        <dd th:text="${usuarioLogado.nome}">Nome</dd>
+                        <dt>Login</dt>
+                        <dd th:text="${usuarioLogado.username}">login</dd>
+                        <dt>Perfil</dt>
+                        <dd th:text="${usuarioLogado.perfilRotulo}">Perfil</dd>
+                    </dl>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="user-form-panel">
+                    <h2>Alterar senha</h2>
+                    <form th:action="@{/sitio/perfil/senha}" th:object="${senhaForm}" method="post" class="row g-3">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+
+                        <div class="col-12">
+                            <label class="form-label">Senha atual</label>
+                            <input type="password" th:field="*{senhaAtual}" class="form-control" autocomplete="current-password" required>
+                            <div class="text-danger small" th:errors="*{senhaAtual}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nova senha</label>
+                            <input type="password" th:field="*{novaSenha}" class="form-control" autocomplete="new-password" required>
+                            <div class="text-danger small" th:errors="*{novaSenha}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Confirmar senha</label>
+                            <input type="password" th:field="*{confirmarSenha}" class="form-control" autocomplete="new-password" required>
+                            <div class="text-danger small" th:errors="*{confirmarSenha}"></div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="fa-solid fa-key me-2"></i>Alterar senha
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

@@ -6,3 +6,10 @@ spring:
 
 server:
   port: ${SERVER_PORT:8083}
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:native}
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}

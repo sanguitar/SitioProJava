@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Configurações')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Configurações')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/categoria.css}">
 </head>
 <body>
@@ -21,6 +21,8 @@
                     </h5>
 
                     <form th:action="@{/sitio/configuracoes/categoria/salvar}" th:object="${novaCategoria}" method="post" id="formCategoria">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nome da Categoria</label>
                             <input type="text" th:field="*{nome}" class="form-control" placeholder="Ex: Gado de Corte" required>
@@ -83,11 +85,14 @@
                                         <br><small class="text-muted" th:text="${cat.corHex}">#000000</small>
                                     </td>
                                     <td class="text-center">
-                                        <a th:href="@{/sitio/configuracoes/categoria/excluir/{id}(id=${cat.id})}"
-                                           class="btn btn-outline-danger btn-sm"
-                                           data-confirm-message="Excluir esta categoria? Isso pode afetar itens vinculados.">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </a>
+                                        <form th:action="@{/sitio/configuracoes/categoria/excluir/{id}(id=${cat.id})}"
+                                              method="post" class="d-inline">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                    data-confirm-message="Excluir esta categoria? Isso pode afetar itens vinculados.">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             </tbody>
@@ -96,6 +101,8 @@
                 </div>
             </div>
         </div>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
     </main>
 
     <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>

@@ -2,6 +2,7 @@ package com.example.sitiopro.categoria.controller;
 
 import com.example.sitiopro.categoria.model.Categoria;
 import com.example.sitiopro.categoria.service.CategoriaService;
+import com.example.sitiopro.planejamento.PlanejamentoCatalogo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +25,7 @@ public class CategoriaController {
     public String exibirConfiguracoes(Model model) {
         model.addAttribute("categorias", categoriaService.listarTodas());
         model.addAttribute("novaCategoria", categoriaService.nova());
-        model.addAttribute("usuario", "Systems Analyst");
+        model.addAttribute("usuario", PlanejamentoCatalogo.USUARIO_VISUAL);
         return "categoria/configuracoes";
     }
 
@@ -34,7 +35,7 @@ public class CategoriaController {
         return "redirect:/sitio/configuracoes";
     }
 
-    @GetMapping("/categoria/excluir/{id}")
+    @PostMapping("/categoria/excluir/{id}")
     public String excluirCategoria(@PathVariable("id") Long id) {
         categoriaService.excluir(id);
         return "redirect:/sitio/configuracoes";

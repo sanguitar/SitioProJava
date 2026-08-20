@@ -43,7 +43,7 @@ public class ProducaoController {
         return "redirect:/sitio/painel";
     }
 
-    @GetMapping("/excluir/{id}")
+    @PostMapping("/excluir/{id}")
     public String excluirItem(@PathVariable("id") Long id) {
         producaoService.excluir(id);
         return "redirect:/sitio/painel";

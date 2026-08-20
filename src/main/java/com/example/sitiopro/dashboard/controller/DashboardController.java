@@ -2,6 +2,7 @@ package com.example.sitiopro.dashboard.controller;
 
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.planejamento.PlanejamentoCatalogo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,7 @@ public class DashboardController {
         model.addAttribute("labelsGraficoJson", resumo.labelsGraficoJson());
         model.addAttribute("dadosGraficoJson", resumo.dadosGraficoJson());
         model.addAttribute("itensAlerta", resumo.itensAlerta());
-        model.addAttribute("usuario", "Systems Analyst");
+        model.addAttribute("usuario", PlanejamentoCatalogo.USUARIO_VISUAL);
 
         return "dashboard/painel";
     }

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Gerenciar Item')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Gerenciar Item')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/producao.css}">
 </head>
 <body>
@@ -20,6 +20,7 @@
 
                     <div class="card-body p-5 bg-white">
                         <form th:action="@{/sitio/salvar}" th:object="${producao}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                             <input type="hidden" th:field="*{id}" />
 
                             <div class="row">
@@ -78,7 +79,7 @@
                     </div>
                 </div>
 
-                <p class="page-footer text-center mt-4 text-muted small">Systems Analyst - Porto Velho/RO &copy; 2026</p>
+                <div th:replace="~{fragments/ui :: appFooter}"></div>
             </div>
         </div>
     </main>

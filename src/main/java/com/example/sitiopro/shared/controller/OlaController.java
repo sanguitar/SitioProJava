@@ -9,11 +9,11 @@ public class OlaController {
 
     @GetMapping("/ola")
     public String dizerOla() {
-        return "Servidor Spring rodando no Sítio PRO.";
+        return "Servidor Spring rodando no Sítio Guaratinguetá.";
     }
 
     @GetMapping("/saudacao")
-    public String saudacao(@RequestParam(value = "nome", defaultValue = "Porto Velho") String nome) {
+    public String saudacao(@RequestParam(value = "nome", defaultValue = "Guaratinguetá") String nome) {
         return "Olá, " + nome + "! O Spring Boot está rodando liso.";
     }
 }

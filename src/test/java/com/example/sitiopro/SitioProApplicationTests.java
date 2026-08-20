@@ -5,12 +5,14 @@ import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.frota.repository.FipeCacheRepository;
 import com.example.sitiopro.frota.repository.VeiculoRepository;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
+import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
@@ -35,6 +37,12 @@ class SitioProApplicationTests {
 
     @MockBean
     private VeiculoRepository veiculoRepository;
+
+    @MockBean
+    private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     void contextLoads() {

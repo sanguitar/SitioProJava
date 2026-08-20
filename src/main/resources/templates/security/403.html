@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Acesso negado')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/security.css}">
+</head>
+<body class="security-body">
+    <main class="access-denied-shell">
+        <section class="access-denied-panel">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h1>403 - acesso negado</h1>
+            <p>Você não tem permissão para acessar esta área.</p>
+            <a th:href="@{/sitio/painel}" class="btn btn-success">
+                <i class="fa-solid fa-house me-2"></i>Voltar ao painel
+            </a>
+        </section>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

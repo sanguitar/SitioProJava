@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio PRO - Minha Frota')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Minha Frota')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/frota.css}">
 </head>
 <body>
@@ -63,6 +63,8 @@
                     </div>
                 </div>
             </div>
+
+            <div th:replace="~{fragments/ui :: appFooter}"></div>
         </div>
     </main>
 

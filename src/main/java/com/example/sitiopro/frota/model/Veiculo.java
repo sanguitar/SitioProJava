@@ -1,5 +1,6 @@
 package com.example.sitiopro.frota.model;
 
+import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,7 +14,7 @@ import java.io.Serializable;
 
 @Entity
 @Table(name = "veiculos")
-public class Veiculo implements Serializable {
+public class Veiculo extends AuditableEntity implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

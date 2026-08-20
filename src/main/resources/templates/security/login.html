@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Login')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/security.css}">
+</head>
+<body class="security-body">
+    <main class="login-shell">
+        <section class="login-panel">
+            <div class="login-brand">
+                <i class="fa-solid fa-tractor"></i>
+                <div>
+                    <h1>Sítio Guaratinguetá</h1>
+                    <span>Gestão rural</span>
+                </div>
+            </div>
+
+            <div class="alert alert-danger" th:if="${param.error}">
+                Login ou senha inválidos.
+            </div>
+            <div class="alert alert-success" th:if="${param.logout}">
+                Logout realizado com sucesso.
+            </div>
+
+            <form th:action="@{/login}" method="post" class="login-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label for="username">Login</label>
+                <input id="username" type="text" name="username" autocomplete="username" required autofocus>
+
+                <label for="password">Senha</label>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
+
+                <button type="submit" class="btn btn-success fw-bold">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

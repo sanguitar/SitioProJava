@@ -2,6 +2,7 @@ package com.example.sitiopro.frota.controller;
 
 import com.example.sitiopro.frota.model.Veiculo;
 import com.example.sitiopro.frota.service.VeiculoService;
+import com.example.sitiopro.planejamento.PlanejamentoCatalogo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +23,7 @@ public class VeiculoController {
     @GetMapping
     public String listar(Model model) {
         model.addAttribute("veiculos", veiculoService.listarTodos());
-        model.addAttribute("usuario", "Systems Analyst");
+        model.addAttribute("usuario", PlanejamentoCatalogo.USUARIO_VISUAL);
         return "frota/lista";
     }
 

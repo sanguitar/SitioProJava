@@ -1,6 +1,7 @@
 package com.example.sitiopro.abastecimento.model;
 
 import com.example.sitiopro.frota.model.Veiculo;
+import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -20,7 +21,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "abastecimentos")
-public class Abastecimento {
+public class Abastecimento extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

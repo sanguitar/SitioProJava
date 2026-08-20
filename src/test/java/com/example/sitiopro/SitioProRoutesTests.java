@@ -10,10 +10,19 @@ import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.frota.controller.VeiculoController;
 import com.example.sitiopro.frota.service.VeiculoService;
-import com.example.sitiopro.planejamento.controller.PlanejamentoController;
+import com.example.sitiopro.planejamento.controller.AdministracaoPlanejamentoController;
+import com.example.sitiopro.planejamento.controller.AgriculturaPlanejamentoController;
+import com.example.sitiopro.planejamento.controller.AguaPlanejamentoController;
+import com.example.sitiopro.planejamento.controller.CriacoesPlanejamentoController;
+import com.example.sitiopro.planejamento.controller.GestaoPlanejamentoController;
+import com.example.sitiopro.planejamento.controller.PlanejamentoRedirectController;
+import com.example.sitiopro.planejamento.controller.PropriedadePlanejamentoController;
+import com.example.sitiopro.planejamento.controller.VeiculosPlanejamentoController;
 import com.example.sitiopro.producao.controller.ProducaoController;
 import com.example.sitiopro.producao.model.Producao;
 import com.example.sitiopro.producao.service.ProducaoService;
+import com.example.sitiopro.usuario.controller.UsuarioController;
+import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -39,8 +49,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         CategoriaController.class,
         VeiculoController.class,
         AbastecimentoController.class,
-        PlanejamentoController.class
+        GestaoPlanejamentoController.class,
+        CriacoesPlanejamentoController.class,
+        AgriculturaPlanejamentoController.class,
+        AguaPlanejamentoController.class,
+        PropriedadePlanejamentoController.class,
+        VeiculosPlanejamentoController.class,
+        AdministracaoPlanejamentoController.class,
+        PlanejamentoRedirectController.class,
+        UsuarioController.class
 })
+@WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
 
     @Autowired
@@ -61,6 +80,9 @@ class SitioProRoutesTests {
     @MockBean
     private AbastecimentoService abastecimentoService;
 
+    @MockBean
+    private UsuarioService usuarioService;
+
     @BeforeEach
     void configurarMocks() {
         DashboardResumo resumo = new DashboardResumo(new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0);
@@ -70,6 +92,7 @@ class SitioProRoutesTests {
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novo()).thenReturn(new Producao());
         when(veiculoService.listarTodos()).thenReturn(List.of());
+        when(usuarioService.listarTodos()).thenReturn(List.of());
     }
 
     @ParameterizedTest
@@ -79,7 +102,9 @@ class SitioProRoutesTests {
             "/sitio/configuracoes",
             "/sitio/frota",
             "/sitio/frota/novo",
-            "/sitio/abastecimento/novo"
+            "/sitio/abastecimento/novo",
+            "/sitio/admin/usuarios",
+            "/sitio/admin/usuarios/novo"
     })
     void rotasFuncionaisExistentesContinuamRespondendo(String rota) throws Exception {
         mockMvc.perform(get(rota))
@@ -95,41 +120,41 @@ class SitioProRoutesTests {
 
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/gestao/estoque",
-                "/gestao/compras",
-                "/gestao/tarefas",
-                "/criacoes/aves",
-                "/criacoes/aves/chocadeira",
-                "/criacoes/aves/pinteiro",
-                "/criacoes/aves/galinheiro",
-                "/criacoes/suinos",
-                "/criacoes/piscicultura",
-                "/agricultura/areas-talhoes",
-                "/agricultura/culturas",
-                "/agricultura/plantios",
-                "/agricultura/adubacao",
-                "/agricultura/irrigacao",
-                "/agricultura/tratamentos",
-                "/agricultura/colheitas",
-                "/agua/reservatorios",
-                "/agua/bombas",
-                "/agua/irrigacao",
-                "/agua/registros",
-                "/agua/manutencoes",
-                "/propriedade/casa",
-                "/propriedade/despensa",
-                "/propriedade/manutencao",
-                "/propriedade/ar-condicionado",
-                "/propriedade/dedetizacao",
-                "/propriedade/reformas",
-                "/propriedade/deterioracoes",
-                "/propriedade/patrimonio",
-                "/propriedade/seguranca-cameras",
-                "/administracao/usuarios",
-                "/administracao/configuracoes",
-                "/administracao/centros-custo",
-                "/administracao/unidades-medida",
-                "/administracao/dados-propriedade"
+                "/sitio/estoque",
+                "/sitio/compras",
+                "/sitio/tarefas",
+                "/sitio/aves",
+                "/sitio/aves/chocadeira",
+                "/sitio/aves/pinteiro",
+                "/sitio/aves/galinheiro",
+                "/sitio/suinos",
+                "/sitio/piscicultura",
+                "/sitio/agricultura/areas",
+                "/sitio/agricultura/culturas",
+                "/sitio/agricultura/plantios",
+                "/sitio/agricultura/adubacao",
+                "/sitio/agricultura/irrigacao",
+                "/sitio/agricultura/tratamentos",
+                "/sitio/agricultura/colheitas",
+                "/sitio/agua",
+                "/sitio/agua/reservatorios",
+                "/sitio/agua/bombas",
+                "/sitio/agua/irrigacao",
+                "/sitio/agua/registros",
+                "/sitio/agua/manutencoes",
+                "/sitio/casa",
+                "/sitio/despensa",
+                "/sitio/manutencao",
+                "/sitio/ar-condicionado",
+                "/sitio/dedetizacao",
+                "/sitio/reformas",
+                "/sitio/deterioracoes",
+                "/sitio/patrimonio",
+                "/sitio/seguranca",
+                "/sitio/admin/configuracoes",
+                "/sitio/admin/centros-custo",
+                "/sitio/admin/unidades-medida",
+                "/sitio/admin/propriedade"
         );
 
         Stream<String> fluxosPadrao = basesComFluxoPadrao.stream()
@@ -138,10 +163,27 @@ class SitioProRoutesTests {
         return Stream.concat(fluxosPadrao, Stream.of(
                 "/sitio/frota/detalhe",
                 "/sitio/frota/historico",
-                "/sitio/abastecimento",
-                "/sitio/abastecimento/detalhe",
-                "/sitio/abastecimento/historico",
-                "/configuracoes/roadmap"
+                "/sitio/abastecimentos",
+                "/sitio/abastecimentos/detalhe",
+                "/sitio/abastecimentos/historico",
+                "/sitio/admin/roadmap"
         ));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/gestao/estoque",
+            "/criacoes/aves/chocadeira",
+            "/agricultura/plantios",
+            "/agua/irrigacao",
+            "/propriedade/seguranca-cameras",
+            "/administracao/usuarios",
+            "/configuracoes/roadmap",
+            "/sitio/abastecimento",
+            "/sitio/abastecimentos/novo"
+    })
+    void rotasAntigasOuAliasesRedirecionam(String rota) throws Exception {
+        mockMvc.perform(get(rota))
+                .andExpect(status().is3xxRedirection());
     }
 }

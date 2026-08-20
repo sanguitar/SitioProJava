@@ -1,0 +1,8 @@
+services:
+  sqlserver:
+    ports:
+      - "${DB_PORT:-1433}:1433"
+
+  app:
+    ports:
+      - "${SERVER_PORT:-8083}:8083"

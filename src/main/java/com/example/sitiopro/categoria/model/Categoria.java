@@ -1,6 +1,7 @@
 package com.example.sitiopro.categoria.model;
 
 import com.example.sitiopro.producao.model.Producao;
+import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,7 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "categorias")
-public class Categoria {
+public class Categoria extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
