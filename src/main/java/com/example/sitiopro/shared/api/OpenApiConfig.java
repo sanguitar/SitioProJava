@@ -14,6 +14,6 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Sítio Guaratinguetá - API operacional")
                         .version("v1")
-                        .description("Endpoints iniciais dos módulos Estoque e Compras."));
+                        .description("Endpoints dos módulos Estoque, Compras, Clima e operação de integrações."));
     }
 }

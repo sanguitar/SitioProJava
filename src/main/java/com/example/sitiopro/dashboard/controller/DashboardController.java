@@ -37,6 +37,7 @@ public class DashboardController {
         model.addAttribute("labelsGraficoJson", resumo.labelsGraficoJson());
         model.addAttribute("dadosGraficoJson", resumo.dadosGraficoJson());
         model.addAttribute("itensAlerta", resumo.itensAlerta());
+        model.addAttribute("clima", resumo.clima());
         model.addAttribute("usuario", PlanejamentoCatalogo.USUARIO_VISUAL);
 
         return "dashboard/painel";

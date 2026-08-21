@@ -49,6 +49,58 @@
             </div>
         </section>
 
+        <section class="climate-band" aria-labelledby="climate-title">
+            <div class="climate-band-heading">
+                <div class="climate-band-icon" aria-hidden="true">
+                    <i class="fa-solid fa-cloud-sun-rain"></i>
+                </div>
+                <div>
+                    <span>Clima</span>
+                    <h2 id="climate-title">Previsão local</h2>
+                </div>
+            </div>
+
+            <div class="climate-empty" th:if="${clima == null or !clima.disponivel}">
+                <strong>Clima ainda não sincronizado</strong>
+                <span>Os valores aparecerão aqui após a primeira sincronização configurada.</span>
+            </div>
+
+            <div class="climate-content" th:if="${clima != null and clima.disponivel}">
+                <div class="climate-primary">
+                    <strong th:text="${clima.temperatura == null ? '-' : #numbers.formatDecimal(clima.temperatura, 1, 1) + ' °C'}">28,4 °C</strong>
+                    <span th:text="${clima.umidadeRelativa == null ? 'Umidade -' : 'Umidade ' + clima.umidadeRelativa + '%'}">Umidade 78%</span>
+                </div>
+                <dl class="climate-metrics">
+                    <div>
+                        <dt>Chuva em 24h</dt>
+                        <dd th:text="${#numbers.formatDecimal(clima.chuvaProximas24h, 1, 1) + ' mm'}">0,0 mm</dd>
+                    </div>
+                    <div>
+                        <dt>Vento</dt>
+                        <dd th:text="${clima.velocidadeVento == null ? '-' : #numbers.formatDecimal(clima.velocidadeVento, 1, 1) + ' km/h'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>ET0</dt>
+                        <dd th:text="${clima.et0 == null ? '-' : #numbers.formatDecimal(clima.et0, 1, 2) + ' mm'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Solo 0–1 cm</dt>
+                        <dd th:text="${clima.umidadeSolo == null ? '-' : #numbers.formatDecimal(clima.umidadeSolo, 1, 3) + ' m³/m³'}">-</dd>
+                    </div>
+                </dl>
+                <div class="climate-freshness" th:classappend="${clima.desatualizado} ? ' is-stale'">
+                    <i class="fa-solid" th:classappend="${clima.desatualizado} ? ' fa-triangle-exclamation' : ' fa-clock'" aria-hidden="true"></i>
+                    <span th:if="${clima.desatualizado}">Dados climáticos desatualizados</span>
+                    <span th:unless="${clima.desatualizado}">Última atualização</span>
+                    <time th:text="${#temporals.format(clima.ultimaAtualizacao, 'dd/MM/yyyy HH:mm')}">21/08/2026 10:15</time>
+                </div>
+            </div>
+
+            <a class="climate-attribution" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
+                Dados meteorológicos por Open-Meteo.com
+            </a>
+        </section>
+
         <section class="attention-grid" aria-label="Áreas de atenção">
             <article class="attention-card attention-card-critical" th:classappend="${itensAlerta > 0} ? ' has-alert'">
                 <div class="attention-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -101,8 +153,8 @@
                 <div class="attention-icon"><i class="fa-solid fa-cloud-sun"></i></div>
                 <div>
                     <span>Clima</span>
-                    <strong>Futuro</strong>
-                    <p>Espaço reservado para previsão e condições climáticas do sítio.</p>
+                    <strong th:text="${clima != null and clima.disponivel ? 'Dados locais' : 'Não sincronizado'}">Não sincronizado</strong>
+                    <p>A previsão é consultada no SQL Server e permanece disponível durante falhas do provedor.</p>
                 </div>
             </article>
         </section>

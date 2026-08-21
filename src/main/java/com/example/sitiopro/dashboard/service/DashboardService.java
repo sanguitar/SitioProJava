@@ -3,6 +3,7 @@ package com.example.sitiopro.dashboard.service;
 import com.example.sitiopro.categoria.model.Categoria;
 import com.example.sitiopro.categoria.service.CategoriaService;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
+import com.example.sitiopro.integracao.clima.service.ClimaConsultaService;
 import com.example.sitiopro.producao.service.ProducaoService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,12 +17,14 @@ public class DashboardService {
     private final CategoriaService categoriaService;
     private final ProducaoService producaoService;
     private final ObjectMapper objectMapper;
+    private final ClimaConsultaService climaConsultaService;
 
     public DashboardService(CategoriaService categoriaService, ProducaoService producaoService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper, ClimaConsultaService climaConsultaService) {
         this.categoriaService = categoriaService;
         this.producaoService = producaoService;
         this.objectMapper = objectMapper;
+        this.climaConsultaService = climaConsultaService;
     }
 
     public DashboardResumo montarResumo(Long categoriaId, int page) {
@@ -36,7 +39,8 @@ public class DashboardService {
                 toJson(dados),
                 producaoService.contarTodos(),
                 categorias.size(),
-                producaoService.contarAlertas());
+                producaoService.contarAlertas(),
+                climaConsultaService.resumo());
     }
 
     private String toJson(Object value) {

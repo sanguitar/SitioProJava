@@ -21,6 +21,8 @@ springdoc:
     - /api/v1/compras/**
     - /api/v1/fornecedores
     - /api/v1/fornecedores/**
+    - /api/v1/clima/**
+    - /api/v1/admin/integracoes
   swagger-ui:
     path: /swagger-ui.html
 
@@ -65,3 +67,33 @@ sitiopro:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
     enabled: ${SITIOPRO_OBSERVABILITY_ENABLED:false}
     apm-server-url: ${SITIOPRO_OBSERVABILITY_APM_SERVER_URL:http://apm-server:8200}
+  integracoes:
+    core:
+      running-timeout: ${SITIOPRO_INTEGRATION_RUNNING_TIMEOUT:30m}
+      history-limit: ${SITIOPRO_INTEGRATION_HISTORY_LIMIT:20}
+      open-meteo-limit-per-minute: ${SITIOPRO_OPEN_METEO_LIMIT_PER_MINUTE:10}
+      agrofit-limit-per-minute: ${SITIOPRO_AGROFIT_LIMIT_PER_MINUTE:2}
+    open-meteo:
+      enabled: ${SITIOPRO_OPEN_METEO_ENABLED:false}
+      base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
+      latitude: ${SITIO_LATITUDE:}
+      longitude: ${SITIO_LONGITUDE:}
+      timezone: ${SITIO_TIMEZONE:}
+      schedule-zone: ${SITIOPRO_INTEGRATIONS_ZONE:UTC}
+      contexto: ${SITIOPRO_CLIMATE_CONTEXT:principal}
+      cron: ${OPEN_METEO_CRON:0 17 */3 * * *}
+      connect-timeout: ${OPEN_METEO_CONNECT_TIMEOUT:3s}
+      read-timeout: ${OPEN_METEO_READ_TIMEOUT:8s}
+      stale-after: ${OPEN_METEO_STALE_AFTER:6h}
+      forecast-days: ${OPEN_METEO_FORECAST_DAYS:7}
+      retention-days: ${OPEN_METEO_RETENTION_DAYS:30}
+    embrapa-agrofit:
+      enabled: ${SITIOPRO_EMBRAPA_AGROFIT_ENABLED:false}
+      base-url: ${EMBRAPA_AGROFIT_BASE_URL:https://api.cnptia.embrapa.br/agrofit/v1}
+      token: ${EMBRAPA_AGROFIT_TOKEN:}
+      cron: ${EMBRAPA_AGROFIT_CRON:0 29 3 * * MON}
+      schedule-zone: ${SITIOPRO_INTEGRATIONS_ZONE:UTC}
+      connect-timeout: ${EMBRAPA_AGROFIT_CONNECT_TIMEOUT:3s}
+      read-timeout: ${EMBRAPA_AGROFIT_READ_TIMEOUT:10s}
+      stale-after: ${EMBRAPA_AGROFIT_STALE_AFTER:9d}
+      max-pages: ${EMBRAPA_AGROFIT_MAX_PAGES:1}

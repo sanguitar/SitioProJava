@@ -383,6 +383,42 @@ public final class PlanejamentoCatalogo {
                 "Edição de perfil e status",
                 "Reset administrativo de senha"));
 
+        adicionar(modulos, moduloComAcoes("Integrações", "Integration Foundation", "/sitio/admin/integracoes",
+                "integracoes", "integracoes.css", "domain-admin", "fa-plug-circle-bolt",
+                StatusPlanejamento.FUNCIONAL,
+                "Fundação persistente para sincronização, histórico, concorrência, resiliência e operação de fontes externas.",
+                links(link("Painel funcional", "/sitio/admin/integracoes", "fa-plug-circle-bolt")),
+                List.of(acao("listagem", "Painel funcional", "/sitio/admin/integracoes",
+                        "Visão operacional das fontes implementadas e planejadas.")),
+                "Estado e histórico persistidos no SQL Server",
+                "Prevenção de sincronização concorrente por fonte",
+                "Sincronização manual protegida por ADMIN e CSRF",
+                "Execução agendada e observabilidade estruturada"));
+
+        adicionar(modulos, moduloComAcoes("Integrações", "Open-Meteo", "/sitio/admin/integracoes/open-meteo",
+                "integracoes", "integracoes.css", "domain-admin", "fa-cloud-sun-rain",
+                StatusPlanejamento.EM_DESENVOLVIMENTO,
+                "Previsão climática horária persistida para o dashboard e APIs internas.",
+                links(link("Detalhe operacional", "/sitio/admin/integracoes/open-meteo", "fa-cloud-sun-rain")),
+                List.of(acao("detalhe", "Detalhe operacional", "/sitio/admin/integracoes/open-meteo",
+                        "Configuração segura, estado e histórico do Open-Meteo.")),
+                "Temperatura, umidade e precipitação",
+                "Vento, rajadas, ET0 e umidade do solo",
+                "Resumo climático local no dashboard",
+                "API interna /api/v1/clima"));
+
+        adicionar(modulos, moduloComAcoes("Integrações", "Embrapa Agrofit piloto",
+                "/sitio/admin/integracoes/embrapa-agrofit", "integracoes", "integracoes.css",
+                "domain-admin", "fa-seedling", StatusPlanejamento.EM_DESENVOLVIMENTO,
+                "Piloto controlado do catálogo de culturas da API Agrofit v1, dependente de token oficial.",
+                links(link("Detalhe operacional", "/sitio/admin/integracoes/embrapa-agrofit", "fa-seedling")),
+                List.of(acao("detalhe", "Detalhe operacional", "/sitio/admin/integracoes/embrapa-agrofit",
+                        "Configuração segura, estado e histórico do piloto Agrofit.")),
+                "Adapter isolado para Agrofit v1",
+                "Token somente por variável externa",
+                "Recorte inicial do catálogo de culturas",
+                "Expansão futura condicionada aos termos oficiais"));
+
         adicionar(modulos, modulo("Administração", "Configurações", "/sitio/admin/configuracoes",
                 "configuracoes", "global.css", "domain-admin", "fa-gears", StatusPlanejamento.PRECISA_REVISAO,
                 "Central futura de parametrizações gerais do sistema e módulos administrativos.",

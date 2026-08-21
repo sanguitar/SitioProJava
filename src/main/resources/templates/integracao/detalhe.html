@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Detalhe da integração')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/integracoes.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar('integracoes')}"></aside>
+
+    <main class="main-content integrations-page">
+        <div th:replace="~{fragments/ui :: topbar(${integracao.nome}, 'Integrações externas')}"></div>
+
+        <div class="alert alert-success" th:if="${sucesso}" th:text="${sucesso}">Sucesso</div>
+        <div class="alert alert-danger" th:if="${erro}" th:text="${erro}">Erro</div>
+
+        <section class="integration-detail-header">
+            <div>
+                <a th:href="@{/sitio/admin/integracoes}" class="integration-back">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Integrações
+                </a>
+                <h2 th:text="${integracao.nome}">Open-Meteo</h2>
+                <p th:text="${integracao.descricao}">Descrição</p>
+            </div>
+            <div class="integration-detail-actions">
+                <span class="integration-status"
+                      th:classappend="${integracao.status.classeCss}"
+                      th:text="${integracao.status.rotulo}">Operacional</span>
+                <form th:if="${integracao.sincronizacaoManualDisponivel}"
+                      th:action="@{/sitio/admin/integracoes/{fonte}/sincronizar(fonte=${integracao.slug})}"
+                      method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button class="btn btn-success" type="submit" th:disabled="${integracao.emExecucao}">
+                        <i class="fa-solid fa-rotate me-2"></i>Sincronizar agora
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section class="integration-facts" aria-label="Configuração e estado">
+            <dl>
+                <div><dt>Habilitada</dt><dd th:text="${integracao.habilitada ? 'SIM' : 'NÃO'}">NÃO</dd></div>
+                <div><dt>Configurada</dt><dd th:text="${integracao.configurada ? 'SIM' : 'NÃO'}">NÃO</dd></div>
+                <div><dt>Credencial</dt><dd th:text="${integracao.credencial}">NÃO EXIGIDA</dd></div>
+                <div><dt>Última tentativa</dt><dd th:text="${integracao.ultimaTentativa == null ? '-' : #temporals.format(integracao.ultimaTentativa, 'dd/MM/yyyy HH:mm')}">-</dd></div>
+                <div><dt>Último sucesso</dt><dd th:text="${integracao.ultimoSucesso == null ? '-' : #temporals.format(integracao.ultimoSucesso, 'dd/MM/yyyy HH:mm')}">-</dd></div>
+                <div><dt>Próxima execução</dt><dd th:text="${integracao.proximaExecucao == null ? '-' : #temporals.format(integracao.proximaExecucao, 'dd/MM/yyyy HH:mm')}">-</dd></div>
+            </dl>
+        </section>
+
+        <section class="integration-history">
+            <header>
+                <div>
+                    <h3>Histórico recente</h3>
+                    <p>Execuções registradas no SQL Server.</p>
+                </div>
+            </header>
+            <div class="table-responsive" th:if="${!#lists.isEmpty(historico)}">
+                <table class="table integration-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Início</th>
+                            <th>Status</th>
+                            <th>Duração</th>
+                            <th>Lidos</th>
+                            <th>Inseridos</th>
+                            <th>Atualizados</th>
+                            <th>Ignorados</th>
+                            <th>Diagnóstico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="execucao : ${historico}">
+                            <td th:text="${#temporals.format(execucao.iniciadoEm, 'dd/MM/yyyy HH:mm')}">-</td>
+                            <td th:text="${execucao.status}">SUCCESS</td>
+                            <td th:text="${execucao.duracaoMillis == null ? '-' : execucao.duracaoMillis + ' ms'}">-</td>
+                            <td th:text="${execucao.registrosLidos}">0</td>
+                            <td th:text="${execucao.registrosInseridos}">0</td>
+                            <td th:text="${execucao.registrosAtualizados}">0</td>
+                            <td th:text="${execucao.registrosIgnorados}">0</td>
+                            <td>
+                                <strong th:if="${execucao.erroCodigo}" th:text="${execucao.erroCodigo}">ERRO</strong>
+                                <span th:if="${execucao.traceId}" th:text="${'trace: ' + execucao.traceId}">trace</span>
+                                <span th:if="${execucao.erroResumo}" th:text="${execucao.erroResumo}">Resumo</span>
+                                <span th:if="${execucao.erroCodigo == null and execucao.traceId == null}">-</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="integration-empty" th:if="${#lists.isEmpty(historico)}">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <strong>Nenhuma execução registrada</strong>
+                <span>A primeira sincronização aparecerá aqui.</span>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

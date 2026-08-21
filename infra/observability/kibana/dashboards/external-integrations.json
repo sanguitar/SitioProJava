@@ -1,0 +1,154 @@
+{
+  "title": "Sítio Guaratinguetá - External Integrations",
+  "description": "Operação técnica das sincronizações externas por fonte, resultado, duração, retries e falhas HTTP.",
+  "esql_approximation": true,
+  "time_range": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh_interval": {
+    "pause": false,
+    "value": 60000
+  },
+  "panels": [
+    {
+      "grid": { "x": 0, "y": 0, "w": 48, "h": 8 },
+      "type": "markdown",
+      "config": {
+        "content": "## Sítio Guaratinguetá - External Integrations\n\nDiagnóstico técnico de Open-Meteo, Embrapa Agrofit e futuras fontes. O estado operacional exibido no ERP continua vindo do SQL Server."
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Sincronizações concluídas",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"integration.sync.completed\" | STATS completed = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "completed" }]
+      }
+    },
+    {
+      "grid": { "x": 12, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Sincronizações com falha",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"integration.sync.failed\" | STATS failures = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "failures" }]
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "HTTP 429",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"integration.http.rate_limited\" | STATS rate_limited = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "rate_limited" }]
+      }
+    },
+    {
+      "grid": { "x": 36, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Timeouts",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"integration.http.timeout\" | STATS timeouts = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "timeouts" }]
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 15, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Resultado por fonte",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action IN (\"integration.sync.completed\", \"integration.sync.failed\") | EVAL result = CONCAT(integration.source, \" / \", event.action) | STATS count = COUNT() BY result | SORT count DESC"
+            },
+            "x": { "column": "result" },
+            "y": [{ "column": "count" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 15, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Duração média por fonte (ms)",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action IN (\"integration.sync.completed\", \"integration.sync.failed\") | EVAL duration_ms = TO_DOUBLE(event.duration) / 1000000 | STATS avg_duration_ms = AVG(duration_ms) BY integration.source"
+            },
+            "x": { "column": "integration.source" },
+            "y": [{ "column": "avg_duration_ms" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 27, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Chamadas e retries por fonte",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action LIKE \"integration.http.*\" | EVAL attempts = TO_INTEGER(retry.attempts) | STATS calls = COUNT(), avg_attempts = AVG(attempts) BY integration.source"
+            },
+            "x": { "column": "integration.source" },
+            "y": [{ "column": "calls" }, { "column": "avg_attempts" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 27, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Falhas externas por código",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE module == \"integracao\" AND error.code IS NOT NULL | STATS count = COUNT() BY error.code | SORT count DESC | LIMIT 15"
+            },
+            "x": { "column": "error.code" },
+            "y": [{ "column": "count" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    }
+  ]
+}

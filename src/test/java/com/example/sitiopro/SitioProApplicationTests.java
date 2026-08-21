@@ -12,6 +12,10 @@ import com.example.sitiopro.estoque.repository.MovimentoEstoqueRepository;
 import com.example.sitiopro.estoque.repository.UnidadeMedidaRepository;
 import com.example.sitiopro.frota.repository.FipeCacheRepository;
 import com.example.sitiopro.frota.repository.VeiculoRepository;
+import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
+import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
+import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
+import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
@@ -72,6 +76,18 @@ class SitioProApplicationTests {
 
     @MockBean
     private MovimentoEstoqueRepository movimentoEstoqueRepository;
+
+    @MockBean
+    private IntegracaoEstadoRepository integracaoEstadoRepository;
+
+    @MockBean
+    private IntegracaoExecucaoRepository integracaoExecucaoRepository;
+
+    @MockBean
+    private PrevisaoClimaticaRepository previsaoClimaticaRepository;
+
+    @MockBean
+    private AgrofitCulturaRepository agrofitCulturaRepository;
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;

@@ -18,6 +18,13 @@ import com.example.sitiopro.compras.service.FornecedorService;
 import com.example.sitiopro.dashboard.controller.DashboardController;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
+import com.example.sitiopro.integracao.controller.IntegracaoAdminController;
+import com.example.sitiopro.integracao.core.StatusOperacionalIntegracao;
+import com.example.sitiopro.integracao.core.dto.IntegracaoFonteResumo;
+import com.example.sitiopro.integracao.core.dto.IntegracaoPainelResumo;
+import com.example.sitiopro.integracao.core.service.IntegracaoOrquestrador;
+import com.example.sitiopro.integracao.core.service.IntegracaoPainelService;
 import com.example.sitiopro.estoque.controller.EstoqueController;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
 import com.example.sitiopro.estoque.dto.ItemEstoqueDetalhe;
@@ -60,6 +67,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -87,7 +95,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AdministracaoPlanejamentoController.class,
         PlanejamentoRedirectController.class,
         UsuarioController.class,
-        SistemaSaudeController.class
+        SistemaSaudeController.class,
+        IntegracaoAdminController.class
 })
 @WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
@@ -128,9 +137,17 @@ class SitioProRoutesTests {
     @MockBean
     private FornecedorService fornecedorService;
 
+    @MockBean
+    private IntegracaoPainelService integracaoPainelService;
+
+    @MockBean
+    private IntegracaoOrquestrador integracaoOrquestrador;
+
     @BeforeEach
     void configurarMocks() {
-        DashboardResumo resumo = new DashboardResumo(new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0);
+        DashboardResumo resumo = new DashboardResumo(
+                new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0,
+                ClimaResumo.naoSincronizado());
 
         when(dashboardService.montarResumo(nullable(Long.class), anyInt())).thenReturn(resumo);
         when(categoriaService.listarTodas()).thenReturn(List.of());
@@ -173,6 +190,14 @@ class SitioProRoutesTests {
                 0, BigDecimal.ZERO, 0, 1, null, List.of()));
         when(compraService.listar(any(CompraFiltro.class))).thenReturn(List.of());
         when(compraService.detalhar(1L)).thenReturn(compra);
+        IntegracaoFonteResumo integracao = new IntegracaoFonteResumo(
+                "open-meteo", "Open-Meteo", "Clima", "Previsão local", true,
+                false, false, false, false, "NÃO EXIGIDA",
+                StatusOperacionalIntegracao.DESABILITADO,
+                null, null, null, null);
+        when(integracaoPainelService.resumo()).thenReturn(new IntegracaoPainelResumo(0, 0, 0, 0, Map.of()));
+        when(integracaoPainelService.detalhar(any())).thenReturn(integracao);
+        when(integracaoPainelService.historico(any())).thenReturn(List.of());
         when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
                 "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
                 "DESABILITADA", "test-request"));
@@ -204,7 +229,10 @@ class SitioProRoutesTests {
             "/sitio/compras/fornecedores",
             "/sitio/compras/fornecedores/novo",
             "/sitio/compras/fornecedores/1",
-            "/sitio/admin/saude"
+            "/sitio/admin/saude",
+            "/sitio/admin/integracoes",
+            "/sitio/admin/integracoes/open-meteo",
+            "/sitio/admin/integracoes/embrapa-agrofit"
     })
     void rotasFuncionaisExistentesContinuamRespondendo(String rota) throws Exception {
         mockMvc.perform(get(rota))

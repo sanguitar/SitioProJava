@@ -14,6 +14,11 @@ import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.compras.service.FornecedorService;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
+import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
+import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
+import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
+import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
 import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
 import com.example.sitiopro.estoque.entity.TipoMovimentoEstoque;
@@ -170,11 +175,25 @@ class SitioProSecurityTests {
     private MovimentoEstoqueRepository movimentoEstoqueRepository;
 
     @MockBean
+    private IntegracaoEstadoRepository integracaoEstadoRepository;
+
+    @MockBean
+    private IntegracaoExecucaoRepository integracaoExecucaoRepository;
+
+    @MockBean
+    private PrevisaoClimaticaRepository previsaoClimaticaRepository;
+
+    @MockBean
+    private AgrofitCulturaRepository agrofitCulturaRepository;
+
+    @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @BeforeEach
     void configurarMocks() {
-        DashboardResumo resumo = new DashboardResumo(new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0);
+        DashboardResumo resumo = new DashboardResumo(
+                new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0,
+                ClimaResumo.naoSincronizado());
         when(dashboardService.montarResumo(nullable(Long.class), anyInt())).thenReturn(resumo);
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
@@ -307,6 +326,38 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void painelIntegracoesSomenteAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/admin/integracoes")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/sitio/admin/integracoes")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/sitio/admin/integracoes"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void sincronizacaoManualExigeAdminECsrf() throws Exception {
+        mockMvc.perform(post("/sitio/admin/integracoes/open-meteo/sincronizar")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/sitio/admin/integracoes/open-meteo/sincronizar")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/sitio/admin/integracoes/open-meteo/sincronizar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/admin/integracoes/open-meteo"));
+    }
+
+    @Test
     void operadorAcessaModuloNormal() throws Exception {
         mockMvc.perform(get("/sitio/painel")
                         .with(user("operador").roles("OPERADOR")))
@@ -358,6 +409,28 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/api/v1/compras"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void apiClimaExigeAutenticacaoEConsultaSomenteDadosLocais() throws Exception {
+        mockMvc.perform(get("/api/v1/clima/resumo"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/api/v1/clima/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.disponivel").value(false));
+    }
+
+    @Test
+    void apiAdminIntegracoesSomenteAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/integracoes")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/integracoes")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -642,7 +715,10 @@ class SitioProSecurityTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/v1/estoque/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/compras']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/fornecedores']").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/fornecedores']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/clima/resumo']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/clima/previsao']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/admin/integracoes']").exists());
     }
 
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {

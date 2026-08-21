@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Integrações')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/integracoes.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar('integracoes')}"></aside>
+
+    <main class="main-content integrations-page">
+        <div th:replace="~{fragments/ui :: topbar('Integrações externas', 'Administração')}"></div>
+
+        <section class="integrations-intro">
+            <div>
+                <span class="integrations-kicker">Operação</span>
+                <h2>Fontes externas</h2>
+                <p>Estado persistido das sincronizações e catálogo das próximas fontes do ERP.</p>
+            </div>
+            <a class="btn btn-outline-secondary" th:href="@{/sitio/admin/saude}">
+                <i class="fa-solid fa-heart-pulse me-2"></i>Saúde do sistema
+            </a>
+        </section>
+
+        <section class="integration-summary" aria-label="Resumo das integrações">
+            <article>
+                <span>Operacionais</span>
+                <strong th:text="${resumo.operacionais}">0</strong>
+            </article>
+            <article>
+                <span>Com atenção</span>
+                <strong th:text="${resumo.comAtencao}">0</strong>
+            </article>
+            <article>
+                <span>Não configuradas</span>
+                <strong th:text="${resumo.naoConfiguradas}">0</strong>
+            </article>
+            <article>
+                <span>Falhas</span>
+                <strong th:text="${resumo.falhas}">0</strong>
+            </article>
+        </section>
+
+        <section class="integration-group" th:each="grupo : ${resumo.fontesPorGrupo}">
+            <header>
+                <h3 th:text="${grupo.key}">Clima</h3>
+                <span th:text="${#lists.size(grupo.value) + ' fonte(s)'}">1 fonte</span>
+            </header>
+            <div class="table-responsive">
+                <table class="table integration-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fonte</th>
+                            <th>Status</th>
+                            <th>Último sucesso</th>
+                            <th>Registros</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="fonte : ${grupo.value}">
+                            <td>
+                                <strong th:text="${fonte.nome}">Open-Meteo</strong>
+                                <span th:text="${fonte.descricao}">Descrição</span>
+                            </td>
+                            <td>
+                                <span class="integration-status"
+                                      th:classappend="${fonte.status.classeCss}"
+                                      th:text="${fonte.status.rotulo}">Operacional</span>
+                                <small th:if="${fonte.emExecucao}">Sincronizando</small>
+                            </td>
+                            <td th:text="${fonte.ultimoSucesso == null ? '-' : #temporals.format(fonte.ultimoSucesso, 'dd/MM/yyyy HH:mm')}">-</td>
+                            <td th:text="${fonte.ultimaExecucao == null ? '-' : fonte.ultimaExecucao.registrosLidos}">-</td>
+                            <td class="text-end integration-actions">
+                                <a th:if="${fonte.implementada}"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   th:href="@{/sitio/admin/integracoes/{fonte}(fonte=${fonte.slug})}">
+                                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Histórico
+                                </a>
+                                <form th:if="${fonte.sincronizacaoManualDisponivel}"
+                                      th:action="@{/sitio/admin/integracoes/{fonte}/sincronizar(fonte=${fonte.slug})}"
+                                      method="post">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="btn btn-sm btn-success" type="submit" th:disabled="${fonte.emExecucao}">
+                                        <i class="fa-solid fa-rotate me-1"></i>Sincronizar
+                                    </button>
+                                </form>
+                                <span th:unless="${fonte.implementada}" class="integration-planned">Planejado</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

@@ -183,6 +183,7 @@ Dashboards provisionados:
 ```text
 Sítio Guaratinguetá - System Overview
 Sítio Guaratinguetá - API
+Sítio Guaratinguetá - External Integrations
 ```
 
 Artefatos versionados:
@@ -292,6 +293,25 @@ ELASTICSEARCH_MEM_LIMIT
 KIBANA_MEM_LIMIT
 APM_SERVER_MEM_LIMIT
 ELASTIC_AGENT_MEM_LIMIT
+SITIOPRO_INTEGRATIONS_ZONE
+SITIOPRO_INTEGRATION_RUNNING_TIMEOUT
+SITIOPRO_OPEN_METEO_ENABLED
+OPEN_METEO_BASE_URL
+SITIO_LATITUDE
+SITIO_LONGITUDE
+SITIO_TIMEZONE
+SITIOPRO_CLIMATE_CONTEXT
+OPEN_METEO_CRON
+OPEN_METEO_CONNECT_TIMEOUT
+OPEN_METEO_READ_TIMEOUT
+OPEN_METEO_STALE_AFTER
+OPEN_METEO_FORECAST_DAYS
+OPEN_METEO_RETENTION_DAYS
+SITIOPRO_EMBRAPA_AGROFIT_ENABLED
+EMBRAPA_AGROFIT_BASE_URL
+EMBRAPA_AGROFIT_TOKEN
+EMBRAPA_AGROFIT_CRON
+EMBRAPA_AGROFIT_MAX_PAGES
 ```
 
 O arquivo `.env` não deve ser versionado. Use `.env.example` apenas como modelo de desenvolvimento.
@@ -407,6 +427,66 @@ POST /api/v1/fornecedores
 
 Não há integração externa com fornecedores, NF-e ou cotação nesta etapa.
 
+## Integrações externas e clima
+
+O backend é o único consumidor das APIs externas. Browser e futuros aplicativos móveis consultam dados locais:
+
+```text
+Open-Meteo / Embrapa Agrofit
+            ↓
+       RestClient
+            ↓
+ sincronização + Resilience4j
+            ↓
+       SQL Server
+         ↙     ↘
+  Thymeleaf   /api/v1
+```
+
+O painel `/sitio/admin/integracoes` é exclusivo de `ADMIN` e lê apenas configuração e SQL Server. Abrir o dashboard principal ou o painel administrativo nunca chama um provedor. A ação manual usa `POST /sitio/admin/integracoes/{fonte}/sincronizar`, sessão e CSRF. A trava persistida em `integracao_estados`, combinada com bloqueio pessimista, impede duas sincronizações simultâneas da mesma fonte e recupera locks órfãos após o timeout configurado.
+
+Cada execução registra início, fim, fonte, resultado, contadores, erro seguro e correlação. Falhas externas preservam os dados anteriores e não alteram liveness/readiness do ERP. Resilience4j é aplicado somente ao HTTP externo: timeout e 5xx recebem retry limitado; erros 4xx permanentes não; HTTP 429 respeita `Retry-After` e não entra em loop automático. Circuit breaker e rate limiter são locais e não são indicadores de health.
+
+### Open-Meteo
+
+O adapter usa `GET /v1/forecast` e persiste previsão horária de temperatura, umidade relativa, precipitação, probabilidade de precipitação, vento, rajadas, ET0, umidade do solo de 0–1 cm e weather code. O upsert usa `fonte + contexto + data_hora_previsao`; dados iguais são contabilizados como ignorados, alterações são atualizadas e previsões antigas são removidas depois da retenção configurável, inicialmente 30 dias.
+
+Configuração local mínima:
+
+```text
+SITIOPRO_OPEN_METEO_ENABLED=true
+SITIO_LATITUDE=<latitude real somente no .env local>
+SITIO_LONGITUDE=<longitude real somente no .env local>
+SITIO_TIMEZONE=<timezone IANA da propriedade>
+OPEN_METEO_CRON=0 17 */3 * * *
+```
+
+O cron usa seis campos do Spring e pode ser alterado sem recompilar. O padrão executa no minuto 17 aproximadamente a cada três horas. O dashboard mostra o último conjunto conhecido e sinaliza desatualização após `OPEN_METEO_STALE_AFTER`. A API própria consulta somente SQL Server:
+
+```text
+GET /api/v1/clima/resumo
+GET /api/v1/clima/previsao?horas=168
+```
+
+Dados Open-Meteo exigem atribuição CC BY 4.0, mantida ao lado do resumo climático. A API gratuita é destinada a uso não comercial e possui limites oficiais; para uso comercial, configure o endpoint/plano oficial adequado antes da produção.
+
+### Embrapa Agrofit piloto
+
+O piloto usa a API AGROFIT v1 da Plataforma AgroAPI e somente o endpoint paginado `/culturas`. O acesso exige Bearer token obtido por cadastro e assinatura oficial na plataforma. O token fica exclusivamente em `EMBRAPA_AGROFIT_TOKEN` no `.env` local, não é persistido, exibido ou registrado em log.
+
+```text
+SITIOPRO_EMBRAPA_AGROFIT_ENABLED=true
+EMBRAPA_AGROFIT_TOKEN=<token oficial somente no .env local>
+EMBRAPA_AGROFIT_CRON=0 29 3 * * MON
+EMBRAPA_AGROFIT_MAX_PAGES=1
+```
+
+O recorte padrão consulta apenas uma página e faz upsert pelo nome normalizado da cultura, sem remover itens ausentes. Uso, cache e persistência devem continuar respeitando o instrumento e os termos associados à assinatura AGROFIT. Sem token, o ERP permanece funcional e o painel mostra a fonte como não configurada ou desabilitada.
+
+### Validação local
+
+Para um smoke test real, habilite apenas a integração desejada no `.env`, suba a aplicação e use o botão **Sincronizar agora**. Depois confirme o histórico em `/sitio/admin/integracoes/{fonte}`, os dados em `/api/v1/clima/previsao` e os eventos `integration.sync.*` no dashboard Kibana **External Integrations**. Testes Maven usam servidor HTTP local e não consomem internet ou quota de terceiros.
+
 ## Flyway e schema
 
 O schema do banco é versionado por Flyway. As migrations ficam em:
@@ -424,6 +504,8 @@ V3__create_users_and_security.sql
 V4__add_business_audit_columns.sql
 V5__create_estoque_schema.sql
 V6__create_compras_schema.sql
+V7__create_external_integrations_schema.sql
+V8__align_climate_integer_columns.sql
 ```
 
 Regras:
@@ -473,6 +555,10 @@ src/main/java/com/example/sitiopro
 ├── categoria
 ├── dashboard
 ├── estoque
+├── integracao
+│   ├── core
+│   ├── clima/openmeteo
+│   └── embrapa/agrofit
 ├── frota
 ├── health
 ├── planejamento

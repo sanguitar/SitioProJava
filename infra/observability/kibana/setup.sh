@@ -73,5 +73,6 @@ create_data_view "sitiopro-docker" \
 
 upsert_dashboard "sitiopro-system-overview" "/dashboards/system-overview.json"
 upsert_dashboard "sitiopro-api" "/dashboards/api.json"
+upsert_dashboard "sitiopro-external-integrations" "/dashboards/external-integrations.json"
 
 echo "Kibana bootstrap completed."

@@ -1,6 +1,7 @@
 package com.example.sitiopro.dashboard.dto;
 
 import com.example.sitiopro.categoria.model.Categoria;
+import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.producao.model.Producao;
 import org.springframework.data.domain.Page;
 
@@ -13,5 +14,6 @@ public record DashboardResumo(
         String dadosGraficoJson,
         long totalItens,
         int totalCategorias,
-        long itensAlerta) {
+        long itensAlerta,
+        ClimaResumo clima) {
 }

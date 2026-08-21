@@ -76,6 +76,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/itens").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/movimentos").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/compras/**", "/api/v1/fornecedores").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/clima/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/integracoes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/compras", "/api/v1/compras/*/itens",
                                 "/api/v1/compras/*/confirmar", "/api/v1/fornecedores").authenticated()
                         .requestMatchers("/api/v1/**").denyAll()

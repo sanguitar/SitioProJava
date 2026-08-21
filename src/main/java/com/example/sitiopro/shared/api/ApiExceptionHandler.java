@@ -2,6 +2,7 @@ package com.example.sitiopro.shared.api;
 
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
+import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +22,8 @@ import java.util.regex.Pattern;
 
 @RestControllerAdvice(basePackages = {
         "com.example.sitiopro.estoque.api",
-        "com.example.sitiopro.compras.api"
+        "com.example.sitiopro.compras.api",
+        "com.example.sitiopro.integracao.api"
 })
 public class ApiExceptionHandler {
 
@@ -36,6 +38,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ComprasOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> compras(ComprasOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(IntegracaoOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> integracao(IntegracaoOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
     }
 
@@ -109,6 +116,9 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/compras") || path.startsWith("/api/v1/fornecedores")) {
             return "compras";
+        }
+        if (path.startsWith("/api/v1/clima") || path.startsWith("/api/v1/admin/integracoes")) {
+            return "integracao";
         }
         return "api";
     }
