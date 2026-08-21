@@ -1,0 +1,121 @@
+outputs:
+  default:
+    type: elasticsearch
+    hosts: ["${ELASTICSEARCH_HOSTS:http://elasticsearch:9200}"]
+    username: "${ELASTIC_USERNAME:elastic}"
+    password: "${ELASTIC_PASSWORD}"
+    preset: balanced
+
+agent.monitoring:
+  enabled: true
+  logs: true
+  metrics: true
+  use_output: default
+  metrics_period: 60s
+
+inputs:
+  - id: sitiopro-app-ecs-logs
+    type: filestream
+    use_output: default
+    data_stream.namespace: "${SITIOPRO_ENVIRONMENT:dev}"
+    streams:
+      - id: sitiopro-app-ecs-json
+        data_stream:
+          dataset: sitiopro.app
+        paths:
+          - /var/log/sitiopro/*.ecs.json
+          - /var/log/sitiopro/*.ecs.json.*
+        parsers:
+          - ndjson:
+              target: ""
+              overwrite_keys: true
+              add_error_key: true
+
+  - id: sitiopro-nginx-access-logs
+    type: filestream
+    use_output: default
+    data_stream.namespace: "${SITIOPRO_ENVIRONMENT:dev}"
+    streams:
+      - id: sitiopro-nginx-access-json
+        data_stream:
+          dataset: nginx.access
+        paths:
+          - /var/log/nginx/sitiopro-access.log
+          - /var/log/nginx/sitiopro-access.log.*
+        parsers:
+          - ndjson:
+              target: ""
+              overwrite_keys: true
+              add_error_key: true
+
+  - id: sitiopro-nginx-error-logs
+    type: filestream
+    use_output: default
+    data_stream.namespace: "${SITIOPRO_ENVIRONMENT:dev}"
+    streams:
+      - id: sitiopro-nginx-error-text
+        data_stream:
+          dataset: nginx.error
+        paths:
+          - /var/log/nginx/sitiopro-error.log
+          - /var/log/nginx/sitiopro-error.log.*
+
+  - id: sitiopro-sqlserver-error-logs
+    type: filestream
+    use_output: default
+    data_stream.namespace: "${SITIOPRO_ENVIRONMENT:dev}"
+    streams:
+      - id: sitiopro-sqlserver-error-text
+        data_stream:
+          dataset: mssql.log
+        paths:
+          - /mnt/sqlserver/log/errorlog
+          - /mnt/sqlserver/log/errorlog.*
+
+  - id: sitiopro-docker-metrics
+    type: docker/metrics
+    use_output: default
+    data_stream.namespace: "${SITIOPRO_ENVIRONMENT:dev}"
+    streams:
+      - metricsets:
+          - container
+        data_stream.dataset: docker.container
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - cpu
+        data_stream.dataset: docker.cpu
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - memory
+        data_stream.dataset: docker.memory
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - network
+        data_stream.dataset: docker.network
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - diskio
+        data_stream.dataset: docker.diskio
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - healthcheck
+        data_stream.dataset: docker.healthcheck
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s
+      - metricsets:
+          - info
+        data_stream.dataset: docker.info
+        hosts:
+          - unix:///var/run/docker.sock
+        period: 30s

@@ -1,0 +1,134 @@
+{
+  "title": "Sítio Guaratinguetá - API",
+  "description": "Visão inicial das requisições REST em /api/v1.",
+  "esql_approximation": true,
+  "time_range": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh_interval": {
+    "pause": false,
+    "value": 30000
+  },
+  "panels": [
+    {
+      "grid": { "x": 0, "y": 0, "w": 48, "h": 7 },
+      "type": "markdown",
+      "config": {
+        "content": "## Sítio Guaratinguetá - API\n\nAcompanhe as rotas REST, especialmente `/api/v1/estoque`. Pesquise por `request.id` quando o usuário informar um código de erro."
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 7, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Requests /api/v1",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | STATS requests = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "requests" }]
+      }
+    },
+    {
+      "grid": { "x": 12, "y": 7, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "API 4xx",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | EVAL status = TO_INTEGER(http.response.status_code) | WHERE status >= 400 AND status < 500 | STATS api_4xx = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "api_4xx" }]
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 7, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "API 5xx",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | EVAL status = TO_INTEGER(http.response.status_code) | WHERE status >= 500 | STATS api_5xx = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "api_5xx" }]
+      }
+    },
+    {
+      "grid": { "x": 36, "y": 7, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "API latência média (ms)",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | EVAL latency_ms = TO_DOUBLE(event.duration) / 1000000 | STATS avg_latency_ms = AVG(latency_ms)"
+        },
+        "metrics": [{ "type": "primary", "column": "avg_latency_ms" }]
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 14, "w": 48, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Requests /api/v1 ao longo do tempo",
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | STATS requests = COUNT() BY BUCKET(@timestamp, 75, ?_tstart, ?_tend)"
+            },
+            "x": { "column": "BUCKET(@timestamp, 75, ?_tstart, ?_tend)" },
+            "y": [{ "column": "requests" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 26, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Status por endpoint",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" AND url.path LIKE \"/api/v1*\" | EVAL endpoint_status = CONCAT(url.path, \" \", TO_STRING(http.response.status_code)) | STATS count = COUNT() BY endpoint_status | SORT count DESC | LIMIT 20"
+            },
+            "x": { "column": "endpoint_status" },
+            "y": [{ "column": "count" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 26, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Erros de API por código",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action IN (\"api_business_error\", \"api_validation_error\", \"api_unexpected_error\", \"ACCESS_DENIED\") | STATS count = COUNT() BY event.action | SORT count DESC"
+            },
+            "x": { "column": "event.action" },
+            "y": [{ "column": "count" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    }
+  ]
+}

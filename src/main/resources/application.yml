@@ -1,6 +1,6 @@
 spring:
   application:
-    name: sitiopro
+    name: sitioguaratingueta
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
@@ -13,3 +13,50 @@ server:
         http-only: true
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
+
+springdoc:
+  paths-to-match: /api/v1/estoque/**
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      validate-group-membership: false
+      show-details: when_authorized
+      roles: ADMIN
+      group:
+        liveness:
+          include: livenessState
+          show-details: never
+        readiness:
+          include: readinessState,db
+          show-details: never
+    env:
+      show-values: never
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      service.name: sitioguaratingueta
+      service.environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
+
+info:
+  app:
+    name: Sítio Guaratinguetá
+    version: ${SITIOPRO_APP_VERSION:0.0.1-SNAPSHOT}
+    environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
+
+sitiopro:
+  observability:
+    service-name: sitioguaratingueta
+    environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
+    enabled: ${SITIOPRO_OBSERVABILITY_ENABLED:false}
+    apm-server-url: ${SITIOPRO_OBSERVABILITY_APM_SERVER_URL:http://apm-server:8200}

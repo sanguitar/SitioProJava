@@ -1,4 +1,4 @@
 .domain-patrimonio {
-    --module-color: #334155;
-    --module-accent: #d97706;
+    --module-color: var(--brand-graphite);
+    --module-accent: var(--brand-harvest);
 }

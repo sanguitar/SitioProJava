@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Ícone provisório Android do Sítio Guaratinguetá</title>
+  <rect width="512" height="512" rx="104" fill="#173F35"/>
+  <path d="M95 360c55-45 116-59 184-39 46 14 82 8 126-20" fill="none" stroke="#D6A63C" stroke-width="25" stroke-linecap="round"/>
+  <path d="M99 412c70-38 139-45 212-21 37 12 69 7 104-15" fill="none" stroke="#78A97A" stroke-width="20" stroke-linecap="round"/>
+  <path d="M309 290c-28-59-15-115 36-169" fill="none" stroke="#F4F0E6" stroke-width="29" stroke-linecap="round"/>
+  <path d="M353 121c27 39 23 75-8 111l-44 49" fill="none" stroke="#F4F0E6" stroke-width="29" stroke-linecap="round"/>
+  <path d="M347 119c34-33 75-40 120-19-33 11-61 28-87 50" fill="#F4F0E6"/>
+  <path d="M294 294c-48-20-95-16-145 14 63 15 115 18 171 4" fill="#F4F0E6"/>
+  <circle cx="382" cy="105" r="10" fill="#173F35"/>
+</svg>

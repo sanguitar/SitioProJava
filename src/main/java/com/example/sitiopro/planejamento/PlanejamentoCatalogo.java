@@ -61,17 +61,17 @@ public final class PlanejamentoCatalogo {
         Map<String, ModuloPlanejado> modulos = new LinkedHashMap<>();
 
         adicionar(modulos, modulo("Gestão", "Estoque", "/sitio/estoque", "estoque", "estoque.css",
-                "domain-estoque", "fa-boxes-stacked", StatusPlanejamento.PRECISA_REVISAO,
-                "Controle visual de insumos, materiais, alimentos, itens produtivos e alertas de reposição.",
+                "domain-estoque", "fa-boxes-stacked", StatusPlanejamento.FUNCIONAL,
+                "Controle funcional de insumos, materiais, alimentos, itens produtivos e alertas de reposição.",
                 links(
-                        link("Painel atual", "/sitio/painel", "fa-chart-line"),
-                        link("Cadastro atual", "/sitio/cadastro", "fa-plus"),
-                        link("Categorias atuais", "/sitio/configuracoes", "fa-tags")
+                        link("Resumo do estoque", "/sitio/estoque", "fa-chart-line"),
+                        link("Itens", "/sitio/estoque/itens", "fa-box"),
+                        link("Nova movimentação", "/sitio/estoque/movimentacoes/nova", "fa-right-left")
                 ),
-                "Listagem por categoria, local, quantidade e status",
-                "Cadastro de itens com unidade, estoque mínimo e custo estimado",
-                "Detalhe com posição atual, movimentações e vínculo com centros de custo",
-                "Histórico de entradas, saídas, perdas e ajustes"));
+                "Resumo operacional com itens críticos, vencimentos e valor estimado",
+                "Cadastro de itens com categoria, unidade, estoque mínimo, lote e validade",
+                "Movimentações de entrada, consumo, perda, descarte, ajuste e transferência",
+                "Histórico como fonte confiável para cálculo de saldo"));
 
         adicionar(modulos, modulo("Gestão", "Compras", "/sitio/compras", "compras", "compras.css",
                 "domain-compras", "fa-cart-shopping", StatusPlanejamento.PLANEJADO,

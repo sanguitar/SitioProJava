@@ -1,23 +1,24 @@
 .header-agro {
-    background: #212529;
-    border-bottom: 4px solid var(--agro-dark);
-    color: white;
+    background: var(--brand-forest);
+    border-bottom: 4px solid var(--brand-harvest);
+    color: var(--text-inverse);
+}
+
+.card-custom .card-body {
+    background: var(--surface-panel);
 }
 
 .btn-save {
-    background: var(--agro-dark);
+    background: var(--brand-field);
     border: none;
-    color: white;
+    color: var(--text-inverse);
     font-weight: bold;
     padding: 12px;
-    transition: 0.3s;
 }
 
 .btn-save:hover {
-    background: #2d5a27;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    color: white;
-    transform: translateY(-2px);
+    background: var(--brand-forest);
+    color: var(--text-inverse);
 }
 
 .page-footer {

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Movimentações')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Movimentações', 'Estoque')}"></div>
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Estoque</small>
+                <h1>Movimentações</h1>
+            </div>
+            <a th:href="@{/sitio/estoque/movimentacoes/nova}" class="btn btn-success">
+                <i class="fa-solid fa-plus me-2"></i>Nova movimentação
+            </a>
+        </div>
+        <div th:replace="~{estoque/fragments :: tabs('movimentacoes')}"></div>
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <section class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Item</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Origem</th>
+                            <th>Destino</th>
+                            <th>Lote</th>
+                            <th>Usuário</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="movimento : ${movimentacoes}">
+                            <td th:text="${#temporals.format(movimento.dataMovimento, 'dd/MM/yyyy HH:mm')}">-</td>
+                            <td th:text="${movimento.itemNome}">Item</td>
+                            <td><span class="badge bg-dark" th:text="${movimento.tipoRotulo}">Tipo</span></td>
+                            <td>
+                                <strong th:text="${#numbers.formatDecimal(movimento.quantidade, 1, 'POINT', 2, 'COMMA')}">0</strong>
+                                <span th:text="${movimento.unidade}">UN</span>
+                            </td>
+                            <td th:text="${movimento.localOrigem ?: '-'}">-</td>
+                            <td th:text="${movimento.localDestino ?: '-'}">-</td>
+                            <td th:text="${movimento.loteCodigo ?: '-'}">-</td>
+                            <td th:text="${movimento.criadoPor ?: '-'}">-</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(movimentacoes)}">
+                            <td colspan="8">
+                                <div class="empty-state-card">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <div>
+                                        <strong>Nenhuma movimentação</strong>
+                                        <p>Registre uma entrada para iniciar o histórico do estoque.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

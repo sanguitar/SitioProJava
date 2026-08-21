@@ -81,6 +81,32 @@ class UsuarioServiceTests {
     }
 
     @Test
+    void existePorLoginNormalizaLoginAntesDeConsultar() {
+        when(usuarioRepository.existsByLogin("sanderson")).thenReturn(true);
+
+        boolean existe = usuarioService.existePorLogin("  Sanderson  ");
+
+        assertThat(existe).isTrue();
+    }
+
+    @Test
+    void criarAdminInicialCriaAdminAtivoComSenhaCriptografadaQuandoTabelaVazia() {
+        when(usuarioRepository.count()).thenReturn(0L);
+        when(usuarioRepository.existsByLogin("sanderson")).thenReturn(false);
+        when(passwordEncoder.encode(SENHA_VALIDA)).thenReturn("{bcrypt}hash-admin");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Usuario criado = usuarioService.criarAdminInicial("  Sânderson  ", "  Sanderson  ", SENHA_VALIDA);
+
+        assertThat(criado.getNome()).isEqualTo("Sânderson");
+        assertThat(criado.getLogin()).isEqualTo("sanderson");
+        assertThat(criado.getPerfil()).isEqualTo(PerfilUsuario.ADMIN);
+        assertThat(criado.isAtivo()).isTrue();
+        assertThat(criado.getSenhaHash()).isEqualTo("{bcrypt}hash-admin");
+        assertThat(criado.getSenhaHash()).isNotEqualTo(SENHA_VALIDA);
+    }
+
+    @Test
     void naoPermiteDesativarUltimoAdminAtivo() {
         Usuario admin = usuario(1L, PerfilUsuario.ADMIN, true);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));

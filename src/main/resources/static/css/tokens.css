@@ -1,0 +1,38 @@
+:root {
+    --brand-forest: #173F35;
+    --brand-field: #2F6B4F;
+    --brand-leaf: #78A97A;
+    --brand-harvest: #D6A63C;
+    --brand-earth: #8A6042;
+    --brand-sand: #F4F0E6;
+    --brand-graphite: #20282A;
+    --semantic-success: #1F7A4D;
+    --semantic-warning: #A66F00;
+    --semantic-danger: #B3261E;
+    --semantic-info: #1C6B8C;
+    --surface-page: #F7F4EC;
+    --surface-panel: #FFFFFF;
+    --surface-panel-soft: #FBF9F2;
+    --surface-muted: #ECE6DA;
+    --line-soft: #E2D9C8;
+    --line-strong: #CDBFAD;
+    --text-primary: #20282A;
+    --text-secondary: #5C6866;
+    --text-muted: #77817E;
+    --text-inverse: #F8F5EC;
+    --shadow-soft: 0 10px 28px rgba(32, 40, 42, 0.08);
+    --shadow-panel: 0 18px 42px rgba(32, 40, 42, 0.10);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --sidebar-width: 286px;
+    --sidebar-collapsed-width: 88px;
+    --topbar-height: 76px;
+    --focus-ring: 0 0 0 0.2rem rgba(214, 166, 60, 0.38);
+    --agro-dark: var(--brand-forest);
+    --agro-accent: var(--brand-harvest);
+    --surface: var(--surface-panel);
+    --surface-soft: var(--surface-panel-soft);
+    --line: var(--line-soft);
+    --text-soft: var(--text-secondary);
+}

@@ -48,6 +48,10 @@ public class UsuarioService {
         return usuarioRepository.count();
     }
 
+    public boolean existePorLogin(String login) {
+        return usuarioRepository.existsByLogin(normalizarLogin(login));
+    }
+
     @Transactional
     public Usuario criar(CriarUsuarioRequest request) {
         String login = normalizarLogin(request.getLogin());

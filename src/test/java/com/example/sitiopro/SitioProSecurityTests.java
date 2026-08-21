@@ -7,9 +7,22 @@ import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.categoria.service.CategoriaService;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
+import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
+import com.example.sitiopro.estoque.entity.TipoMovimentoEstoque;
+import com.example.sitiopro.estoque.repository.CategoriaEstoqueRepository;
+import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
+import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
+import com.example.sitiopro.estoque.repository.LoteEstoqueRepository;
+import com.example.sitiopro.estoque.repository.MovimentoEstoqueRepository;
+import com.example.sitiopro.estoque.repository.UnidadeMedidaRepository;
+import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
+import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.frota.repository.FipeCacheRepository;
 import com.example.sitiopro.frota.repository.VeiculoRepository;
 import com.example.sitiopro.frota.service.VeiculoService;
+import com.example.sitiopro.observability.dto.SistemaSaudeResumo;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.model.Producao;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.producao.service.ProducaoService;
@@ -19,6 +32,7 @@ import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -26,15 +40,23 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,8 +67,10 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -57,6 +81,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 + "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
 })
 @AutoConfigureMockMvc
+@ExtendWith(OutputCaptureExtension.class)
 class SitioProSecurityTests {
 
     private static final String SENHA_VALIDA = "SenhaMuitoForte123";
@@ -86,6 +111,15 @@ class SitioProSecurityTests {
     private UsuarioService usuarioService;
 
     @MockBean
+    private EstoqueCatalogoService estoqueCatalogoService;
+
+    @MockBean
+    private EstoqueMovimentoService estoqueMovimentoService;
+
+    @MockBean
+    private SistemaSaudeService sistemaSaudeService;
+
+    @MockBean
     private AbastecimentoRepository abastecimentoRepository;
 
     @MockBean
@@ -104,6 +138,24 @@ class SitioProSecurityTests {
     private UsuarioRepository usuarioRepository;
 
     @MockBean
+    private CategoriaEstoqueRepository estoqueCategoriaRepository;
+
+    @MockBean
+    private UnidadeMedidaRepository unidadeMedidaRepository;
+
+    @MockBean
+    private LocalEstoqueRepository localEstoqueRepository;
+
+    @MockBean
+    private ItemEstoqueRepository itemEstoqueRepository;
+
+    @MockBean
+    private LoteEstoqueRepository loteEstoqueRepository;
+
+    @MockBean
+    private MovimentoEstoqueRepository movimentoEstoqueRepository;
+
+    @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @BeforeEach
@@ -115,6 +167,15 @@ class SitioProSecurityTests {
         when(producaoService.novo()).thenReturn(new Producao());
         when(veiculoService.listarTodos()).thenReturn(List.of());
         when(usuarioService.listarTodos()).thenReturn(List.of());
+        when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
+                0, 0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of()));
+        when(estoqueMovimentoService.registrarMovimento(any(), eq(false))).thenReturn(new MovimentoEstoqueResponse(
+                1L, 1L, "Ração postura", TipoMovimentoEstoque.ENTRADA, "Entrada",
+                BigDecimal.TEN, "KG", null, "Depósito", null, null, null,
+                null, LocalDateTime.now(), "operador"));
+        when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
+                "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
+                "DESABILITADA", "test-request"));
 
         Usuario admin = usuario(1L, "Administrador", "admin", PerfilUsuario.ADMIN, true);
         Usuario operador = usuario(2L, "Operador", "operador", PerfilUsuario.OPERADOR, true);
@@ -134,6 +195,12 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void assetsDaMarcaSaoPublicosParaTelaDeLogin() throws Exception {
+        mockMvc.perform(get("/brand/garca-symbol.svg"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void loginValidoAutenticaEAtualizaUltimoLogin() throws Exception {
         mockMvc.perform(post("/login")
                         .param("username", "admin")
@@ -146,13 +213,16 @@ class SitioProSecurityTests {
     }
 
     @Test
-    void loginInvalidoRetornaMensagemGenerica() throws Exception {
+    void loginInvalidoRetornaMensagemGenericaERegistraEventoSeguro(CapturedOutput output) throws Exception {
         mockMvc.perform(post("/login")
                         .param("username", "naoexiste")
                         .param("password", "qualquer")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login?error"));
+
+        assertThat(output).contains("LOGIN_FAILURE")
+                .doesNotContain("qualquer");
     }
 
     @Test
@@ -186,6 +256,27 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/sitio/admin/usuarios")
                         .with(user("operador").roles("OPERADOR")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminAcessaSaudeDoSistema() throws Exception {
+        mockMvc.perform(get("/sitio/admin/saude")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operadorNaoAcessaSaudeDoSistema() throws Exception {
+        mockMvc.perform(get("/sitio/admin/saude")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void anonimoNaoAcessaSaudeDoSistema() throws Exception {
+        mockMvc.perform(get("/sitio/admin/saude"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
     }
 
     @Test
@@ -223,7 +314,177 @@ class SitioProSecurityTests {
     void apiV1FicaNegadaMesmoComUsuarioAutenticado() throws Exception {
         mockMvc.perform(get("/api/v1/qualquer")
                         .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty());
+    }
+
+    @Test
+    void apiEstoqueExigeAutenticacao() throws Exception {
+        mockMvc.perform(get("/api/v1/estoque/resumo"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void apiEstoqueResumoAutenticadaResponde() throws Exception {
+        mockMvc.perform(get("/api/v1/estoque/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operadorNaoCriaItemPelaApi() throws Exception {
+        mockMvc.perform(post("/api/v1/estoque/itens")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"))
+                .andExpect(jsonPath("$.path").value("/api/v1/estoque/itens"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty());
+    }
+
+    @Test
+    void operadorRegistraMovimentoNormalPelaApiComCsrf() throws Exception {
+        mockMvc.perform(post("/api/v1/estoque/movimentos")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "itemId": 1,
+                                  "tipo": "ENTRADA",
+                                  "quantidade": 10,
+                                  "localDestinoId": 1
+                                }
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void apiPostSemCsrfERecusado() throws Exception {
+        mockMvc.perform(post("/api/v1/estoque/movimentos")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"))
+                .andExpect(jsonPath("$.path").value("/api/v1/estoque/movimentos"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty());
+    }
+
+    @Test
+    void apiRetornaErroPadronizadoParaRequestInvalido() throws Exception {
+        mockMvc.perform(post("/api/v1/estoque/movimentos")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.path").value("/api/v1/estoque/movimentos"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty());
+    }
+
+    @Test
+    void apiRetornaErroSeguroParaExceptionInesperada(CapturedOutput output) throws Exception {
+        when(estoqueMovimentoService.montarResumo())
+                .thenThrow(new IllegalStateException("segredo-interno senha=abc"));
+
+        MvcResult result = mockMvc.perform(get("/api/v1/estoque/resumo")
+                        .with(user("operador").roles("OPERADOR"))
+                        .header("X-Request-ID", "req-api-9999"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("ERRO_INTERNO"))
+                .andExpect(jsonPath("$.requestId").value("req-api-9999"))
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("req-api-9999")
+                .doesNotContain("IllegalStateException")
+                .doesNotContain("segredo-interno")
+                .doesNotContain("senha=abc");
+        assertThat(output).doesNotContain("senha=abc");
+    }
+
+    @Test
+    void actuatorHealthPublicoComInformacaoMinima() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists());
+
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists());
+
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists());
+    }
+
+    @Test
+    void actuatorInfoEMetricasSomenteAdmin() throws Exception {
+        mockMvc.perform(get("/actuator/info")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/metrics")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void actuatorSensivelPermaneceBloqueado() throws Exception {
+        mockMvc.perform(get("/actuator/env")
+                        .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/actuator/loggers")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void requestIdValidoEPropagadoNaResposta() throws Exception {
+        mockMvc.perform(get("/sitio/painel")
+                        .with(user("operador").roles("OPERADOR"))
+                        .header("X-Request-ID", "req-front-1234"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Request-ID", "req-front-1234"));
+    }
+
+    @Test
+    void requestIdInvalidoERecriadoAntesDePropagar() throws Exception {
+        String abusivo = "x".repeat(200);
+
+        MvcResult result = mockMvc.perform(get("/sitio/painel")
+                        .with(user("operador").roles("OPERADOR"))
+                        .header("X-Request-ID", abusivo))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("X-Request-ID"))
+                .andReturn();
+
+        String requestId = result.getResponse().getHeader("X-Request-ID");
+        assertThat(requestId).isNotBlank()
+                .isNotEqualTo(abusivo)
+                .matches("[A-Za-z0-9._-]{8,64}");
+    }
+
+    @Test
+    void swaggerSomenteAdmin() throws Exception {
+        mockMvc.perform(get("/v3/api-docs")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/v3/api-docs")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
     }
 
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {

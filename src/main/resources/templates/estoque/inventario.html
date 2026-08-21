@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Inventário')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Inventário', 'Estoque')}"></div>
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Estoque</small>
+                <h1>Inventário</h1>
+            </div>
+        </div>
+        <div th:replace="~{estoque/fragments :: tabs('inventario')}"></div>
+
+        <section class="row g-4">
+            <div class="col-xl-7">
+                <div class="estoque-panel h-100">
+                    <div class="panel-heading">
+                        <h3>Conferência física</h3>
+                        <span th:text="${itens.size()} + ' itens'">0 itens</span>
+                    </div>
+                    <div class="inventory-grid">
+                        <article class="inventory-item" th:each="item : ${itens}">
+                            <div>
+                                <strong th:text="${item.nome}">Item</strong>
+                                <span th:text="${item.categoria}">Categoria</span>
+                            </div>
+                            <div class="inventory-qty">
+                                <strong th:text="${#numbers.formatDecimal(item.saldo, 1, 'POINT', 2, 'COMMA')}">0</strong>
+                                <span th:text="${item.unidade}">UN</span>
+                            </div>
+                        </article>
+                        <div class="empty-state-card" th:if="${#lists.isEmpty(itens)}">
+                            <i class="fa-solid fa-clipboard"></i>
+                            <div>
+                                <strong>Nenhum item para conferir</strong>
+                                <p>Cadastre itens e entradas para compor o inventário.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5">
+                <div class="estoque-panel mb-4">
+                    <div class="panel-heading">
+                        <h3>Vencidos</h3>
+                        <span th:text="${vencidos.size()} + ' lotes'">0 lotes</span>
+                    </div>
+                    <div class="estoque-list">
+                        <article class="catalog-row" th:each="lote : ${vencidos}">
+                            <div>
+                                <strong th:text="${lote.itemNome + ' · ' + lote.codigo}">Lote</strong>
+                                <span th:text="${#temporals.format(lote.validade, 'dd/MM/yyyy')}">-</span>
+                            </div>
+                            <span>
+                                <span th:text="${#numbers.formatDecimal(lote.saldo, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                <span th:text="${lote.unidade}">UN</span>
+                            </span>
+                        </article>
+                        <div class="empty-state-card" th:if="${#lists.isEmpty(vencidos)}">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <div><strong>Sem lotes vencidos</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="estoque-panel">
+                    <div class="panel-heading">
+                        <h3>Próximos ao vencimento</h3>
+                        <span th:text="${vencendo.size()} + ' lotes'">0 lotes</span>
+                    </div>
+                    <div class="estoque-list">
+                        <article class="catalog-row" th:each="lote : ${vencendo}">
+                            <div>
+                                <strong th:text="${lote.itemNome + ' · ' + lote.codigo}">Lote</strong>
+                                <span th:text="${#temporals.format(lote.validade, 'dd/MM/yyyy')}">-</span>
+                            </div>
+                            <span>
+                                <span th:text="${#numbers.formatDecimal(lote.saldo, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                <span th:text="${lote.unidade}">UN</span>
+                            </span>
+                        </article>
+                        <div class="empty-state-card" th:if="${#lists.isEmpty(vencendo)}">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <div><strong>Nenhum lote vencendo em 30 dias</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

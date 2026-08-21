@@ -14,9 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
             labels,
             datasets: [{
                 data: values,
-                backgroundColor: ["#1e3d1a", "#8dbd31", "#212529", "#ffc107", "#dc3545", "#0d6efd", "#6c757d"],
-                hoverOffset: 15,
-                borderWidth: 2
+                backgroundColor: ["#173F35", "#2F6B4F", "#78A97A", "#D6A63C", "#8A6042", "#1C6B8C", "#20282A"],
+                hoverOffset: 8,
+                borderColor: "#F4F0E6",
+                borderWidth: 3
             }]
         },
         options: {
@@ -24,7 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: "bottom"
+                    position: "bottom",
+                    labels: {
+                        color: "#20282A",
+                        boxWidth: 12,
+                        padding: 18
+                    }
                 }
             }
         }

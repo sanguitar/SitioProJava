@@ -28,14 +28,19 @@ public class InitialAdminBootstrap implements ApplicationRunner {
         if (!properties.isEnabled()) {
             return;
         }
+        if (!StringUtils.hasText(properties.getLogin()) || !StringUtils.hasText(properties.getName())) {
+            throw new IllegalStateException("Bootstrap de ADMIN inicial habilitado sem login ou nome.");
+        }
+        if (usuarioService.existePorLogin(properties.getLogin())) {
+            LOGGER.info("Bootstrap de ADMIN inicial ignorado: usuário inicial já existe.");
+            return;
+        }
         if (usuarioService.contarUsuarios() > 0) {
             LOGGER.info("Bootstrap de ADMIN inicial ignorado: tabela de usuários já possui registros.");
             return;
         }
-        if (!StringUtils.hasText(properties.getLogin())
-                || !StringUtils.hasText(properties.getPassword())
-                || !StringUtils.hasText(properties.getName())) {
-            throw new IllegalStateException("Bootstrap de ADMIN inicial habilitado sem login, senha ou nome.");
+        if (!StringUtils.hasText(properties.getPassword())) {
+            throw new IllegalStateException("Bootstrap de ADMIN inicial habilitado sem senha.");
         }
 
         usuarioService.criarAdminInicial(properties.getName(), properties.getLogin(), properties.getPassword());

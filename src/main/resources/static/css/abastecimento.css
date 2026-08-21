@@ -1,24 +1,28 @@
 .domain-abastecimento {
-    --module-color: #b45309;
-    --module-accent: #16a34a;
+    --module-color: var(--brand-earth);
+    --module-accent: var(--brand-leaf);
 }
 
 .abastecimento-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
     overflow: hidden;
 }
 
 .abastecimento-header {
-    background: #212529;
-    border-bottom: 4px solid var(--agro-dark);
-    color: white;
+    background: var(--brand-forest);
+    border-bottom: 4px solid var(--brand-harvest);
+    color: var(--text-inverse);
+}
+
+.abastecimento-card .card-body {
+    background: var(--surface-panel);
 }
 
 .total-preview {
     align-items: center;
-    background: #f8f9fa;
+    background: var(--surface-panel-soft);
     display: flex;
     font-weight: 700;
 }

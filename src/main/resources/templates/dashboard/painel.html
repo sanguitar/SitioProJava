@@ -7,24 +7,133 @@
 <body>
     <aside th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></aside>
 
-    <main class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold text-dark mb-0">Monitoramento de Ativos</h2>
-                <small class="text-muted">Sítio Guaratinguetá | Gestão de Produção e Frota</small>
-            </div>
-            <span class="badge bg-dark p-2 px-3 shadow-sm" th:text="${usuario}"></span>
-        </div>
+    <main class="main-content dashboard-page">
+        <div th:replace="~{fragments/ui :: topbar('Painel operacional', 'Início')}"></div>
 
-        <div class="table-container mb-4">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-filter me-2 text-success"></i>Filtrar por Categoria</h5>
+        <section class="dashboard-hero">
+            <div class="dashboard-hero-main">
+                <span class="dashboard-kicker">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    O que precisa da minha atenção?
+                </span>
+                <h2>Prioridades do sítio hoje</h2>
+                <p>
+                    Visão consolidada dos registros já funcionais e dos módulos planejados que receberão dados nas próximas etapas.
+                </p>
+                <div class="dashboard-hero-actions">
+                    <a th:href="@{/sitio/estoque}" class="btn btn-success">
+                        <i class="fa-solid fa-boxes-stacked me-2"></i>Ver estoque
+                    </a>
+                    <a th:href="@{/sitio/cadastro}" class="btn btn-outline-light">
+                        <i class="fa-solid fa-plus me-2"></i>Novo item
+                    </a>
+                    <a th:href="@{/sitio/frota}" class="btn btn-outline-light">
+                        <i class="fa-solid fa-truck-pickup me-2"></i>Frota
+                    </a>
                 </div>
-                <div class="col-md-6">
-                    <form th:action="@{/sitio/painel}" method="get">
-                        <select name="categoriaId" class="form-select shadow-sm" data-auto-submit>
-                            <option value="">-- Ver Todos os Itens --</option>
+            </div>
+
+            <div class="dashboard-hero-side">
+                <article>
+                    <span>Total de itens</span>
+                    <strong th:text="${totalItens}">0</strong>
+                </article>
+                <article>
+                    <span>Alertas críticos</span>
+                    <strong th:text="${itensAlerta}">0</strong>
+                </article>
+                <article>
+                    <span>Categorias</span>
+                    <strong th:text="${totalCategorias}">0</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="attention-grid" aria-label="Áreas de atenção">
+            <article class="attention-card attention-card-critical" th:classappend="${itensAlerta > 0} ? ' has-alert'">
+                <div class="attention-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div>
+                    <span>Estoque crítico</span>
+                    <strong th:text="${itensAlerta > 0 ? itensAlerta + ' item(ns)' : 'Sem alertas'}">Sem alertas</strong>
+                    <p th:text="${itensAlerta > 0 ? 'Revise itens marcados como estoque baixo ou compra necessária.' : 'Nenhum item cadastrado está marcado como crítico.'}">
+                        Nenhum item cadastrado está marcado como crítico.
+                    </p>
+                </div>
+            </article>
+
+            <article class="attention-card">
+                <div class="attention-icon"><i class="fa-solid fa-list-check"></i></div>
+                <div>
+                    <span>Tarefas</span>
+                    <strong>Planejado</strong>
+                    <p>Lista operacional de atividades ficará disponível quando o módulo for implementado.</p>
+                </div>
+            </article>
+
+            <article class="attention-card">
+                <div class="attention-icon"><i class="fa-solid fa-temperature-half"></i></div>
+                <div>
+                    <span>Chocadeira</span>
+                    <strong>Planejado</strong>
+                    <p>Monitoramento de lotes, temperatura e eclosão será conectado ao domínio de aves.</p>
+                </div>
+            </article>
+
+            <article class="attention-card">
+                <div class="attention-icon"><i class="fa-solid fa-droplet"></i></div>
+                <div>
+                    <span>Irrigação</span>
+                    <strong>Planejado</strong>
+                    <p>Reservatórios, bombas e registros de água aparecerão aqui quando houver dados reais.</p>
+                </div>
+            </article>
+
+            <article class="attention-card">
+                <div class="attention-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div>
+                    <span>Manutenção</span>
+                    <strong>Planejado</strong>
+                    <p>Ordens e ocorrências da propriedade serão consolidadas neste bloco.</p>
+                </div>
+            </article>
+
+            <article class="attention-card">
+                <div class="attention-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+                <div>
+                    <span>Clima</span>
+                    <strong>Futuro</strong>
+                    <p>Espaço reservado para previsão e condições climáticas do sítio.</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="dashboard-workspace">
+            <div class="dashboard-chart-panel">
+                <div class="panel-heading">
+                    <h3>Divisão atual do sítio</h3>
+                    <span>Dados cadastrados</span>
+                </div>
+                <div class="chart-wrapper" th:if="${labelsGraficoJson != '[]'}">
+                    <canvas id="agroChart"
+                            th:attr="data-labels=${labelsGraficoJson},data-values=${dadosGraficoJson}"></canvas>
+                </div>
+                <div class="dashboard-empty" th:if="${labelsGraficoJson == '[]'}">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <strong>Sem dados para gráfico</strong>
+                    <span>Cadastre itens e categorias para visualizar a distribuição.</span>
+                </div>
+            </div>
+
+            <div class="dashboard-stock-panel">
+                <div class="stock-panel-header">
+                    <div>
+                        <h3>Itens cadastrados</h3>
+                        <p>Registros funcionais de estoque/produção já existentes.</p>
+                    </div>
+                    <form th:action="@{/sitio/painel}" method="get" class="stock-filter">
+                        <label for="categoriaId" class="form-label">Categoria</label>
+                        <select id="categoriaId" name="categoriaId" class="form-select" data-auto-submit>
+                            <option value="">Todas</option>
                             <option th:each="cat : ${categorias}"
                                     th:value="${cat.id}"
                                     th:text="${cat.nome}"
@@ -32,72 +141,22 @@
                         </select>
                     </form>
                 </div>
-            </div>
-        </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card card-agro p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <small class="opacity-75">Total de Itens</small>
-                            <h2 class="fw-bold mb-0" th:text="${totalItens}">0</h2>
-                        </div>
-                        <i class="fa-solid fa-boxes-stacked fs-1 opacity-25"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-agro card-alert p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <small class="opacity-75">Alertas Críticos</small>
-                            <h2 class="fw-bold mb-0" th:text="${itensAlerta}">0</h2>
-                        </div>
-                        <i class="fa-solid fa-triangle-exclamation fs-1 opacity-25"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-agro card-category p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <small class="opacity-75">Categorias</small>
-                            <h2 class="fw-bold mb-0" th:text="${totalCategorias}">0</h2>
-                        </div>
-                        <i class="fa-solid fa-tags fs-1 opacity-25"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="chart-card bg-white p-4 rounded-4 shadow-sm h-100 text-center">
-                    <h5 class="fw-bold mb-4">Divisão do Sítio</h5>
-                    <div class="chart-wrapper">
-                        <canvas id="agroChart"
-                                th:attr="data-labels=${labelsGraficoJson},data-values=${dadosGraficoJson}"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                <div class="table-container h-100 shadow-sm">
+                <div class="table-responsive-soft" th:if="${!#lists.isEmpty(itens)}">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
+                        <thead>
                             <tr>
-                                <th>Item / Descrição</th>
+                                <th>Item</th>
                                 <th>Categoria</th>
-                                <th>Qtd / Unidade</th>
-                                <th class="text-center">Ações</th>
+                                <th>Quantidade</th>
+                                <th class="text-end">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr th:each="p : ${itens}">
                                 <td>
                                     <div class="fw-bold text-dark" th:text="${p.item}">Item</div>
-                                    <small class="text-muted badge border badge-status" th:text="${p.status}"></small>
+                                    <small class="badge-status status-planejado" th:text="${p.status}">Status</small>
                                 </td>
                                 <td>
                                     <span th:if="${p.categoria != null}">
@@ -105,49 +164,79 @@
                                            th:style="'color: ' + ${p.categoria.corHex}"></i>
                                         <span th:text="${p.categoria.nome}">Categoria</span>
                                     </span>
+                                    <span th:unless="${p.categoria != null}" class="text-muted">Sem categoria</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark border" th:text="${p.quantidade} + ' ' + ${p.unidade}"></span>
+                                    <span class="quantity-pill" th:text="${p.quantidade} + ' ' + ${p.unidade}">0 un</span>
                                 </td>
-                                <td class="text-center">
-                                    <a th:href="@{/sitio/editar/{id}(id=${p.id})}" class="btn-edit mx-2">
-                                        <i class="fa-solid fa-pen-to-square fs-5"></i>
+                                <td class="text-end">
+                                    <a th:href="@{/sitio/editar/{id}(id=${p.id})}" class="btn-edit" aria-label="Editar item">
+                                        <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
                                     <form th:action="@{/sitio/excluir/{id}(id=${p.id})}" method="post" class="d-inline">
                                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                        <button type="submit" class="btn-delete mx-2 border-0 bg-transparent"
-                                                data-confirm-message="Excluir item?">
-                                            <i class="fa-solid fa-trash-can fs-5"></i>
+                                        <button type="submit" class="btn-delete border-0 bg-transparent"
+                                                data-confirm-message="Excluir item?" aria-label="Excluir item">
+                                            <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </form>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="d-flex justify-content-between align-items-center mt-4" th:if="${totalPaginas > 1}">
-                        <small class="text-muted">Pág. <span th:text="${paginaAtual + 1}"></span> de <span th:text="${totalPaginas}"></span></small>
-                        <nav>
-                            <ul class="pagination mb-0 small">
-                                <li class="page-item" th:classappend="${paginaAtual == 0} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual - 1}, categoriaId=${categoriaSelecionada})}">
-                                        <i class="fa-solid fa-chevron-left"></i>
-                                    </a>
-                                </li>
-                                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaAtual} ? 'active'">
-                                    <a class="page-link" th:href="@{/sitio/painel(page=${i}, categoriaId=${categoriaSelecionada})}" th:text="${i + 1}">1</a>
-                                </li>
-                                <li class="page-item" th:classappend="${paginaAtual + 1 == totalPaginas} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual + 1}, categoriaId=${categoriaSelecionada})}">
-                                        <i class="fa-solid fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    </div>
+                <div class="dashboard-empty" th:if="${#lists.isEmpty(itens)}">
+                    <i class="fa-solid fa-box-open"></i>
+                    <strong>Nenhum item encontrado</strong>
+                    <span>Os registros aparecerão aqui quando houver itens cadastrados para o filtro selecionado.</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4" th:if="${totalPaginas > 1}">
+                    <small class="text-muted">Pág. <span th:text="${paginaAtual + 1}"></span> de <span th:text="${totalPaginas}"></span></small>
+                    <nav aria-label="Paginação de itens">
+                        <ul class="pagination mb-0 small">
+                            <li class="page-item" th:classappend="${paginaAtual == 0} ? 'disabled'">
+                                <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual - 1}, categoriaId=${categoriaSelecionada})}">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaAtual} ? 'active'">
+                                <a class="page-link" th:href="@{/sitio/painel(page=${i}, categoriaId=${categoriaSelecionada})}" th:text="${i + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${paginaAtual + 1 == totalPaginas} ? 'disabled'">
+                                <a class="page-link" th:href="@{/sitio/painel(page=${paginaAtual + 1}, categoriaId=${categoriaSelecionada})}">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <section class="future-chart-grid" aria-label="Indicadores planejados">
+            <article class="future-chart-card">
+                <i class="fa-solid fa-wheat-awn"></i>
+                <strong>Consumo de ração</strong>
+                <span>Planejado</span>
+            </article>
+            <article class="future-chart-card">
+                <i class="fa-solid fa-coins"></i>
+                <strong>Despesas por centro de custo</strong>
+                <span>Planejado</span>
+            </article>
+            <article class="future-chart-card">
+                <i class="fa-solid fa-chart-line"></i>
+                <strong>Produção</strong>
+                <span>Planejado</span>
+            </article>
+            <article class="future-chart-card">
+                <i class="fa-solid fa-egg"></i>
+                <strong>Taxa de eclosão</strong>
+                <span>Planejado</span>
+            </article>
+        </section>
 
         <div th:replace="~{fragments/ui :: appFooter}"></div>
     </main>

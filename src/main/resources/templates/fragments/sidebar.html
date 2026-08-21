@@ -2,12 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<aside th:fragment="sidebar(active)" class="sidebar shadow">
-    <div class="sidebar-brand px-4 mb-3">
-        <div>
-            <h4 class="fw-bold mb-0"><i class="fa-solid fa-tractor me-2 text-success"></i>Sítio Guaratinguetá</h4>
-            <small class="text-muted">Gestão rural v2.0</small>
-        </div>
+<aside th:fragment="sidebar(active)" class="sidebar">
+    <div class="sidebar-brand">
+        <a th:href="@{/sitio/painel}" class="sidebar-brand-link" aria-label="Ir para o dashboard">
+            <img th:src="@{/brand/logo-horizontal-light.svg}" alt="Sítio Guaratinguetá" class="brand-logo-full">
+            <img th:src="@{/brand/garca-symbol.svg}" alt="" class="brand-logo-symbol" aria-hidden="true">
+        </a>
+        <button class="sidebar-collapse-toggle d-none d-lg-inline-flex" type="button" data-sidebar-toggle
+                aria-label="Alternar menu lateral">
+            <i class="fa-solid fa-bars-staggered"></i>
+        </button>
         <button class="sidebar-mobile-toggle d-lg-none" type="button" data-bs-toggle="collapse"
                 data-bs-target="#mainSidebarNav" aria-controls="mainSidebarNav" aria-expanded="false"
                 aria-label="Abrir menu">
@@ -218,14 +222,14 @@
 
         <div class="sidebar-section" sec:authorize="hasRole('ADMIN')">
             <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
-               th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' active'"
+               th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude'} ? ' active'"
                data-bs-toggle="collapse" href="#collapseAdministracao" role="button">
                 <span><i class="fa-solid fa-gears me-2"></i> Administração</span>
                 <i class="fa-solid fa-chevron-down small"></i>
             </a>
             <div class="collapse"
                  id="collapseAdministracao"
-                 th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade'} ? ' show'">
+                 th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude'} ? ' show'">
                 <a th:href="@{/sitio/admin/usuarios}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'usuarios'} ? ' active'">
                     <i class="fa-solid fa-users me-2"></i> Usuários
@@ -241,6 +245,10 @@
                 <a th:href="@{/sitio/admin/roadmap}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'roadmap'} ? ' active'">
                     <i class="fa-solid fa-map me-2"></i> Roadmap
+                </a>
+                <a th:href="@{/sitio/admin/saude}" class="sidebar-link sidebar-grandchild"
+                   th:classappend="${active == 'saude'} ? ' active'">
+                    <i class="fa-solid fa-heart-pulse me-2"></i> Saúde do Sistema
                 </a>
                 <a th:href="@{/sitio/admin/centros-custo}" class="sidebar-link sidebar-grandchild"
                    th:classappend="${active == 'centros-custo'} ? ' active'">

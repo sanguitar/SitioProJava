@@ -1,4 +1,4 @@
 .domain-agua {
-    --module-color: #0e7490;
-    --module-accent: #38bdf8;
+    --module-color: var(--semantic-info);
+    --module-accent: var(--brand-leaf);
 }

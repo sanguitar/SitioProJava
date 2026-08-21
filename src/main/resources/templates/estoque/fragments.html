@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="tabs(tab)" class="estoque-tabs" aria-label="Navegação do estoque">
+    <a th:href="@{/sitio/estoque}" th:classappend="${tab == 'dashboard'} ? ' active'">
+        <i class="fa-solid fa-chart-simple"></i><span>Resumo</span>
+    </a>
+    <a th:href="@{/sitio/estoque/itens}" th:classappend="${tab == 'itens'} ? ' active'">
+        <i class="fa-solid fa-box"></i><span>Itens</span>
+    </a>
+    <a th:href="@{/sitio/estoque/movimentacoes}" th:classappend="${tab == 'movimentacoes'} ? ' active'">
+        <i class="fa-solid fa-clock-rotate-left"></i><span>Movimentações</span>
+    </a>
+    <a th:href="@{/sitio/estoque/inventario}" th:classappend="${tab == 'inventario'} ? ' active'">
+        <i class="fa-solid fa-clipboard-check"></i><span>Inventário</span>
+    </a>
+    <a th:href="@{/sitio/estoque/locais}" th:classappend="${tab == 'locais'} ? ' active'">
+        <i class="fa-solid fa-location-dot"></i><span>Locais</span>
+    </a>
+    <a th:href="@{/sitio/estoque/categorias}" th:classappend="${tab == 'categorias'} ? ' active'">
+        <i class="fa-solid fa-tags"></i><span>Categorias</span>
+    </a>
+</nav>
+</body>
+</html>

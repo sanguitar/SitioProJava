@@ -1,4 +1,4 @@
 .domain-agricultura {
-    --module-color: #3f6212;
-    --module-accent: #eab308;
+    --module-color: var(--brand-field);
+    --module-accent: var(--brand-harvest);
 }

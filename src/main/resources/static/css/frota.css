@@ -1,28 +1,32 @@
 .domain-frota {
-    --module-color: #1d4ed8;
-    --module-accent: #22c55e;
+    --module-color: var(--brand-graphite);
+    --module-accent: var(--brand-leaf);
 }
 
 .card-veiculo {
-    background: white;
-    border: none;
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
     border-bottom: 4px solid transparent;
-    border-radius: 15px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: 0.3s;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .card-veiculo:hover {
-    border-bottom-color: var(--agro-dark);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    transform: translateY(-5px);
+    border-bottom-color: var(--brand-harvest);
+    box-shadow: var(--shadow-panel);
+}
+
+.frota-empty {
+    margin-bottom: 18px;
 }
 
 .icon-box {
     align-items: center;
-    background: #f8f9fa;
-    border-radius: 12px;
-    color: var(--agro-dark);
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    color: var(--brand-forest);
     display: flex;
     font-size: 1.3rem;
     height: 50px;
@@ -31,7 +35,28 @@
 }
 
 .fipex-card {
-    background: #1a1d21;
-    border-radius: 15px;
-    color: white;
+    background: var(--brand-graphite);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: var(--radius-lg);
+    color: var(--text-inverse);
+}
+
+.fipex-card .form-label {
+    color: var(--brand-sand);
+}
+
+.fipex-card h4 {
+    color: var(--text-inverse);
+    font-weight: 800;
+}
+
+.fipex-card h4 i {
+    color: var(--brand-harvest);
+}
+
+.fipex-card .form-control,
+.fipex-card .form-select {
+    background: rgba(244, 240, 230, 0.08) !important;
+    border-color: rgba(244, 240, 230, 0.18) !important;
+    color: var(--text-inverse) !important;
 }

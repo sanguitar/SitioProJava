@@ -1,4 +1,4 @@
 .domain-tarefas {
-    --module-color: #0f766e;
-    --module-accent: #f97316;
+    --module-color: var(--brand-field);
+    --module-accent: var(--brand-earth);
 }

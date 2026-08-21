@@ -8,6 +8,7 @@
     <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
 
     <main class="main-content main-content-wide module-shell" th:classappend="${modulo.domainClass}">
+        <div th:replace="~{fragments/ui :: topbar(${modulo.titulo}, ${modulo.grupo})}"></div>
         <div th:replace="~{fragments/ui :: breadcrumbs(${breadcrumbs})}"></div>
         <div th:replace="~{fragments/ui :: moduleHeader(${modulo}, ${statusPagina})}"></div>
 

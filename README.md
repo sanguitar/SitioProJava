@@ -96,10 +96,148 @@ docker compose -f docker-compose.yml --env-file .env up --build -d
 
 TLS, Certbot e renovação de certificados ainda não fazem parte desta etapa.
 
+## Observabilidade
+
+A observabilidade é opcional. O ERP continua funcionando sem Elasticsearch, Kibana, APM Server ou Elastic Agent.
+
+Arquitetura local:
+
+```text
+Browser/API -> Nginx -> Spring Boot -> SQL Server
+                         |
+                         +-> logs ECS + Elastic APM Java Agent
+
+Elastic Agent -> logs app/Nginx/SQL Server + métricas Docker -> Elasticsearch -> Kibana
+APM Server <- Elastic APM Java Agent -> Elasticsearch -> Kibana
+```
+
+Versões fixadas:
+
+```text
+Elasticsearch/Kibana/APM Server/Elastic Agent: 9.5.0
+Elastic APM Java Agent: 1.56.0
+ECS Logging Java Logback Encoder: 1.8.0
+```
+
+Para subir somente o ERP:
+
+```powershell
+docker compose --env-file .env up --build -d
+```
+
+Para subir ERP + Elastic:
+
+```powershell
+docker compose --env-file .env `
+  -f docker-compose.yml `
+  -f docker-compose.observability.yml `
+  up --build -d
+```
+
+Kibana local:
+
+```text
+http://localhost:5601
+```
+
+Use o usuário `elastic` e a senha definida localmente em `ELASTIC_PASSWORD`. Não versionar `.env`.
+
+Portas administrativas:
+
+- Kibana é publicado somente em `127.0.0.1:${KIBANA_PORT:-5601}`;
+- Elasticsearch fica apenas na rede Docker;
+- APM Server fica apenas na rede Docker;
+- Elasticsearch/Kibana/APM não ficam atrás do Nginx nesta etapa.
+
+Actuator:
+
+```text
+GET /actuator/health
+GET /actuator/health/liveness
+GET /actuator/health/readiness
+GET /actuator/info      ADMIN
+GET /actuator/metrics   ADMIN
+```
+
+Endpoints sensíveis como `/actuator/env`, `/actuator/beans`, `/actuator/configprops`, `/actuator/mappings`, `/actuator/heapdump`, `/actuator/threaddump` e `/actuator/loggers` não são expostos.
+
+Correlação:
+
+- Nginx preserva `X-Request-ID` válido ou gera um novo;
+- Spring devolve `X-Request-ID` na resposta e coloca `request.id` nos logs;
+- Elastic APM adiciona `trace.id`/`transaction.id` aos logs quando o javaagent está ativo;
+- mensagens seguras de erro inesperado retornam um código pesquisável no Kibana.
+
+Exemplos de busca no Kibana:
+
+```text
+request.id : "93af927c"
+trace.id : "<trace_id_do_apm>"
+event.action : "LOGIN_FAILURE"
+module : "estoque"
+http.response.status_code : "500"
+```
+
+Dashboards provisionados:
+
+```text
+Sítio Guaratinguetá - System Overview
+Sítio Guaratinguetá - API
+```
+
+Artefatos versionados:
+
+```text
+infra/observability/elasticsearch/setup.sh
+infra/observability/kibana/setup.sh
+infra/observability/kibana/dashboards/system-overview.json
+infra/observability/kibana/dashboards/api.json
+infra/observability/elastic-agent/elastic-agent.yml
+infra/observability/apm/apm-server.yml
+```
+
+Retenção e recursos para ambiente doméstico/dev:
+
+- ILM inicial: rollover diário ou shard primário de 512 MB, deleção após 30 dias;
+- heap Elasticsearch: `ELASTICSEARCH_HEAP=1g`;
+- limite Elasticsearch: `ELASTICSEARCH_MEM_LIMIT=1536m`;
+- limite Kibana: `KIBANA_MEM_LIMIT=1g`;
+- limite APM Server: `APM_SERVER_MEM_LIMIT=256m`;
+- limite Elastic Agent: `ELASTIC_AGENT_MEM_LIMIT=512m`;
+- RAM extra esperada para observabilidade completa: aproximadamente 3 GB a 4 GB, além do ERP/SQL Server.
+
+Para verificar disco:
+
+```powershell
+docker compose --env-file .env `
+  -f docker-compose.yml `
+  -f docker-compose.observability.yml `
+  exec elasticsearch curl -u "elastic:$env:ELASTIC_PASSWORD" http://localhost:9200/_cat/allocation?v
+```
+
+Para desligar APM sem remover a stack:
+
+```text
+ELASTIC_APM_ENABLED=false
+```
+
+Para desligar a observabilidade inteira, suba somente o compose base. Não use `down -v` no ambiente principal, pois isso remove volumes persistentes.
+
+Troubleshooting:
+
+```powershell
+docker compose --env-file .env ps
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.observability.yml ps
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.observability.yml logs kibana
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.observability.yml logs elastic-agent
+```
+
+O Elastic Agent roda como `root` no container para ler o Docker socket montado como somente leitura (`/var/run/docker.sock:ro`) e arquivos de log dos volumes. Não use esse container para mutações Docker.
+
 ## Convenções Web
 
 - páginas Thymeleaf: `/sitio/**`;
-- futuras APIs REST próprias: `/api/v1/**`;
+- APIs REST próprias: `/api/v1/**`;
 - endpoint FIPE atual: `/api/fipe/**`, preservado para a funcionalidade existente da frota.
 
 Rotas antigas planejadas como `/gestao/**`, `/criacoes/**`, `/agricultura/**`, `/agua/**`, `/propriedade/**`, `/administracao/**` e `/configuracoes/roadmap` redirecionam temporariamente para a nova árvore `/sitio/**`.
@@ -133,6 +271,27 @@ SITIOPRO_INITIAL_ADMIN_ENABLED
 SITIOPRO_INITIAL_ADMIN_LOGIN
 SITIOPRO_INITIAL_ADMIN_PASSWORD
 SITIOPRO_INITIAL_ADMIN_NAME
+SITIOPRO_ENVIRONMENT
+SITIOPRO_APP_VERSION
+SITIOPRO_OBSERVABILITY_ENABLED
+SITIOPRO_OBSERVABILITY_APM_SERVER_URL
+SITIOPRO_LOG_FILE
+SITIOPRO_LOG_LEVEL
+HIBERNATE_SQL_LOG_LEVEL
+HIBERNATE_BIND_LOG_LEVEL
+ELASTIC_STACK_VERSION
+ELASTIC_APM_AGENT_VERSION
+ELASTIC_APM_ENABLED
+ELASTIC_PASSWORD
+KIBANA_SYSTEM_PASSWORD
+ELASTIC_APM_SECRET_TOKEN
+KIBANA_ENCRYPTION_KEY
+KIBANA_PORT
+ELASTICSEARCH_HEAP
+ELASTICSEARCH_MEM_LIMIT
+KIBANA_MEM_LIMIT
+APM_SERVER_MEM_LIMIT
+ELASTIC_AGENT_MEM_LIMIT
 ```
 
 O arquivo `.env` não deve ser versionado. Use `.env.example` apenas como modelo de desenvolvimento.
@@ -150,9 +309,13 @@ A interface Thymeleaf usa Spring Security com sessão, login por formulário e C
 Regras principais:
 
 - `/login`, `/error`, `/health` e assets estáticos são públicos;
+- `/actuator/health`, `/actuator/health/liveness` e `/actuator/health/readiness` são públicos com informação mínima;
+- `/actuator/info` e `/actuator/metrics/**` exigem perfil `ADMIN`;
 - `/sitio/**`, aliases web antigos e `/api/fipe/**` exigem autenticação;
 - `/sitio/admin/**`, `/sitio/configuracoes/**`, `/administracao/**` e `/configuracoes/roadmap` exigem perfil `ADMIN`;
-- `/api/v1/**` fica negado até existir uma API versionada de verdade;
+- `/api/v1/estoque/**` exige autenticação; POSTs continuam protegidos por CSRF enquanto a autenticação mobile definitiva não for definida;
+- demais rotas `/api/v1/**` permanecem negadas;
+- `/swagger-ui.html`, `/swagger-ui/**` e `/v3/api-docs/**` exigem perfil `ADMIN`;
 - logout é feito por `POST /logout` com CSRF.
 
 Perfis disponíveis:
@@ -166,10 +329,44 @@ Para criar o primeiro administrador, use variáveis externas somente no primeiro
 SITIOPRO_INITIAL_ADMIN_ENABLED=true
 SITIOPRO_INITIAL_ADMIN_LOGIN=admin_local
 SITIOPRO_INITIAL_ADMIN_PASSWORD=senha_forte_local
-SITIOPRO_INITIAL_ADMIN_NAME=Administrador
+SITIOPRO_INITIAL_ADMIN_NAME=Administrador Local
 ```
 
-O bootstrap é idempotente: só cria usuário quando a tabela `usuarios` está vazia. Depois que o primeiro ADMIN existir, volte `SITIOPRO_INITIAL_ADMIN_ENABLED=false`. Nunca versione senhas reais.
+O `.env` não é base de usuários e não participa da autenticação diária. Ele apenas fornece os dados do primeiro ADMIN quando `SITIOPRO_INITIAL_ADMIN_ENABLED=true`. O bootstrap é idempotente: se o login inicial já existir, não recria, não altera dados e não reseta senha; se o login não existir, só cria o ADMIN quando a tabela `usuarios` ainda está vazia. Depois que o primeiro ADMIN existir, volte `SITIOPRO_INITIAL_ADMIN_ENABLED=false`. A autenticação passa sempre por Spring Security, `UsuarioDetailsService`, `UsuarioRepository` e a tabela `usuarios`. Nunca versione senhas reais.
+
+## Estoque
+
+O módulo funcional de estoque usa um domínio único para a propriedade, em vez de estoques separados por criação ou área. As páginas principais ficam em:
+
+```text
+/sitio/estoque
+/sitio/estoque/itens
+/sitio/estoque/itens/novo
+/sitio/estoque/itens/{id}
+/sitio/estoque/movimentacoes
+/sitio/estoque/movimentacoes/nova
+/sitio/estoque/locais
+/sitio/estoque/categorias
+/sitio/estoque/inventario
+```
+
+O saldo é calculado a partir do histórico de movimentações, que é a fonte confiável. Não há saldo materializado nesta etapa. Entradas aumentam saldo, consumo/perda/descarte/ajuste de saída reduzem saldo e transferência altera locais sem mudar o total da propriedade. O service rejeita quantidade zero/negativa e não permite estoque negativo por padrão.
+
+Custos ficam preparados para compras futuras: uma entrada pode registrar custo unitário e/ou custo total. O último preço vem da entrada mais recente com custo unitário, e o custo médio atual é a média ponderada simples das entradas com custo total.
+
+API inicial:
+
+```text
+GET  /api/v1/estoque/resumo
+GET  /api/v1/estoque/itens
+GET  /api/v1/estoque/itens/{id}
+POST /api/v1/estoque/itens
+GET  /api/v1/estoque/movimentos
+GET  /api/v1/estoque/movimentos/{id}
+POST /api/v1/estoque/movimentos
+```
+
+Não há JWT nesta etapa. A API usa a sessão Spring Security atual e permanece protegida por CSRF nos métodos mutáveis. A documentação OpenAPI publica apenas `/api/v1/estoque/**` e fica disponível para ADMIN em `/swagger-ui.html` e `/v3/api-docs`.
 
 ## Flyway e schema
 
@@ -186,6 +383,7 @@ V1__create_current_schema.sql
 V2__add_current_lookup_indexes.sql
 V3__create_users_and_security.sql
 V4__add_business_audit_columns.sql
+V5__create_estoque_schema.sql
 ```
 
 Regras:
@@ -220,8 +418,13 @@ docker compose -f docker-compose.yml --env-file .env.example config
 
 ```text
 infra
-└── nginx
-    └── nginx.conf
+├── nginx
+│   └── nginx.conf
+└── observability
+    ├── apm
+    ├── elastic-agent
+    ├── elasticsearch
+    └── kibana
 ```
 
 ```text
@@ -229,6 +432,7 @@ src/main/java/com/example/sitiopro
 ├── abastecimento
 ├── categoria
 ├── dashboard
+├── estoque
 ├── frota
 ├── health
 ├── planejamento

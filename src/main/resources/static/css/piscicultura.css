@@ -1,4 +1,4 @@
 .domain-piscicultura {
-    --module-color: #0369a1;
-    --module-accent: #14b8a6;
+    --module-color: var(--semantic-info);
+    --module-accent: var(--brand-leaf);
 }

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Estoque')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Estoque', 'Gestão')}"></div>
+
+        <section class="estoque-hero">
+            <div>
+                <small class="module-group">Gestão</small>
+                <h1>Estoque</h1>
+                <p>Itens, locais, lotes, movimentações e níveis mínimos da propriedade.</p>
+            </div>
+            <div class="status-badge-visual status-funcional">FUNCIONAL</div>
+        </section>
+
+        <div th:replace="~{estoque/fragments :: tabs('dashboard')}"></div>
+
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+        <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+
+        <section class="estoque-metrics">
+            <article class="estoque-metric">
+                <span>Itens cadastrados</span>
+                <strong th:text="${resumo.itensCadastrados}">0</strong>
+            </article>
+            <article class="estoque-metric is-warning">
+                <span>Abaixo do mínimo</span>
+                <strong th:text="${resumo.itensAbaixoMinimo}">0</strong>
+            </article>
+            <article class="estoque-metric">
+                <span>Lotes vencendo</span>
+                <strong th:text="${resumo.lotesVencendo}">0</strong>
+            </article>
+            <article class="estoque-metric">
+                <span>Valor estimado</span>
+                <strong th:text="${'R$ ' + #numbers.formatDecimal(resumo.valorEstimado, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            </article>
+        </section>
+
+        <section class="estoque-actions">
+            <a th:href="@{/sitio/estoque/movimentacoes/nova}" class="btn btn-success">
+                <i class="fa-solid fa-plus me-2"></i>Entrada
+            </a>
+            <a th:href="@{/sitio/estoque/movimentacoes/nova}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-minus me-2"></i>Consumo
+            </a>
+            <a th:href="@{/sitio/estoque/movimentacoes/nova}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-right-left me-2"></i>Transferir
+            </a>
+            <a th:href="@{/sitio/estoque/itens/novo}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-box me-2"></i>Novo item
+            </a>
+        </section>
+
+        <section class="row g-4">
+            <div class="col-xl-5">
+                <div class="estoque-panel h-100">
+                    <div class="panel-heading">
+                        <h3>Atenção</h3>
+                        <span th:text="${resumo.itensCriticos.size()} + ' itens'">0 itens</span>
+                    </div>
+                    <div class="estoque-list">
+                        <article class="estoque-alert-item" th:each="item : ${resumo.itensCriticos}">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <div>
+                                <strong th:text="${item.nome}">Item</strong>
+                                <span>
+                                    <span th:text="${#numbers.formatDecimal(item.saldo, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                    <span th:text="${item.unidade}">UN</span>
+                                    disponíveis, mínimo
+                                    <span th:text="${#numbers.formatDecimal(item.estoqueMinimo, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                    <span th:text="${item.unidade}">UN</span>
+                                </span>
+                            </div>
+                        </article>
+                        <div class="empty-state-card" th:if="${#lists.isEmpty(resumo.itensCriticos)}">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <div>
+                                <strong>Nenhum item abaixo do mínimo</strong>
+                                <p th:if="${resumo.itensCadastrados > 0}">Os saldos atuais estão dentro dos mínimos cadastrados.</p>
+                                <p th:if="${resumo.itensCadastrados == 0}">Cadastre itens e movimentações para acompanhar alertas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-7">
+                <div class="estoque-panel h-100">
+                    <div class="panel-heading">
+                        <h3>Movimentações recentes</h3>
+                        <a th:href="@{/sitio/estoque/movimentacoes}">Ver histórico</a>
+                    </div>
+                    <div class="estoque-timeline">
+                        <article class="movimento-row" th:each="movimento : ${resumo.movimentacoesRecentes}">
+                            <div class="movimento-icon" th:classappend="${movimento.tipo.name() == 'ENTRADA' or movimento.tipo.name() == 'AJUSTE_ENTRADA'} ? ' is-positive' : (${movimento.tipo.name() == 'TRANSFERENCIA'} ? ' is-transfer' : ' is-negative')">
+                                <i class="fa-solid" th:classappend="${movimento.tipo.name() == 'TRANSFERENCIA'} ? ' fa-right-left' : (${movimento.tipo.name() == 'ENTRADA' or movimento.tipo.name() == 'AJUSTE_ENTRADA'} ? ' fa-plus' : ' fa-minus')"></i>
+                            </div>
+                            <div>
+                                <strong th:text="${movimento.itemNome}">Item</strong>
+                                <span>
+                                    <span th:text="${movimento.tipoRotulo}">Tipo</span>
+                                    ·
+                                    <span th:text="${#numbers.formatDecimal(movimento.quantidade, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                    <span th:text="${movimento.unidade}">UN</span>
+                                </span>
+                            </div>
+                            <time th:text="${#temporals.format(movimento.dataMovimento, 'dd/MM/yyyy HH:mm')}">21/08/2026 08:40</time>
+                        </article>
+                        <div class="empty-state-card" th:if="${#lists.isEmpty(resumo.movimentacoesRecentes)}">
+                            <i class="fa-solid fa-box-open"></i>
+                            <div>
+                                <strong>Nenhuma movimentação registrada</strong>
+                                <p>O histórico aparecerá aqui após a primeira entrada, consumo ou transferência.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

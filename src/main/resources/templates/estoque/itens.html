@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Itens de Estoque')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Itens', 'Estoque')}"></div>
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Estoque</small>
+                <h1>Itens</h1>
+            </div>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/sitio/estoque/itens/novo}" class="btn btn-success">
+                <i class="fa-solid fa-plus me-2"></i>Novo item
+            </a>
+        </div>
+        <div th:replace="~{estoque/fragments :: tabs('itens')}"></div>
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <section class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Categoria</th>
+                            <th>Saldo</th>
+                            <th>Mínimo</th>
+                            <th>Status</th>
+                            <th>Último preço</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${itens}">
+                            <td>
+                                <strong th:text="${item.nome}">Item</strong>
+                                <span class="d-block text-muted small" th:text="${item.ativo ? 'Ativo' : 'Inativo'}">Ativo</span>
+                            </td>
+                            <td th:text="${item.categoria}">Categoria</td>
+                            <td>
+                                <strong th:text="${#numbers.formatDecimal(item.saldo, 1, 'POINT', 2, 'COMMA')}">0</strong>
+                                <span th:text="${item.unidade}">UN</span>
+                            </td>
+                            <td>
+                                <span th:if="${item.estoqueMinimo != null}">
+                                    <span th:text="${#numbers.formatDecimal(item.estoqueMinimo, 1, 'POINT', 2, 'COMMA')}">0</span>
+                                    <span th:text="${item.unidade}">UN</span>
+                                </span>
+                                <span th:unless="${item.estoqueMinimo != null}">-</span>
+                            </td>
+                            <td>
+                                <span th:if="${item.estoqueBaixo}" class="badge bg-warning-subtle text-warning">Estoque baixo</span>
+                                <span th:unless="${item.estoqueBaixo}" class="badge bg-success-subtle text-success">OK</span>
+                            </td>
+                            <td>
+                                <span th:if="${item.ultimoPreco != null}" th:text="${'R$ ' + #numbers.formatDecimal(item.ultimoPreco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                                <span th:unless="${item.ultimoPreco != null}">-</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/sitio/estoque/itens/{id}(id=${item.id})}" class="btn btn-outline-dark btn-sm">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(itens)}">
+                            <td colspan="7">
+                                <div class="empty-state-card">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    <div>
+                                        <strong>Nenhum item cadastrado</strong>
+                                        <p>O estoque começa pelo cadastro de itens, categorias e locais.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

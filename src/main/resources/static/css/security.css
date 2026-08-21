@@ -1,9 +1,8 @@
 .security-body {
-    background: #eef2f0;
+    background: var(--brand-sand);
     min-height: 100vh;
 }
 
-.login-shell,
 .access-denied-shell {
     align-items: center;
     display: grid;
@@ -11,31 +10,25 @@
     padding: 24px;
 }
 
-.login-panel,
 .access-denied-panel {
-    background: #ffffff;
-    border: 1px solid #dbe3dd;
-    border-radius: 8px;
-    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+    display: grid;
+    gap: 14px;
+    justify-items: start;
     margin: 0 auto;
     max-width: 430px;
     padding: 32px;
     width: 100%;
 }
 
-.login-brand {
-    align-items: center;
-    display: flex;
-    gap: 14px;
-    margin-bottom: 26px;
-}
-
-.login-brand i,
 .access-denied-panel > i {
     align-items: center;
-    background: #dcfce7;
-    border-radius: 8px;
-    color: #166534;
+    background: #E0F1E5;
+    border-radius: var(--radius-md);
+    color: var(--brand-forest);
     display: flex;
     font-size: 1.5rem;
     height: 52px;
@@ -43,37 +36,14 @@
     width: 52px;
 }
 
-.login-brand h1,
 .access-denied-panel h1 {
+    color: var(--text-primary);
     font-size: 1.35rem;
-    font-weight: 800;
+    font-weight: 850;
     margin: 0;
 }
 
-.login-brand span,
 .access-denied-panel p {
-    color: #64748b;
-}
-
-.login-form {
-    display: grid;
-    gap: 12px;
-}
-
-.login-form label {
-    color: #1e3d1a;
-    font-weight: 700;
-}
-
-.login-form input {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    min-height: 46px;
-    padding: 10px 12px;
-}
-
-.access-denied-panel {
-    display: grid;
-    gap: 14px;
-    justify-items: start;
+    color: var(--text-secondary);
+    margin: 0;
 }

@@ -44,6 +44,12 @@ Todo código novo deve considerar validação de entrada, menor privilégio, pro
 
 Rotas administrativas devem ser protegidas no backend por perfil `ADMIN`, e não apenas ocultas no menu. Operações mutáveis devem usar métodos HTTP mutáveis com token CSRF. Formulários sensíveis devem usar DTOs específicos, nunca binding direto para entidade de usuário.
 
+## Observabilidade
+
+Use logs estruturados e tecnicamente úteis. Preserve `request.id`/`trace.id`, nunca registre senhas, tokens, cookies, hashes, connection strings ou headers sensíveis, e não adicione logs INFO triviais de entrada/saída de método.
+
+Não confunda observabilidade técnica com auditoria de negócio: histórico e auditoria persistente do ERP ficam no SQL Server; Elastic/Kibana servem para diagnóstico, performance e investigação operacional.
+
 ## Banco de dados e Flyway
 
 Flyway é o mecanismo permanente de evolução do schema. Hibernate deve validar o mapeamento com `ddl-auto=validate`. Não use `ddl-auto=update` como prática permanente.

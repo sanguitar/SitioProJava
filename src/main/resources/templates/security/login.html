@@ -2,16 +2,26 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Login')}"></th:block>
-    <link rel="stylesheet" th:href="@{/css/security.css}">
+    <link rel="stylesheet" th:href="@{/css/login.css}">
 </head>
 <body class="security-body">
     <main class="login-shell">
+        <section class="login-visual" aria-label="Identidade do Sítio Guaratinguetá">
+            <div class="login-photo-placeholder">
+                <img th:src="@{/brand/logo-horizontal-light.svg}" alt="Sítio Guaratinguetá" class="login-visual-logo">
+                <div>
+                    <span>Gestão rural profissional</span>
+                    <strong>Natureza, rotina e dados no mesmo lugar.</strong>
+                </div>
+            </div>
+        </section>
+
         <section class="login-panel">
             <div class="login-brand">
-                <i class="fa-solid fa-tractor"></i>
+                <img th:src="@{/brand/garca-symbol.svg}" alt="" aria-hidden="true">
                 <div>
                     <h1>Sítio Guaratinguetá</h1>
-                    <span>Gestão rural</span>
+                    <span>Acesse sua área de gestão</span>
                 </div>
             </div>
 
@@ -31,10 +41,12 @@
                 <label for="password">Senha</label>
                 <input id="password" type="password" name="password" autocomplete="current-password" required>
 
-                <button type="submit" class="btn btn-success fw-bold">
+                <button type="submit" class="btn btn-success fw-bold login-submit">
                     <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
                 </button>
             </form>
+
+            <footer class="login-footer">&copy; 2026 Sítio Guaratinguetá &bull; Desenvolvido por Sânderson</footer>
         </section>
     </main>
 

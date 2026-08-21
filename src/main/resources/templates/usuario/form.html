@@ -8,6 +8,7 @@
     <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
 
     <main class="main-content main-content-wide">
+        <div th:replace="~{fragments/ui :: topbar(${modo == 'novo' ? 'Novo usuário' : 'Editar usuário'}, 'Administração')}"></div>
         <section class="user-form-panel">
             <div class="panel-heading">
                 <h1 th:text="${modo == 'novo' ? 'Novo usuário' : 'Editar usuário'}">Usuário</h1>

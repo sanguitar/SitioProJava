@@ -8,8 +8,17 @@ import com.example.sitiopro.categoria.service.CategoriaService;
 import com.example.sitiopro.dashboard.controller.DashboardController;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.estoque.controller.EstoqueController;
+import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
+import com.example.sitiopro.estoque.dto.ItemEstoqueDetalhe;
+import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
+import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
+import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.frota.controller.VeiculoController;
 import com.example.sitiopro.frota.service.VeiculoService;
+import com.example.sitiopro.observability.controller.SistemaSaudeController;
+import com.example.sitiopro.observability.dto.SistemaSaudeResumo;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.planejamento.controller.AdministracaoPlanejamentoController;
 import com.example.sitiopro.planejamento.controller.AgriculturaPlanejamentoController;
 import com.example.sitiopro.planejamento.controller.AguaPlanejamentoController;
@@ -34,6 +43,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -49,6 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         CategoriaController.class,
         VeiculoController.class,
         AbastecimentoController.class,
+        EstoqueController.class,
         GestaoPlanejamentoController.class,
         CriacoesPlanejamentoController.class,
         AgriculturaPlanejamentoController.class,
@@ -57,7 +69,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         VeiculosPlanejamentoController.class,
         AdministracaoPlanejamentoController.class,
         PlanejamentoRedirectController.class,
-        UsuarioController.class
+        UsuarioController.class,
+        SistemaSaudeController.class
 })
 @WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
@@ -83,6 +96,15 @@ class SitioProRoutesTests {
     @MockBean
     private UsuarioService usuarioService;
 
+    @MockBean
+    private EstoqueCatalogoService estoqueCatalogoService;
+
+    @MockBean
+    private EstoqueMovimentoService estoqueMovimentoService;
+
+    @MockBean
+    private SistemaSaudeService sistemaSaudeService;
+
     @BeforeEach
     void configurarMocks() {
         DashboardResumo resumo = new DashboardResumo(new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0);
@@ -93,6 +115,25 @@ class SitioProRoutesTests {
         when(producaoService.novo()).thenReturn(new Producao());
         when(veiculoService.listarTodos()).thenReturn(List.of());
         when(usuarioService.listarTodos()).thenReturn(List.of());
+        when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
+                0, 0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of()));
+        when(estoqueMovimentoService.listarItensComSaldo()).thenReturn(List.of());
+        when(estoqueMovimentoService.listarMovimentos()).thenReturn(List.of());
+        when(estoqueMovimentoService.listarLotesVencidos()).thenReturn(List.of());
+        when(estoqueMovimentoService.listarLotesProximosVencimento(anyInt())).thenReturn(List.of());
+        ItemEstoqueResumo itemResumo = new ItemEstoqueResumo(1L, "Ração postura", "Geral", "KG",
+                BigDecimal.ZERO, null, true, false, null, null);
+        when(estoqueMovimentoService.detalharItem(1L)).thenReturn(new ItemEstoqueDetalhe(
+                itemResumo, null, false, false, List.of(), List.of()));
+        when(estoqueCatalogoService.listarCategoriasAtivas()).thenReturn(List.of());
+        when(estoqueCatalogoService.listarUnidadesAtivas()).thenReturn(List.of());
+        when(estoqueCatalogoService.listarItensAtivos()).thenReturn(List.of());
+        when(estoqueCatalogoService.listarLocaisAtivos()).thenReturn(List.of());
+        when(estoqueCatalogoService.listarLocais()).thenReturn(List.of());
+        when(estoqueCatalogoService.listarCategorias()).thenReturn(List.of());
+        when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
+                "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
+                "DESABILITADA", "test-request"));
     }
 
     @ParameterizedTest
@@ -104,7 +145,17 @@ class SitioProRoutesTests {
             "/sitio/frota/novo",
             "/sitio/abastecimento/novo",
             "/sitio/admin/usuarios",
-            "/sitio/admin/usuarios/novo"
+            "/sitio/admin/usuarios/novo",
+            "/sitio/estoque",
+            "/sitio/estoque/itens",
+            "/sitio/estoque/itens/novo",
+            "/sitio/estoque/itens/1",
+            "/sitio/estoque/movimentacoes",
+            "/sitio/estoque/movimentacoes/nova",
+            "/sitio/estoque/locais",
+            "/sitio/estoque/categorias",
+            "/sitio/estoque/inventario",
+            "/sitio/admin/saude"
     })
     void rotasFuncionaisExistentesContinuamRespondendo(String rota) throws Exception {
         mockMvc.perform(get(rota))
@@ -120,7 +171,6 @@ class SitioProRoutesTests {
 
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/sitio/estoque",
                 "/sitio/compras",
                 "/sitio/tarefas",
                 "/sitio/aves",
@@ -173,6 +223,9 @@ class SitioProRoutesTests {
     @ParameterizedTest
     @ValueSource(strings = {
             "/gestao/estoque",
+            "/sitio/estoque/novo",
+            "/sitio/estoque/detalhe",
+            "/sitio/estoque/historico",
             "/criacoes/aves/chocadeira",
             "/agricultura/plantios",
             "/agua/irrigacao",

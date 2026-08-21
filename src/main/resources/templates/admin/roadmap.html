@@ -7,13 +7,12 @@
     <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
 
     <main class="main-content main-content-wide roadmap-page">
-        <div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
-            <div>
-                <small class="module-group">Administração</small>
-                <h1 class="roadmap-title">Roadmap do Sítio Guaratinguetá</h1>
-                <p class="roadmap-subtitle">Mapa visual dos módulos atuais, em revisão e planejados.</p>
-            </div>
-            <span class="badge bg-dark p-2 px-3 shadow-sm" th:text="${usuario}"></span>
+        <div th:replace="~{fragments/ui :: topbar('Roadmap do Sítio Guaratinguetá', 'Administração')}"></div>
+
+        <div class="roadmap-intro">
+            <small class="module-group">Administração</small>
+            <h1 class="roadmap-title">Mapa de módulos</h1>
+            <p class="roadmap-subtitle">Status atual das áreas funcionais, em desenvolvimento e planejadas.</p>
         </div>
 
         <section class="status-legend" aria-label="Legenda de status">

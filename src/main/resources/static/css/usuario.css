@@ -9,17 +9,17 @@
 .page-heading h1,
 .user-form-panel h1,
 .user-form-panel h2 {
-    color: #111827;
+    color: var(--text-primary);
     font-size: 1.6rem;
     font-weight: 800;
     margin: 0;
 }
 
 .user-form-panel {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
     padding: 24px;
 }
 
@@ -30,14 +30,14 @@
 }
 
 .profile-summary dt {
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 0.78rem;
     font-weight: 800;
     text-transform: uppercase;
 }
 
 .profile-summary dd {
-    color: #111827;
+    color: var(--text-primary);
     font-weight: 700;
     margin: 0 0 10px;
 }

@@ -1,0 +1,165 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Defina ELASTIC_PASSWORD no arquivo .env}
+      ES_JAVA_OPTS: "-Xms${ELASTICSEARCH_HEAP:-1g} -Xmx${ELASTICSEARCH_HEAP:-1g}"
+    expose:
+      - "9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+    mem_limit: ${ELASTICSEARCH_MEM_LIMIT:-1536m}
+
+  elastic-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-elastic-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Defina ELASTIC_PASSWORD no arquivo .env}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?Defina KIBANA_SYSTEM_PASSWORD no arquivo .env}
+    volumes:
+      - ./infra/observability/elasticsearch/setup.sh:/usr/local/bin/sitiopro-elastic-setup.sh:ro
+    command: ["/bin/bash", "/usr/local/bin/sitiopro-elastic-setup.sh"]
+    networks:
+      - backend
+    restart: "no"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-kibana
+    depends_on:
+      elastic-setup:
+        condition: service_completed_successfully
+    environment:
+      SERVER_NAME: sitiopro-kibana
+      SERVER_PUBLICBASEURL: http://localhost:${KIBANA_PORT:-5601}
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?Defina KIBANA_SYSTEM_PASSWORD no arquivo .env}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Defina KIBANA_ENCRYPTION_KEY no arquivo .env}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Defina KIBANA_ENCRYPTION_KEY no arquivo .env}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Defina KIBANA_ENCRYPTION_KEY no arquivo .env}
+    ports:
+      - "127.0.0.1:${KIBANA_PORT:-5601}:5601"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+    mem_limit: ${KIBANA_MEM_LIMIT:-1g}
+
+  kibana-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-kibana-setup
+    depends_on:
+      kibana:
+        condition: service_healthy
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Defina ELASTIC_PASSWORD no arquivo .env}
+      KIBANA_URL: http://kibana:5601
+    volumes:
+      - ./infra/observability/kibana/setup.sh:/usr/local/bin/sitiopro-kibana-setup.sh:ro
+      - ./infra/observability/kibana/dashboards:/dashboards:ro
+    command: ["/bin/bash", "/usr/local/bin/sitiopro-kibana-setup.sh"]
+    networks:
+      - backend
+    restart: "no"
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-apm-server
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Defina ELASTIC_PASSWORD no arquivo .env}
+      ELASTIC_APM_SECRET_TOKEN: ${ELASTIC_APM_SECRET_TOKEN:?Defina ELASTIC_APM_SECRET_TOKEN no arquivo .env}
+    command: ["-e", "--strict.perms=false", "-c", "/usr/share/apm-server/apm-server.yml"]
+    volumes:
+      - ./infra/observability/apm/apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    expose:
+      - "8200"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/8200'"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 45s
+    mem_limit: ${APM_SERVER_MEM_LIMIT:-256m}
+
+  elastic-agent:
+    image: docker.elastic.co/elastic-agent/elastic-agent:${ELASTIC_STACK_VERSION:-9.5.0}
+    container_name: sitiopro-elastic-agent
+    user: root
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+      nginx:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Defina ELASTIC_PASSWORD no arquivo .env}
+      SITIOPRO_ENVIRONMENT: ${SITIOPRO_ENVIRONMENT:-dev}
+    command: ["run", "-e", "-c", "/usr/share/elastic-agent/elastic-agent.yml"]
+    volumes:
+      - ./infra/observability/elastic-agent/elastic-agent.yml:/usr/share/elastic-agent/elastic-agent.yml:ro
+      - app_logs:/var/log/sitiopro:ro
+      - nginx_logs:/var/log/nginx:ro
+      - sqlserver_data:/mnt/sqlserver:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - elastic_agent_state:/usr/share/elastic-agent/state
+    networks:
+      - backend
+    mem_limit: ${ELASTIC_AGENT_MEM_LIMIT:-512m}
+
+  app:
+    build:
+      args:
+        ELASTIC_APM_AGENT_VERSION: ${ELASTIC_APM_AGENT_VERSION:-1.56.0}
+    environment:
+      JAVA_TOOL_OPTIONS: "${JAVA_TOOL_OPTIONS:-} -javaagent:/opt/elastic/elastic-apm-agent.jar"
+      ELASTIC_APM_ENABLED: ${ELASTIC_APM_ENABLED:-true}
+      ELASTIC_APM_SERVICE_NAME: sitioguaratingueta
+      ELASTIC_APM_SERVICE_VERSION: ${SITIOPRO_APP_VERSION:-0.0.1-SNAPSHOT}
+      ELASTIC_APM_ENVIRONMENT: ${SITIOPRO_ENVIRONMENT:-dev}
+      ELASTIC_APM_APPLICATION_PACKAGES: com.example.sitiopro
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_SECRET_TOKEN: ${ELASTIC_APM_SECRET_TOKEN:?Defina ELASTIC_APM_SECRET_TOKEN no arquivo .env}
+      ELASTIC_APM_ENABLE_LOG_CORRELATION: "true"
+      ELASTIC_APM_CAPTURE_BODY: "off"
+      ELASTIC_APM_CAPTURE_HEADERS: "false"
+      ELASTIC_APM_TRANSACTION_IGNORE_URLS: "/health,/actuator/health*,/nginx-health"
+      ELASTIC_APM_SANITIZE_FIELD_NAMES: "password,passwd,pwd,secret,*token*,*session*,*cookie*,authorization,set-cookie,senha,senha_hash,csrf,*key*"
+      SITIOPRO_OBSERVABILITY_ENABLED: "true"
+      SITIOPRO_OBSERVABILITY_APM_SERVER_URL: http://apm-server:8200
+      SITIOPRO_LOG_FILE: /var/log/sitiopro/app.ecs.json
+    volumes:
+      - app_logs:/var/log/sitiopro
+
+volumes:
+  elasticsearch_data:
+  elastic_agent_state:
+  app_logs:

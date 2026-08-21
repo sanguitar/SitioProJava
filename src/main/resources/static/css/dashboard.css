@@ -1,37 +1,277 @@
-.card-agro {
-    background: linear-gradient(135deg, #212529 0%, var(--agro-dark) 100%);
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    color: white;
+.dashboard-page {
+    display: grid;
+    gap: 22px;
 }
 
-.card-alert {
-    background: linear-gradient(135deg, #d32f2f 0%, #212529 100%);
+.dashboard-hero {
+    background: var(--brand-forest);
+    border-radius: var(--radius-lg);
+    color: var(--text-inverse);
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    overflow: hidden;
+    padding: 30px;
 }
 
-.card-category {
-    background: linear-gradient(135deg, #0d6efd 0%, #212529 100%);
+.dashboard-kicker {
+    align-items: center;
+    color: #F7EBC9;
+    display: inline-flex;
+    font-size: 0.86rem;
+    font-weight: 850;
+    gap: 9px;
+    text-transform: uppercase;
 }
 
-.chart-card {
-    min-height: 360px;
+.dashboard-hero h2 {
+    font-size: clamp(2rem, 4vw, 3.35rem);
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 1;
+    margin: 12px 0;
+    max-width: 720px;
+}
+
+.dashboard-hero p {
+    color: rgba(244, 240, 230, 0.78);
+    font-size: 1rem;
+    margin: 0;
+    max-width: 720px;
+}
+
+.dashboard-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.dashboard-hero-side {
+    display: grid;
+    gap: 12px;
+}
+
+.dashboard-hero-side article {
+    background: rgba(244, 240, 230, 0.10);
+    border: 1px solid rgba(244, 240, 230, 0.16);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.dashboard-hero-side span,
+.future-chart-card span {
+    color: rgba(244, 240, 230, 0.72);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.dashboard-hero-side strong {
+    display: block;
+    font-size: 2rem;
+    font-weight: 850;
+    line-height: 1;
+    margin-top: 6px;
+}
+
+.attention-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.attention-card {
+    align-items: flex-start;
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    gap: 14px;
+    min-height: 142px;
+    padding: 18px;
+}
+
+.attention-card.has-alert {
+    border-color: rgba(179, 38, 30, 0.32);
+}
+
+.attention-icon {
+    align-items: center;
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    color: var(--brand-forest);
+    display: flex;
+    flex: 0 0 46px;
+    height: 46px;
+    justify-content: center;
+    width: 46px;
+}
+
+.attention-card-critical.has-alert .attention-icon {
+    background: #F3DDDA;
+    border-color: #D69B94;
+    color: var(--semantic-danger);
+}
+
+.attention-card span {
+    color: var(--text-secondary);
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.attention-card strong {
+    color: var(--text-primary);
+    display: block;
+    font-size: 1.15rem;
+    margin: 2px 0 6px;
+}
+
+.attention-card p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.dashboard-workspace {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 380px minmax(0, 1fr);
+}
+
+.dashboard-chart-panel,
+.dashboard-stock-panel {
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 20px;
 }
 
 .chart-wrapper {
-    height: 280px;
+    height: 300px;
     position: relative;
 }
 
-.pagination .page-link {
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    color: var(--agro-dark);
-    margin: 0 2px;
+.dashboard-empty {
+    align-items: center;
+    background: var(--surface-panel-soft);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    min-height: 220px;
+    padding: 24px;
+    text-align: center;
 }
 
-.pagination .page-item.active .page-link {
-    background-color: var(--agro-dark);
-    color: white;
+.dashboard-empty i {
+    color: var(--brand-field);
+    font-size: 2rem;
+}
+
+.dashboard-empty strong {
+    color: var(--text-primary);
+}
+
+.stock-panel-header {
+    align-items: end;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.stock-panel-header h3 {
+    color: var(--text-primary);
+    font-size: 1.15rem;
+    font-weight: 850;
+    margin: 0;
+}
+
+.stock-panel-header p {
+    color: var(--text-secondary);
+    margin: 4px 0 0;
+}
+
+.stock-filter {
+    min-width: 220px;
+}
+
+.quantity-pill {
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    color: var(--text-primary);
+    display: inline-flex;
+    font-weight: 800;
+    padding: 7px 10px;
+}
+
+.future-chart-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.future-chart-card {
+    background: var(--brand-graphite);
+    border-radius: var(--radius-lg);
+    color: var(--text-inverse);
+    display: grid;
+    gap: 10px;
+    min-height: 136px;
+    padding: 18px;
+}
+
+.future-chart-card i {
+    color: var(--brand-harvest);
+    font-size: 1.35rem;
+}
+
+.future-chart-card strong {
+    font-size: 1rem;
+}
+
+.future-chart-card span {
+    color: rgba(244, 240, 230, 0.70);
+}
+
+@media (max-width: 1199.98px) {
+    .dashboard-hero,
+    .dashboard-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .attention-grid,
+    .future-chart-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-hero {
+        padding: 22px;
+    }
+
+    .attention-grid,
+    .future-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stock-panel-header {
+        align-items: stretch;
+        display: grid;
+    }
+
+    .stock-filter {
+        min-width: 0;
+    }
 }

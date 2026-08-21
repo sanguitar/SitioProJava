@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Símbolo provisório da garça</title>
+  <desc id="desc">Marca vetorial provisória do Sítio Guaratinguetá com uma garça sobre linhas de campo.</desc>
+  <rect width="128" height="128" rx="28" fill="#173F35"/>
+  <path d="M24 91c14-12 30-16 48-11 12 3 21 2 32-5" fill="none" stroke="#D6A63C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M25 104c18-10 36-12 55-6 10 3 18 2 27-3" fill="none" stroke="#78A97A" stroke-width="5" stroke-linecap="round"/>
+  <path d="M78 74c-7-15-4-29 9-43" fill="none" stroke="#F4F0E6" stroke-width="7" stroke-linecap="round"/>
+  <path d="M90 31c7 10 6 19-2 28l-11 12" fill="none" stroke="#F4F0E6" stroke-width="7" stroke-linecap="round"/>
+  <path d="M88 31c8-8 18-10 29-5-8 3-15 7-22 12" fill="#F4F0E6"/>
+  <path d="M74 75c-12-5-24-4-36 3 16 4 29 5 43 1" fill="#F4F0E6"/>
+  <circle cx="96" cy="27" r="2.5" fill="#173F35"/>
+</svg>

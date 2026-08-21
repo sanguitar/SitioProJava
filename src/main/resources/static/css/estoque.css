@@ -1,4 +1,327 @@
 .domain-estoque {
-    --module-color: #2f6b35;
-    --module-accent: #f59e0b;
+    --module-color: var(--brand-field);
+    --module-accent: var(--brand-harvest);
+}
+
+.estoque-page {
+    --estoque-positive: #176B43;
+    --estoque-negative: #9B2C24;
+    --estoque-transfer: #175B75;
+}
+
+.estoque-hero,
+.estoque-panel {
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+}
+
+.estoque-hero {
+    align-items: flex-start;
+    border-left: 5px solid var(--module-color);
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 22px;
+}
+
+.estoque-hero h1 {
+    color: var(--text-primary);
+    font-size: clamp(1.55rem, 2vw, 2rem);
+    font-weight: 850;
+    letter-spacing: 0;
+    margin: 0;
+}
+
+.estoque-hero p {
+    color: var(--text-secondary);
+    margin: 6px 0 0;
+}
+
+.estoque-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.estoque-tabs a {
+    align-items: center;
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    display: inline-flex;
+    font-weight: 800;
+    gap: 9px;
+    min-height: 42px;
+    padding: 10px 13px;
+    text-decoration: none;
+}
+
+.estoque-tabs a:hover,
+.estoque-tabs a.active {
+    border-color: var(--module-color);
+    color: var(--module-color);
+}
+
+.estoque-metrics {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 18px;
+}
+
+.estoque-metric {
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 18px;
+}
+
+.estoque-metric span {
+    color: var(--text-secondary);
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.estoque-metric strong {
+    color: var(--text-primary);
+    display: block;
+    font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.estoque-metric.is-warning {
+    border-color: #E4C66D;
+}
+
+.estoque-actions {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 22px;
+}
+
+.estoque-actions .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+}
+
+.estoque-panel {
+    padding: 22px;
+}
+
+.estoque-panel .panel-heading a {
+    color: var(--module-color);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.estoque-list,
+.estoque-timeline,
+.inventory-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.estoque-alert-item,
+.movimento-row,
+.saldo-local,
+.catalog-row,
+.inventory-item {
+    align-items: center;
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    display: flex;
+    gap: 12px;
+    padding: 13px 14px;
+}
+
+.estoque-alert-item i {
+    color: var(--semantic-warning);
+    font-size: 1.15rem;
+}
+
+.estoque-alert-item strong,
+.movimento-row strong,
+.catalog-row strong,
+.inventory-item strong {
+    color: var(--text-primary);
+    display: block;
+    font-weight: 850;
+}
+
+.estoque-alert-item span,
+.movimento-row span,
+.catalog-row span,
+.inventory-item span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.movimento-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+}
+
+.movimento-row time {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.movimento-icon {
+    align-items: center;
+    border-radius: var(--radius-md);
+    display: flex;
+    height: 38px;
+    justify-content: center;
+    width: 38px;
+}
+
+.movimento-icon.is-positive {
+    background: #E0F1E5;
+    color: var(--estoque-positive);
+}
+
+.movimento-icon.is-negative {
+    background: #F3DDDA;
+    color: var(--estoque-negative);
+}
+
+.movimento-icon.is-transfer {
+    background: #DDEFF5;
+    color: var(--estoque-transfer);
+}
+
+.estoque-detail-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+}
+
+.item-balance {
+    align-items: baseline;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.item-balance strong {
+    color: var(--text-primary);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.item-balance span {
+    color: var(--text-secondary);
+    font-weight: 850;
+}
+
+.estoque-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.estoque-kv {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+}
+
+.estoque-kv div,
+.saldo-local {
+    justify-content: space-between;
+}
+
+.estoque-kv dt {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.estoque-kv dd {
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 850;
+    margin: 0;
+}
+
+.catalog-row,
+.inventory-item {
+    justify-content: space-between;
+}
+
+.inventory-qty {
+    text-align: right;
+}
+
+.inventory-qty strong {
+    display: inline;
+}
+
+.estoque-checks {
+    align-content: end;
+    display: grid;
+    gap: 6px;
+}
+
+@media (max-width: 991.98px) {
+    .estoque-metrics,
+    .estoque-actions,
+    .estoque-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .estoque-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .estoque-hero,
+    .catalog-row,
+    .inventory-item {
+        align-items: stretch;
+        display: grid;
+    }
+
+    .estoque-metrics,
+    .estoque-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .estoque-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .estoque-tabs a {
+        justify-content: center;
+    }
+
+    .movimento-row {
+        grid-template-columns: 38px minmax(0, 1fr);
+    }
+
+    .movimento-row time {
+        grid-column: 2;
+    }
+
+    .estoque-panel {
+        padding: 14px;
+    }
 }

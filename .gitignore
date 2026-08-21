@@ -7,6 +7,15 @@ target/
 ### Environment ###
 .env
 *.log
+infra/observability/**/secrets/
+infra/observability/**/*.key
+infra/observability/**/*.p12
+infra/observability/**/*.crt
+infra/observability/**/*.csr
+infra/observability/**/*.pem
+infra/observability/**/enrollment-token*
+infra/observability/**/service-token*
+infra/observability/**/api-key*
 
 ### STS ###
 .apt_generated

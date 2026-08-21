@@ -1,0 +1,173 @@
+{
+  "title": "Sítio Guaratinguetá - System Overview",
+  "description": "Visão técnica inicial do ERP: HTTP, erros, módulos, APM, JVM, Docker e Nginx.",
+  "esql_approximation": true,
+  "time_range": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh_interval": {
+    "pause": false,
+    "value": 30000
+  },
+  "panels": [
+    {
+      "grid": { "x": 0, "y": 0, "w": 48, "h": 8 },
+      "type": "markdown",
+      "config": {
+        "content": "## Sítio Guaratinguetá - System Overview\n\nPainel inicial versionado no repositório. Use `request.id` para correlacionar Nginx, Spring e respostas ao usuário; use `trace.id` para seguir transações do Elastic APM."
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Requests",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" | STATS requests = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "requests" }]
+      }
+    },
+    {
+      "grid": { "x": 12, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "HTTP 4xx",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" | EVAL status = TO_INTEGER(http.response.status_code) | WHERE status >= 400 AND status < 500 | STATS http_4xx = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "http_4xx" }]
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "HTTP 5xx",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" | EVAL status = TO_INTEGER(http.response.status_code) | WHERE status >= 500 | STATS http_5xx = COUNT()"
+        },
+        "metrics": [{ "type": "primary", "column": "http_5xx" }]
+      }
+    },
+    {
+      "grid": { "x": 36, "y": 8, "w": 12, "h": 7 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Latência média HTTP (ms)",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" | EVAL latency_ms = TO_DOUBLE(event.duration) / 1000000 | STATS avg_latency_ms = AVG(latency_ms)"
+        },
+        "metrics": [{ "type": "primary", "column": "avg_latency_ms" }]
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 15, "w": 48, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Requests ao longo do tempo",
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE event.action == \"http_request\" | STATS requests = COUNT() BY BUCKET(@timestamp, 75, ?_tstart, ?_tend)"
+            },
+            "x": { "column": "BUCKET(@timestamp, 75, ?_tstart, ?_tend)" },
+            "y": [{ "column": "requests" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 27, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Erros por módulo",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | EVAL status = TO_INTEGER(http.response.status_code) | WHERE status >= 400 | STATS errors = COUNT() BY module | SORT errors DESC | LIMIT 10"
+            },
+            "x": { "column": "module" },
+            "y": [{ "column": "errors" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 24, "y": 27, "w": 24, "h": 12 },
+      "type": "vis",
+      "config": {
+        "type": "xy",
+        "title": "Top exceptions",
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM logs-sitiopro.app-* | WHERE error.type IS NOT NULL | STATS count = COUNT() BY error.type | SORT count DESC | LIMIT 10"
+            },
+            "x": { "column": "error.type" },
+            "y": [{ "column": "count" }]
+          }
+        ],
+        "axis": { "x": { "title": { "visible": false } } }
+      }
+    },
+    {
+      "grid": { "x": 0, "y": 39, "w": 16, "h": 8 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "JVM heap usado (bytes)",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM metrics-apm.*-* | WHERE service.name == \"sitioguaratingueta\" | STATS heap_used = AVG(jvm.memory.heap.used)"
+        },
+        "metrics": [{ "type": "primary", "column": "heap_used" }]
+      }
+    },
+    {
+      "grid": { "x": 16, "y": 39, "w": 16, "h": 8 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Docker CPU app",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM metrics-docker.cpu-* | WHERE container.name == \"sitiopro-app\" | STATS cpu_pct = AVG(docker.cpu.total.pct)"
+        },
+        "metrics": [{ "type": "primary", "column": "cpu_pct" }]
+      }
+    },
+    {
+      "grid": { "x": 32, "y": 39, "w": 16, "h": 8 },
+      "type": "vis",
+      "config": {
+        "type": "metric",
+        "title": "Nginx tempo médio (s)",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM logs-nginx.access-* | STATS nginx_avg_seconds = AVG(TO_DOUBLE(nginx.access.request_time))"
+        },
+        "metrics": [{ "type": "primary", "column": "nginx_avg_seconds" }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Saúde do Sistema')}"></th:block>
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide system-health-page">
+        <div th:replace="~{fragments/ui :: topbar('Saúde do Sistema', 'Administração')}"></div>
+
+        <section class="system-health-header">
+            <small class="module-group">Observabilidade</small>
+            <h1>Resumo técnico</h1>
+            <p>Visão rápida e segura da aplicação. Diagnóstico profundo continua no Kibana.</p>
+        </section>
+
+        <section class="system-health-grid" aria-label="Resumo da saúde do sistema">
+            <article class="system-health-card">
+                <span>Aplicação</span>
+                <strong th:text="${resumo.aplicacao}">UP</strong>
+            </article>
+            <article class="system-health-card">
+                <span>Banco SQL Server</span>
+                <strong th:text="${resumo.banco}">UP</strong>
+            </article>
+            <article class="system-health-card">
+                <span>Uptime</span>
+                <strong th:text="${resumo.uptimeFormatado()}">00h 00m</strong>
+            </article>
+            <article class="system-health-card">
+                <span>Observabilidade</span>
+                <strong th:text="${resumo.observabilidade}">DESABILITADA</strong>
+            </article>
+        </section>
+
+        <section class="system-health-details">
+            <dl>
+                <div>
+                    <dt>Versão</dt>
+                    <dd th:text="${resumo.versao}">0.0.1-SNAPSHOT</dd>
+                </div>
+                <div>
+                    <dt>Ambiente</dt>
+                    <dd th:text="${resumo.ambiente}">dev</dd>
+                </div>
+                <div>
+                    <dt>Request ID</dt>
+                    <dd th:text="${resumo.requestId}">00000000</dd>
+                </div>
+            </dl>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

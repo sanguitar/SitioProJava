@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Categorias de Estoque')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Categorias', 'Estoque')}"></div>
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Estoque</small>
+                <h1>Categorias</h1>
+            </div>
+        </div>
+        <div th:replace="~{estoque/fragments :: tabs('categorias')}"></div>
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <section class="row g-4">
+            <div class="col-lg-7">
+                <div class="estoque-panel">
+                    <div class="panel-heading">
+                        <h3>Categorias cadastradas</h3>
+                        <span th:text="${categorias.size()} + ' categorias'">0 categorias</span>
+                    </div>
+                    <div class="estoque-list">
+                        <article class="catalog-row" th:each="categoria : ${categorias}">
+                            <div>
+                                <strong th:text="${categoria.nome}">Categoria</strong>
+                                <span th:text="${categoria.descricao ?: 'Sem descrição'}">Descrição</span>
+                            </div>
+                            <span th:if="${categoria.ativa}" class="badge bg-success-subtle text-success">Ativa</span>
+                            <span th:unless="${categoria.ativa}" class="badge bg-secondary-subtle text-secondary">Inativa</span>
+                        </article>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5" sec:authorize="hasRole('ADMIN')">
+                <div class="estoque-panel">
+                    <div class="panel-heading">
+                        <h3>Nova categoria</h3>
+                    </div>
+                    <form th:action="@{/sitio/estoque/categorias}" th:object="${categoriaForm}" method="post" class="row g-3">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                        <div class="col-12">
+                            <label class="form-label" for="nome">Nome</label>
+                            <input id="nome" type="text" th:field="*{nome}" class="form-control" maxlength="100" required>
+                            <div class="text-danger small" th:errors="*{nome}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="descricao">Descrição</label>
+                            <textarea id="descricao" th:field="*{descricao}" class="form-control" rows="3" maxlength="255"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check">
+                                <input type="checkbox" th:field="*{ativa}" class="form-check-input">
+                                <span class="form-check-label">Ativa</span>
+                            </label>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success w-100">Salvar categoria</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

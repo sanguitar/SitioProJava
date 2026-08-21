@@ -1,4 +1,4 @@
 .domain-seguranca {
-    --module-color: #1f2937;
-    --module-accent: #ef4444;
+    --module-color: var(--brand-graphite);
+    --module-accent: var(--semantic-danger);
 }

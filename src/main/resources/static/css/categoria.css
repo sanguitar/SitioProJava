@@ -1,14 +1,22 @@
 .card-config {
-    background: white;
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: var(--surface-panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+}
+
+.card-config-title {
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--brand-forest);
+    font-weight: 800;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
 }
 
 .icon-grid {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
     display: grid;
     gap: 10px;
     grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -19,10 +27,10 @@
 
 .icon-item {
     align-items: center;
-    background: white;
+    background: var(--surface-panel);
     border: 2px solid transparent;
-    border-radius: 8px;
-    color: #495057;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
     cursor: pointer;
     display: flex;
     height: 60px;
@@ -31,13 +39,23 @@
 }
 
 .icon-item:hover {
-    background: #e9ecef;
-    color: var(--agro-dark);
-    transform: scale(1.05);
+    background: var(--surface-muted);
+    color: var(--brand-forest);
 }
 
 .icon-item.selected {
-    background: rgba(30, 61, 26, 0.1);
-    border-color: var(--agro-dark);
-    color: var(--agro-dark);
+    background: #E0F1E5;
+    border-color: var(--brand-forest);
+    color: var(--brand-forest);
+}
+
+.category-icon-preview {
+    align-items: center;
+    background: var(--surface-panel-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
 }

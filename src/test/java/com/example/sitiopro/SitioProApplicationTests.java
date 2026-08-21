@@ -2,6 +2,12 @@ package com.example.sitiopro;
 
 import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
+import com.example.sitiopro.estoque.repository.CategoriaEstoqueRepository;
+import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
+import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
+import com.example.sitiopro.estoque.repository.LoteEstoqueRepository;
+import com.example.sitiopro.estoque.repository.MovimentoEstoqueRepository;
+import com.example.sitiopro.estoque.repository.UnidadeMedidaRepository;
 import com.example.sitiopro.frota.repository.FipeCacheRepository;
 import com.example.sitiopro.frota.repository.VeiculoRepository;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
@@ -40,6 +46,24 @@ class SitioProApplicationTests {
 
     @MockBean
     private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private CategoriaEstoqueRepository estoqueCategoriaRepository;
+
+    @MockBean
+    private UnidadeMedidaRepository unidadeMedidaRepository;
+
+    @MockBean
+    private LocalEstoqueRepository localEstoqueRepository;
+
+    @MockBean
+    private ItemEstoqueRepository itemEstoqueRepository;
+
+    @MockBean
+    private LoteEstoqueRepository loteEstoqueRepository;
+
+    @MockBean
+    private MovimentoEstoqueRepository movimentoEstoqueRepository;
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;

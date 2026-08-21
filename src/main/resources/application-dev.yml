@@ -8,7 +8,7 @@ spring:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     open-in-view: false
-    show-sql: ${JPA_SHOW_SQL:true}
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true

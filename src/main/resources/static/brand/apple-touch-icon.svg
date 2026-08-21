@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title">
+  <title id="title">Ícone provisório Apple do Sítio Guaratinguetá</title>
+  <rect width="180" height="180" rx="38" fill="#173F35"/>
+  <path d="M34 126c19-16 41-21 65-14 16 5 29 3 45-7" fill="none" stroke="#D6A63C" stroke-width="9" stroke-linecap="round"/>
+  <path d="M35 145c25-14 49-16 75-8 13 4 24 2 36-5" fill="none" stroke="#78A97A" stroke-width="7" stroke-linecap="round"/>
+  <path d="M109 102c-10-21-5-41 13-60" fill="none" stroke="#F4F0E6" stroke-width="10" stroke-linecap="round"/>
+  <path d="M125 42c10 14 8 27-3 40l-16 17" fill="none" stroke="#F4F0E6" stroke-width="10" stroke-linecap="round"/>
+  <path d="M123 41c12-12 27-14 42-7-11 4-21 10-31 18" fill="#F4F0E6"/>
+  <path d="M104 103c-17-7-34-6-51 5 22 5 40 6 60 2" fill="#F4F0E6"/>
+  <circle cx="136" cy="37" r="3.5" fill="#173F35"/>
+</svg>

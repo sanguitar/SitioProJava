@@ -9,6 +9,7 @@ services:
       - "${NGINX_HTTP_PORT:-80}:80"
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
     networks:
       - frontend
       - backend
@@ -62,6 +63,29 @@ services:
       - |
         SQLCMD=/opt/mssql-tools18/bin/sqlcmd
         if [ ! -x "$$SQLCMD" ]; then SQLCMD=/opt/mssql-tools/bin/sqlcmd; fi
+
+        wait_for_database() {
+          for attempt in {1..60}; do
+            if "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
+              IF DB_ID(N'$$DB_NAME') IS NULL
+                  SELECT 1;
+              ELSE IF EXISTS (SELECT 1 FROM sys.databases WHERE name = N'$$DB_NAME' AND state_desc = N'ONLINE')
+                  SELECT 1;
+              ELSE
+                  THROW 51000, 'Database is not online yet.', 1;
+              " >/dev/null; then
+              return 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Database $$DB_NAME did not become available in time."
+          return 1
+        }
+
+        wait_for_database
+
         "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
           IF DB_ID(N'$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME];
 
@@ -76,7 +100,11 @@ services:
           ELSE
               ALTER LOGIN [$$FLYWAY_USERNAME] WITH PASSWORD = N'$$FLYWAY_PASSWORD';
           ALTER LOGIN [$$FLYWAY_USERNAME] ENABLE;
+          "
 
+        wait_for_database
+
+        "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
           USE [$$DB_NAME];
 
           IF USER_ID(N'$$DB_USERNAME') IS NULL CREATE USER [$$DB_USERNAME] FOR LOGIN [$$DB_USERNAME];
@@ -116,6 +144,13 @@ services:
       FLYWAY_PASSWORD: ${FLYWAY_PASSWORD:?Defina FLYWAY_PASSWORD no arquivo .env}
       SERVER_FORWARD_HEADERS_STRATEGY: ${SERVER_FORWARD_HEADERS_STRATEGY:-native}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SITIOPRO_ENVIRONMENT: ${SITIOPRO_ENVIRONMENT:-dev}
+      SITIOPRO_LOG_FILE: ${SITIOPRO_LOG_FILE:-/tmp/sitiopro/app.ecs.json}
+      SITIOPRO_LOG_LEVEL: ${SITIOPRO_LOG_LEVEL:-INFO}
+      HIBERNATE_SQL_LOG_LEVEL: ${HIBERNATE_SQL_LOG_LEVEL:-WARN}
+      HIBERNATE_BIND_LOG_LEVEL: ${HIBERNATE_BIND_LOG_LEVEL:-WARN}
+      SITIOPRO_OBSERVABILITY_ENABLED: ${SITIOPRO_OBSERVABILITY_ENABLED:-false}
+      SITIOPRO_OBSERVABILITY_APM_SERVER_URL: ${SITIOPRO_OBSERVABILITY_APM_SERVER_URL:-http://apm-server:8200}
       SITIOPRO_INITIAL_ADMIN_ENABLED: ${SITIOPRO_INITIAL_ADMIN_ENABLED:-false}
       SITIOPRO_INITIAL_ADMIN_LOGIN: ${SITIOPRO_INITIAL_ADMIN_LOGIN:-}
       SITIOPRO_INITIAL_ADMIN_PASSWORD: ${SITIOPRO_INITIAL_ADMIN_PASSWORD:-}
@@ -125,7 +160,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health/readiness || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -133,6 +168,7 @@ services:
 
 volumes:
   sqlserver_data:
+  nginx_logs:
 
 networks:
   frontend:
