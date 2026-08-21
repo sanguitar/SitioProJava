@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Nova Compra')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/compras.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide compras-page domain-compras">
+        <div th:replace="~{fragments/ui :: topbar('Nova compra', 'Gestão')}"></div>
+
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Compras</small>
+                <h1>Nova compra</h1>
+            </div>
+            <a th:href="@{/sitio/compras}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+
+        <div th:replace="~{compras/fragments :: tabs('nova')}"></div>
+
+        <section class="compras-panel">
+            <form th:action="@{/sitio/compras}" th:object="${compraForm}" method="post" class="row g-3">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="fornecedorId">Fornecedor</label>
+                    <select id="fornecedorId" th:field="*{fornecedorId}" class="form-select" required>
+                        <option value="">Selecione</option>
+                        <option th:each="fornecedor : ${fornecedores}" th:value="${fornecedor.id}" th:text="${fornecedor.nome}">Fornecedor</option>
+                    </select>
+                    <div class="text-danger small" th:errors="*{fornecedorId}"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="dataCompra">Data</label>
+                    <input id="dataCompra" type="date" th:field="*{dataCompra}" class="form-control" required>
+                    <div class="text-danger small" th:errors="*{dataCompra}"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="numeroDocumento">Documento</label>
+                    <input id="numeroDocumento" type="text" th:field="*{numeroDocumento}" class="form-control" maxlength="80">
+                    <div class="text-danger small" th:errors="*{numeroDocumento}"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="frete">Frete</label>
+                    <input id="frete" type="number" min="0" step="0.0001" th:field="*{frete}" class="form-control">
+                    <div class="text-danger small" th:errors="*{frete}"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="desconto">Desconto</label>
+                    <input id="desconto" type="number" min="0" step="0.0001" th:field="*{desconto}" class="form-control">
+                    <div class="text-danger small" th:errors="*{desconto}"></div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="observacao">Observação</label>
+                    <textarea id="observacao" th:field="*{observacao}" class="form-control" rows="3" maxlength="500"></textarea>
+                    <div class="text-danger small" th:errors="*{observacao}"></div>
+                </div>
+
+                <div class="form-actions">
+                    <a th:href="@{/sitio/compras}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Criar rascunho
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

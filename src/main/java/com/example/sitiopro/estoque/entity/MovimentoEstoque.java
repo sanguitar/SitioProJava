@@ -59,6 +59,15 @@ public class MovimentoEstoque extends AuditableEntity {
     @Column(name = "data_movimento", nullable = false)
     private LocalDateTime dataMovimento;
 
+    @Column(name = "origem_modulo", length = 40)
+    private String origemModulo;
+
+    @Column(name = "origem_referencia_id")
+    private Long origemReferenciaId;
+
+    @Column(name = "origem_descricao", length = 200)
+    private String origemDescricao;
+
     public Long getId() {
         return id;
     }
@@ -141,5 +150,29 @@ public class MovimentoEstoque extends AuditableEntity {
 
     public void setDataMovimento(LocalDateTime dataMovimento) {
         this.dataMovimento = dataMovimento;
+    }
+
+    public String getOrigemModulo() {
+        return origemModulo;
+    }
+
+    public void setOrigemModulo(String origemModulo) {
+        this.origemModulo = origemModulo;
+    }
+
+    public Long getOrigemReferenciaId() {
+        return origemReferenciaId;
+    }
+
+    public void setOrigemReferenciaId(Long origemReferenciaId) {
+        this.origemReferenciaId = origemReferenciaId;
+    }
+
+    public String getOrigemDescricao() {
+        return origemDescricao;
+    }
+
+    public void setOrigemDescricao(String origemDescricao) {
+        this.origemDescricao = origemDescricao;
     }
 }

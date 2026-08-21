@@ -20,5 +20,8 @@ public record MovimentoEstoqueResponse(
         BigDecimal custoTotal,
         String observacao,
         LocalDateTime dataMovimento,
-        String criadoPor) {
+        String criadoPor,
+        String origemModulo,
+        Long origemReferenciaId,
+        String origemDescricao) {
 }

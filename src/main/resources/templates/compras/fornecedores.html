@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Fornecedores')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/compras.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide compras-page domain-compras">
+        <div th:replace="~{fragments/ui :: topbar('Fornecedores', 'Compras')}"></div>
+
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Compras</small>
+                <h1>Fornecedores</h1>
+            </div>
+            <a th:href="@{/sitio/compras/fornecedores/novo}" class="btn btn-success">
+                <i class="fa-solid fa-plus me-2"></i>Novo fornecedor
+            </a>
+        </div>
+
+        <div th:replace="~{compras/fragments :: tabs('fornecedores')}"></div>
+
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <section class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Documento</th>
+                            <th>Telefone</th>
+                            <th>E-mail</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="fornecedor : ${fornecedores}">
+                            <td><strong th:text="${fornecedor.nome}">Fornecedor</strong></td>
+                            <td th:text="${fornecedor.documento ?: '-'}">-</td>
+                            <td th:text="${fornecedor.telefone ?: '-'}">-</td>
+                            <td th:text="${fornecedor.email ?: '-'}">-</td>
+                            <td>
+                                <span class="compra-status" th:classappend="${fornecedor.ativo} ? ' compra-status-confirmada' : ' compra-status-cancelada'"
+                                      th:text="${fornecedor.ativo ? 'Ativo' : 'Inativo'}">Ativo</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/sitio/compras/fornecedores/{id}(id=${fornecedor.id})}" class="btn-edit"
+                                   title="Detalhar" aria-label="Detalhar fornecedor">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(fornecedores)}">
+                            <td colspan="6">
+                                <div class="empty-state-card">
+                                    <i class="fa-solid fa-truck-field"></i>
+                                    <div>
+                                        <strong>Nenhum fornecedor cadastrado</strong>
+                                        <p>Cadastre fornecedores para criar compras em rascunho.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

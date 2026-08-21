@@ -5,6 +5,13 @@ import com.example.sitiopro.abastecimento.service.AbastecimentoService;
 import com.example.sitiopro.categoria.model.Categoria;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.categoria.service.CategoriaService;
+import com.example.sitiopro.compras.dto.CompraDetalhe;
+import com.example.sitiopro.compras.dto.FornecedorRequest;
+import com.example.sitiopro.compras.dto.FornecedorResumo;
+import com.example.sitiopro.compras.entity.StatusCompra;
+import com.example.sitiopro.compras.service.CompraService;
+import com.example.sitiopro.compras.service.ComprasOperacaoException;
+import com.example.sitiopro.compras.service.FornecedorService;
 import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
@@ -52,6 +59,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -120,6 +128,12 @@ class SitioProSecurityTests {
     private SistemaSaudeService sistemaSaudeService;
 
     @MockBean
+    private CompraService compraService;
+
+    @MockBean
+    private FornecedorService fornecedorService;
+
+    @MockBean
     private AbastecimentoRepository abastecimentoRepository;
 
     @MockBean
@@ -172,10 +186,23 @@ class SitioProSecurityTests {
         when(estoqueMovimentoService.registrarMovimento(any(), eq(false))).thenReturn(new MovimentoEstoqueResponse(
                 1L, 1L, "Ração postura", TipoMovimentoEstoque.ENTRADA, "Entrada",
                 BigDecimal.TEN, "KG", null, "Depósito", null, null, null,
-                null, LocalDateTime.now(), "operador"));
+                null, LocalDateTime.now(), "operador", null, null, null));
         when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
                 "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
                 "DESABILITADA", "test-request"));
+        FornecedorResumo fornecedor = new FornecedorResumo(1L, "Agro Vale", null, null, null, true);
+        FornecedorRequest fornecedorRequest = new FornecedorRequest();
+        fornecedorRequest.setNome("Agro Vale");
+        fornecedorRequest.setAtivo(true);
+        CompraDetalhe compraRascunho = compraDetalhe(StatusCompra.RASCUNHO);
+        CompraDetalhe compraConfirmada = compraDetalhe(StatusCompra.CONFIRMADA);
+        when(fornecedorService.formulario(1L)).thenReturn(fornecedorRequest);
+        when(fornecedorService.criar(any())).thenReturn(fornecedor);
+        when(fornecedorService.atualizar(eq(1L), any())).thenReturn(fornecedor);
+        when(compraService.criarCompra(any())).thenReturn(compraRascunho);
+        when(compraService.adicionarItem(eq(1L), any())).thenReturn(compraRascunho);
+        when(compraService.atualizarItem(eq(1L), eq(501L), any())).thenReturn(compraRascunho);
+        when(compraService.confirmarCompra(1L)).thenReturn(compraConfirmada);
 
         Usuario admin = usuario(1L, "Administrador", "admin", PerfilUsuario.ADMIN, true);
         Usuario operador = usuario(2L, "Operador", "operador", PerfilUsuario.OPERADOR, true);
@@ -327,6 +354,13 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void apiComprasExigeAutenticacao() throws Exception {
+        mockMvc.perform(get("/api/v1/compras"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
     void apiEstoqueResumoAutenticadaResponde() throws Exception {
         mockMvc.perform(get("/api/v1/estoque/resumo")
                         .with(user("operador").roles("OPERADOR")))
@@ -361,6 +395,127 @@ class SitioProSecurityTests {
                                 }
                                 """))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void operadorPodeCriarFornecedorCompraAdicionarItemEConfirmarPelaApiComCsrf() throws Exception {
+        mockMvc.perform(post("/api/v1/fornecedores")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome": "Agro Vale",
+                                  "ativo": true
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/compras")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fornecedorId": 1,
+                                  "dataCompra": "2026-08-21",
+                                  "frete": 0,
+                                  "desconto": 0
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("RASCUNHO"));
+
+        mockMvc.perform(post("/api/v1/compras/1/itens")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "itemEstoqueId": 1,
+                                  "quantidade": 2,
+                                  "custoUnitario": 3.5,
+                                  "localDestinoId": 1
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/compras/1/confirmar")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMADA"));
+    }
+
+    @Test
+    void operadorAtualizaItemDeRascunhoPelaInterfaceMvc() throws Exception {
+        mockMvc.perform(post("/sitio/compras/1/itens/501")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .param("itemEstoqueId", "1")
+                        .param("quantidade", "3")
+                        .param("custoUnitario", "5.00")
+                        .param("localDestinoId", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/compras/1"));
+
+        verify(compraService).atualizarItem(eq(1L), eq(501L), any());
+    }
+
+    @Test
+    void operadorNaoAtualizaFornecedorPelaInterfaceMvc() throws Exception {
+        mockMvc.perform(post("/sitio/compras/fornecedores/1")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .param("nome", "Agro Vale")
+                        .param("ativo", "true"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminAtualizaFornecedorPelaInterfaceMvc() throws Exception {
+        mockMvc.perform(post("/sitio/compras/fornecedores/1")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("nome", "Agro Vale")
+                        .param("ativo", "false"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/compras/fornecedores/1"));
+
+        verify(fornecedorService).atualizar(eq(1L), any());
+    }
+
+    @Test
+    void apiComprasRetornaErroPadronizadoParaRegraDeNegocio() throws Exception {
+        when(compraService.confirmarCompra(77L)).thenThrow(new ComprasOperacaoException("COMPRA_SEM_ITENS",
+                "Inclua ao menos um item antes de confirmar a compra."));
+
+        mockMvc.perform(post("/api/v1/compras/77/confirmar")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMPRA_SEM_ITENS"))
+                .andExpect(jsonPath("$.path").value("/api/v1/compras/77/confirmar"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty());
+    }
+
+    @Test
+    void operadorNaoCancelaCompraPelaInterfaceMvc() throws Exception {
+        mockMvc.perform(post("/sitio/compras/1/cancelar")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCancelaCompraPelaInterfaceMvc() throws Exception {
+        when(compraService.cancelarRascunho(1L)).thenReturn(compraDetalhe(StatusCompra.CANCELADA));
+
+        mockMvc.perform(post("/sitio/compras/1/cancelar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/compras/1"));
     }
 
     @Test
@@ -484,7 +639,10 @@ class SitioProSecurityTests {
 
         mockMvc.perform(get("/v3/api-docs")
                         .with(user("admin").roles("ADMIN")))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/estoque/resumo']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/compras']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/fornecedores']").exists());
     }
 
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {
@@ -496,5 +654,27 @@ class SitioProSecurityTests {
         usuario.setAtivo(ativo);
         usuario.setSenhaHash(passwordEncoder.encode(SENHA_VALIDA));
         return usuario;
+    }
+
+    private CompraDetalhe compraDetalhe(StatusCompra status) {
+        return new CompraDetalhe(
+                1L,
+                new FornecedorResumo(1L, "Agro Vale", null, null, null, true),
+                LocalDate.of(2026, 8, 21),
+                "NF-1",
+                null,
+                status,
+                status.getRotulo(),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                List.of(),
+                status == StatusCompra.CONFIRMADA ? LocalDateTime.now() : null,
+                status == StatusCompra.CONFIRMADA ? "operador" : null,
+                null,
+                null,
+                null,
+                null);
     }
 }

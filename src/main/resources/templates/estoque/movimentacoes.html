@@ -33,6 +33,7 @@
                             <th>Destino</th>
                             <th>Lote</th>
                             <th>Usuário</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -48,9 +49,15 @@
                             <td th:text="${movimento.localDestino ?: '-'}">-</td>
                             <td th:text="${movimento.loteCodigo ?: '-'}">-</td>
                             <td th:text="${movimento.criadoPor ?: '-'}">-</td>
+                            <td class="text-end">
+                                <a th:href="@{/sitio/estoque/movimentacoes/{id}(id=${movimento.id})}" class="btn-edit"
+                                   title="Detalhar" aria-label="Detalhar movimentação">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </a>
+                            </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(movimentacoes)}">
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="empty-state-card">
                                     <i class="fa-solid fa-clock"></i>
                                     <div>

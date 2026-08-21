@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Compra')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/compras.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide compras-page domain-compras">
+        <div th:replace="~{fragments/ui :: topbar('Detalhe da compra', 'Gestão')}"></div>
+
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Compras</small>
+                <h1 th:text="${'Compra #' + detalhe.id}">Compra #1</h1>
+            </div>
+            <a th:href="@{/sitio/compras}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+
+        <div th:replace="~{compras/fragments :: tabs(${detalhe.status.name() == 'CONFIRMADA'} ? 'historico' : 'dashboard')}"></div>
+
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+        <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+
+        <section class="compras-detail-grid">
+            <div class="compras-panel">
+                <div class="panel-heading">
+                    <h3>Dados da compra</h3>
+                    <div th:replace="~{compras/fragments :: statusCompra(${detalhe.status}, ${detalhe.statusRotulo})}"></div>
+                </div>
+
+                <form th:if="${detalhe.rascunho}" th:action="@{/sitio/compras/{id}(id=${detalhe.id})}"
+                      th:object="${compraForm}" method="post" class="row g-3">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="fornecedorId">Fornecedor</label>
+                        <select id="fornecedorId" th:field="*{fornecedorId}" class="form-select" required>
+                            <option value="">Selecione</option>
+                            <option th:each="fornecedor : ${fornecedores}" th:value="${fornecedor.id}" th:text="${fornecedor.nome}">Fornecedor</option>
+                        </select>
+                        <div class="text-danger small" th:errors="*{fornecedorId}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="dataCompra">Data</label>
+                        <input id="dataCompra" type="date" th:field="*{dataCompra}" class="form-control" required>
+                        <div class="text-danger small" th:errors="*{dataCompra}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="numeroDocumento">Documento</label>
+                        <input id="numeroDocumento" type="text" th:field="*{numeroDocumento}" class="form-control" maxlength="80">
+                        <div class="text-danger small" th:errors="*{numeroDocumento}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="frete">Frete</label>
+                        <input id="frete" type="number" min="0" step="0.0001" th:field="*{frete}" class="form-control">
+                        <div class="text-danger small" th:errors="*{frete}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="desconto">Desconto</label>
+                        <input id="desconto" type="number" min="0" step="0.0001" th:field="*{desconto}" class="form-control">
+                        <div class="text-danger small" th:errors="*{desconto}"></div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="observacao">Observação</label>
+                        <textarea id="observacao" th:field="*{observacao}" class="form-control" rows="3" maxlength="500"></textarea>
+                        <div class="text-danger small" th:errors="*{observacao}"></div>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-outline-dark">
+                            <i class="fa-solid fa-floppy-disk me-2"></i>Atualizar dados
+                        </button>
+                    </div>
+                </form>
+
+                <dl class="compras-kv" th:unless="${detalhe.rascunho}">
+                    <div>
+                        <dt>Fornecedor</dt>
+                        <dd th:text="${detalhe.fornecedor.nome}">Fornecedor</dd>
+                    </div>
+                    <div>
+                        <dt>Data</dt>
+                        <dd th:text="${#temporals.format(detalhe.dataCompra, 'dd/MM/yyyy')}">21/08/2026</dd>
+                    </div>
+                    <div>
+                        <dt>Documento</dt>
+                        <dd th:text="${detalhe.numeroDocumento ?: '-'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Observação</dt>
+                        <dd th:text="${detalhe.observacao ?: '-'}">-</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <aside class="compras-panel">
+                <div class="panel-heading">
+                    <h3>Totais</h3>
+                    <span>Servidor</span>
+                </div>
+                <dl class="compras-kv">
+                    <div>
+                        <dt>Subtotal</dt>
+                        <dd th:text="${'R$ ' + #numbers.formatDecimal(detalhe.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</dd>
+                    </div>
+                    <div>
+                        <dt>Frete</dt>
+                        <dd th:text="${'R$ ' + #numbers.formatDecimal(detalhe.frete, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</dd>
+                    </div>
+                    <div>
+                        <dt>Desconto</dt>
+                        <dd th:text="${'R$ ' + #numbers.formatDecimal(detalhe.desconto, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</dd>
+                    </div>
+                    <div class="kv-total">
+                        <dt>Total</dt>
+                        <dd th:text="${'R$ ' + #numbers.formatDecimal(detalhe.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</dd>
+                    </div>
+                </dl>
+
+                <div class="compras-command-stack" th:if="${detalhe.rascunho}">
+                    <form th:action="@{/sitio/compras/{id}/confirmar(id=${detalhe.id})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fa-solid fa-circle-check me-2"></i>Confirmar e entrar no estoque
+                        </button>
+                    </form>
+                    <form th:action="@{/sitio/compras/{id}/cancelar(id=${detalhe.id})}" method="post" sec:authorize="hasRole('ADMIN')">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="fa-solid fa-ban me-2"></i>Cancelar rascunho
+                        </button>
+                    </form>
+                </div>
+            </aside>
+        </section>
+
+        <section class="compras-panel" th:if="${detalhe.rascunho}">
+            <div class="panel-heading">
+                <h3>Adicionar item</h3>
+                <span>Entrada futura</span>
+            </div>
+            <form th:action="@{/sitio/compras/{id}/itens(id=${detalhe.id})}" th:object="${itemForm}" method="post" class="row g-3">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="col-md-4">
+                    <label class="form-label" for="itemEstoqueId">Item</label>
+                    <select id="itemEstoqueId" th:field="*{itemEstoqueId}" class="form-select" required>
+                        <option value="">Selecione</option>
+                        <option th:each="item : ${itensEstoque}" th:value="${item.id}" th:text="${item.nome + ' (' + item.unidadeMedida.sigla + ')'}">Item</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="quantidade">Quantidade</label>
+                    <input id="quantidade" type="number" min="0.0001" step="0.0001" th:field="*{quantidade}" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="custoUnitario">Custo unitário</label>
+                    <input id="custoUnitario" type="number" min="0" step="0.0001" th:field="*{custoUnitario}" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="localDestinoId">Local de destino</label>
+                    <select id="localDestinoId" th:field="*{localDestinoId}" class="form-select" required>
+                        <option value="">Selecione</option>
+                        <option th:each="local : ${locaisEstoque}" th:value="${local.id}" th:text="${local.nome}">Local</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="loteCodigo">Lote</label>
+                    <input id="loteCodigo" type="text" th:field="*{loteCodigo}" class="form-control" maxlength="80">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="validade">Validade</label>
+                    <input id="validade" type="date" th:field="*{validade}" class="form-control">
+                </div>
+                <div class="col-md-4 d-grid align-items-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-plus me-2"></i>Incluir item
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="table-container">
+            <div class="panel-heading">
+                <h3>Itens</h3>
+                <span th:text="${detalhe.itens.size()} + ' itens'">0 itens</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantidade</th>
+                            <th>Custo unitário</th>
+                            <th>Subtotal</th>
+                            <th>Destino</th>
+                            <th>Lote</th>
+                            <th>Movimento</th>
+                            <th th:if="${detalhe.rascunho}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="item : ${detalhe.itens}">
+                        <tr>
+                            <td th:text="${item.itemNome}">Item</td>
+                            <td>
+                                <strong th:text="${#numbers.formatDecimal(item.quantidade, 1, 'POINT', 2, 'COMMA')}">0</strong>
+                                <span th:text="${item.unidade}">UN</span>
+                            </td>
+                            <td th:text="${'R$ ' + #numbers.formatDecimal(item.custoUnitario, 1, 'POINT', 4, 'COMMA')}">R$ 0,0000</td>
+                            <td th:text="${'R$ ' + #numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td th:text="${item.localDestinoNome}">Depósito</td>
+                            <td>
+                                <span th:text="${item.loteCodigo ?: '-'}">-</span>
+                                <span th:if="${item.validade != null}" th:text="${' · ' + #temporals.format(item.validade, 'dd/MM/yyyy')}"> · 21/08/2026</span>
+                            </td>
+                            <td>
+                                <a th:if="${item.movimentoEstoqueId != null}"
+                                   th:href="@{/sitio/estoque/movimentacoes/{id}(id=${item.movimentoEstoqueId})}"
+                                   th:text="${'#' + item.movimentoEstoqueId}">#1</a>
+                                <span th:if="${item.movimentoEstoqueId == null}">-</span>
+                            </td>
+                            <td th:if="${detalhe.rascunho}" class="text-end">
+                                <form th:action="@{/sitio/compras/{id}/itens/{itemId}/remover(id=${detalhe.id}, itemId=${item.id})}" method="post">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn-delete" title="Remover" aria-label="Remover item">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${detalhe.rascunho}" class="compras-edit-row">
+                            <td colspan="8">
+                                <form th:action="@{/sitio/compras/{id}/itens/{itemId}(id=${detalhe.id}, itemId=${item.id})}" method="post" class="row g-2 align-items-end">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="itemEstoqueId" th:value="${item.itemEstoqueId}">
+                                    <div class="col-md-2">
+                                        <label class="form-label" th:for="${'qtd-' + item.id}">Qtd</label>
+                                        <input th:id="${'qtd-' + item.id}" name="quantidade" type="number" min="0.0001" step="0.0001"
+                                               th:value="${item.quantidade}" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label" th:for="${'custo-' + item.id}">Unitário</label>
+                                        <input th:id="${'custo-' + item.id}" name="custoUnitario" type="number" min="0" step="0.0001"
+                                               th:value="${item.custoUnitario}" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" th:for="${'local-' + item.id}">Destino</label>
+                                        <select th:id="${'local-' + item.id}" name="localDestinoId" class="form-select" required>
+                                            <option th:each="local : ${locaisEstoque}" th:value="${local.id}"
+                                                    th:selected="${local.id == item.localDestinoId}" th:text="${local.nome}">Local</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label" th:for="${'lote-' + item.id}">Lote</label>
+                                        <input th:id="${'lote-' + item.id}" name="loteCodigo" type="text"
+                                               th:value="${item.loteCodigo}" class="form-control" maxlength="80">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label" th:for="${'validade-' + item.id}">Validade</label>
+                                        <input th:id="${'validade-' + item.id}" name="validade" type="date"
+                                               th:value="${item.validade}" class="form-control">
+                                    </div>
+                                    <div class="col-md-1 d-grid">
+                                        <button type="submit" class="btn btn-outline-dark" title="Atualizar item" aria-label="Atualizar item">
+                                            <i class="fa-solid fa-floppy-disk"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        </th:block>
+                        <tr th:if="${#lists.isEmpty(detalhe.itens)}">
+                            <td th:colspan="${detalhe.rascunho ? 8 : 7}">
+                                <div class="empty-state-card">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    <div>
+                                        <strong>Nenhum item incluído</strong>
+                                        <p>Adicione os itens comprados antes de confirmar a entrada no estoque.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="compras-panel">
+            <div class="panel-heading">
+                <h3>Auditoria</h3>
+                <span>Registro persistente</span>
+            </div>
+            <dl class="compras-kv compras-audit">
+                <div>
+                    <dt>Criado por</dt>
+                    <dd th:text="${detalhe.criadoPor ?: '-'}">-</dd>
+                </div>
+                <div>
+                    <dt>Criado em</dt>
+                    <dd th:text="${detalhe.criadoEm == null ? '-' : #temporals.format(detalhe.criadoEm, 'dd/MM/yyyy HH:mm')}">-</dd>
+                </div>
+                <div>
+                    <dt>Alterado por</dt>
+                    <dd th:text="${detalhe.alteradoPor ?: '-'}">-</dd>
+                </div>
+                <div>
+                    <dt>Confirmado por</dt>
+                    <dd th:text="${detalhe.confirmadoPor ?: '-'}">-</dd>
+                </div>
+            </dl>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

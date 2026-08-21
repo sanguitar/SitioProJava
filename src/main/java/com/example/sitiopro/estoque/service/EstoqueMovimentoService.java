@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -56,6 +57,24 @@ public class EstoqueMovimentoService {
     @Transactional
     public MovimentoEstoqueResponse registrarMovimento(MovimentoEstoqueRequest request,
             boolean ajusteAdministrativoPermitido) {
+        return paraResponse(registrarMovimentoInterno(request, ajusteAdministrativoPermitido, null, null, null));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarEntradaCompra(MovimentoEstoqueRequest request, Long compraId) {
+        if (compraId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_COMPRA_OBRIGATORIA",
+                    "Informe a compra de origem para registrar entrada.");
+        }
+        MovimentoEstoqueRequest entrada = copiarComoEntrada(request);
+        return registrarMovimentoInterno(entrada, false, "compras", compraId, "Compra #" + compraId);
+    }
+
+    private MovimentoEstoque registrarMovimentoInterno(MovimentoEstoqueRequest request,
+            boolean ajusteAdministrativoPermitido,
+            String origemModulo,
+            Long origemReferenciaId,
+            String origemDescricao) {
         validarQuantidade(request.getQuantidade());
         TipoMovimentoEstoque tipo = request.getTipo();
         if (tipo == null) {
@@ -92,6 +111,9 @@ public class EstoqueMovimentoService {
         movimento.setDataMovimento(request.getDataMovimento() == null
                 ? LocalDateTime.now()
                 : request.getDataMovimento());
+        movimento.setOrigemModulo(origemModulo);
+        movimento.setOrigemReferenciaId(origemReferenciaId);
+        movimento.setOrigemDescricao(origemDescricao);
         aplicarCustos(tipo, request, movimento);
 
         MovimentoEstoque salvo = movimentoRepository.save(movimento);
@@ -103,7 +125,7 @@ public class EstoqueMovimentoService {
                 "estoque.movimento.tipo", tipo.name()))) {
             log.info("Movimentação de estoque concluída.");
         }
-        return paraResponse(salvo);
+        return salvo;
     }
 
     @Transactional(readOnly = true)
@@ -278,7 +300,25 @@ public class EstoqueMovimentoService {
                 movimento.getCustoTotal(),
                 movimento.getObservacao(),
                 movimento.getDataMovimento(),
-                movimento.getCriadoPor());
+                movimento.getCriadoPor(),
+                movimento.getOrigemModulo(),
+                movimento.getOrigemReferenciaId(),
+                movimento.getOrigemDescricao());
+    }
+
+    private MovimentoEstoqueRequest copiarComoEntrada(MovimentoEstoqueRequest request) {
+        MovimentoEstoqueRequest entrada = new MovimentoEstoqueRequest();
+        entrada.setItemId(request.getItemId());
+        entrada.setTipo(TipoMovimentoEstoque.ENTRADA);
+        entrada.setQuantidade(request.getQuantidade());
+        entrada.setLocalDestinoId(request.getLocalDestinoId());
+        entrada.setLoteCodigo(request.getLoteCodigo());
+        entrada.setValidade(request.getValidade());
+        entrada.setCustoUnitario(request.getCustoUnitario());
+        entrada.setCustoTotal(request.getCustoTotal());
+        entrada.setObservacao(request.getObservacao());
+        entrada.setDataMovimento(request.getDataMovimento());
+        return entrada;
     }
 
     private BigDecimal valorEstimado(ItemEstoqueResumo item) {

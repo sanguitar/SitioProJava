@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="tabs(tab)" class="compras-tabs" aria-label="Navegação de compras">
+    <a th:href="@{/sitio/compras}" th:classappend="${tab == 'dashboard'} ? ' active'">
+        <i class="fa-solid fa-chart-simple"></i><span>Resumo</span>
+    </a>
+    <a th:href="@{/sitio/compras/nova}" th:classappend="${tab == 'nova'} ? ' active'">
+        <i class="fa-solid fa-plus"></i><span>Nova compra</span>
+    </a>
+    <a th:href="@{/sitio/compras(status='CONFIRMADA')}" th:classappend="${tab == 'historico'} ? ' active'">
+        <i class="fa-solid fa-clock-rotate-left"></i><span>Histórico</span>
+    </a>
+    <a th:href="@{/sitio/compras/fornecedores}" th:classappend="${tab == 'fornecedores'} ? ' active'">
+        <i class="fa-solid fa-truck-field"></i><span>Fornecedores</span>
+    </a>
+</nav>
+
+<th:block th:fragment="statusCompra(status, rotulo)">
+    <span class="compra-status"
+          th:classappend="${status.name() == 'CONFIRMADA'} ? ' compra-status-confirmada' : (${status.name() == 'CANCELADA'} ? ' compra-status-cancelada' : ' compra-status-rascunho')"
+          th:text="${rotulo}">Rascunho</span>
+</th:block>
+</body>
+</html>

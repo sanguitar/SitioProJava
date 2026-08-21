@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Movimento de Estoque')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/estoque.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide estoque-page domain-estoque">
+        <div th:replace="~{fragments/ui :: topbar('Movimento de estoque', 'Estoque')}"></div>
+        <div class="page-heading">
+            <div>
+                <small class="module-group">Estoque</small>
+                <h1 th:text="${'Movimento #' + movimento.id}">Movimento #1</h1>
+            </div>
+            <a th:href="@{/sitio/estoque/movimentacoes}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-arrow-left me-2"></i>Histórico
+            </a>
+        </div>
+        <div th:replace="~{estoque/fragments :: tabs('movimentacoes')}"></div>
+
+        <section class="estoque-detail-grid">
+            <div class="estoque-panel">
+                <div class="panel-heading">
+                    <h3>Movimentação</h3>
+                    <span class="badge bg-dark" th:text="${movimento.tipoRotulo}">Entrada</span>
+                </div>
+                <dl class="estoque-kv">
+                    <div>
+                        <dt>Item</dt>
+                        <dd th:text="${movimento.itemNome}">Item</dd>
+                    </div>
+                    <div>
+                        <dt>Quantidade</dt>
+                        <dd>
+                            <span th:text="${#numbers.formatDecimal(movimento.quantidade, 1, 'POINT', 2, 'COMMA')}">0</span>
+                            <span th:text="${movimento.unidade}">UN</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Destino</dt>
+                        <dd th:text="${movimento.localDestino ?: '-'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Origem</dt>
+                        <dd th:text="${movimento.localOrigem ?: '-'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Lote</dt>
+                        <dd th:text="${movimento.loteCodigo ?: '-'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Data</dt>
+                        <dd th:text="${#temporals.format(movimento.dataMovimento, 'dd/MM/yyyy HH:mm')}">21/08/2026 08:40</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <aside class="estoque-panel">
+                <div class="panel-heading">
+                    <h3>Rastreio</h3>
+                    <span>Origem</span>
+                </div>
+                <dl class="estoque-kv">
+                    <div>
+                        <dt>Origem</dt>
+                        <dd th:text="${movimento.origemDescricao ?: '-'}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Custo unitário</dt>
+                        <dd th:text="${movimento.custoUnitario == null ? '-' : 'R$ ' + #numbers.formatDecimal(movimento.custoUnitario, 1, 'POINT', 4, 'COMMA')}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Custo total</dt>
+                        <dd th:text="${movimento.custoTotal == null ? '-' : 'R$ ' + #numbers.formatDecimal(movimento.custoTotal, 1, 'POINT', 2, 'COMMA')}">-</dd>
+                    </div>
+                    <div>
+                        <dt>Registrado por</dt>
+                        <dd th:text="${movimento.criadoPor ?: '-'}">-</dd>
+                    </div>
+                </dl>
+                <a th:if="${movimento.origemModulo == 'compras' and movimento.origemReferenciaId != null}"
+                   th:href="@{/sitio/compras/{id}(id=${movimento.origemReferenciaId})}"
+                   class="btn btn-outline-dark w-100 mt-3">
+                    <i class="fa-solid fa-cart-shopping me-2"></i>Abrir compra de origem
+                </a>
+            </aside>
+        </section>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

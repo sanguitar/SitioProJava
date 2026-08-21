@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Compras')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/compras.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide compras-page domain-compras">
+        <div th:replace="~{fragments/ui :: topbar('Compras', 'Gestão')}"></div>
+
+        <section class="compras-hero">
+            <div>
+                <small class="module-group">Gestão</small>
+                <h1>Compras</h1>
+                <p>Aquisições da propriedade com fornecedor, itens, custos e entrada automática no estoque ao confirmar.</p>
+            </div>
+            <div class="status-badge-visual status-funcional">FUNCIONAL</div>
+        </section>
+
+        <div th:replace="~{compras/fragments :: tabs('dashboard')}"></div>
+
+        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+        <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+
+        <section class="compras-metrics">
+            <article class="compras-metric">
+                <span>Confirmadas no mês</span>
+                <strong th:text="${resumo.comprasConfirmadasNoMes}">0</strong>
+            </article>
+            <article class="compras-metric">
+                <span>Valor do mês</span>
+                <strong th:text="${'R$ ' + #numbers.formatDecimal(resumo.valorConfirmadoNoMes, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            </article>
+            <article class="compras-metric is-warning">
+                <span>Rascunhos</span>
+                <strong th:text="${resumo.rascunhos}">0</strong>
+            </article>
+            <article class="compras-metric">
+                <span>Fornecedores ativos</span>
+                <strong th:text="${resumo.fornecedoresAtivos}">0</strong>
+            </article>
+        </section>
+
+        <section class="compras-actions">
+            <a th:href="@{/sitio/compras/nova}" class="btn btn-success">
+                <i class="fa-solid fa-plus me-2"></i>Nova compra
+            </a>
+            <a th:href="@{/sitio/compras/fornecedores/novo}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-truck-field me-2"></i>Novo fornecedor
+            </a>
+            <a th:href="@{/sitio/compras(status='RASCUNHO')}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-pen-to-square me-2"></i>Rascunhos
+            </a>
+            <a th:href="@{/sitio/compras(status='CONFIRMADA')}" class="btn btn-outline-dark">
+                <i class="fa-solid fa-clock-rotate-left me-2"></i>Histórico
+            </a>
+        </section>
+
+        <section class="compras-panel">
+            <div class="panel-heading">
+                <h3>Filtros</h3>
+                <span>Consulta operacional</span>
+            </div>
+            <form th:object="${filtro}" th:action="@{/sitio/compras}" method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="status">Status</label>
+                    <select id="status" th:field="*{status}" class="form-select">
+                        <option value="">Todos</option>
+                        <option th:each="status : ${statusCompras}" th:value="${status}" th:text="${status.rotulo}">Status</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="fornecedorId">Fornecedor</label>
+                    <select id="fornecedorId" th:field="*{fornecedorId}" class="form-select">
+                        <option value="">Todos</option>
+                        <option th:each="fornecedor : ${fornecedores}" th:value="${fornecedor.id}" th:text="${fornecedor.nome}">Fornecedor</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="inicio">Início</label>
+                    <input id="inicio" type="date" th:field="*{inicio}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="fim">Fim</label>
+                    <input id="fim" type="date" th:field="*{fim}" class="form-control">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-outline-dark">
+                        <i class="fa-solid fa-magnifying-glass me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="row g-4">
+            <div class="col-xl-8">
+                <div class="table-container">
+                    <div class="panel-heading">
+                        <h3>Compras</h3>
+                        <span th:text="${compras.size()} + ' registros'">0 registros</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Fornecedor</th>
+                                    <th>Status</th>
+                                    <th>Itens</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="compra : ${compras}">
+                                    <td th:text="${#temporals.format(compra.dataCompra, 'dd/MM/yyyy')}">21/08/2026</td>
+                                    <td>
+                                        <strong th:text="${compra.fornecedorNome}">Fornecedor</strong>
+                                        <span class="muted-line" th:text="${compra.numeroDocumento ?: 'Sem documento'}">NF 0001</span>
+                                    </td>
+                                    <td>
+                                        <div th:replace="~{compras/fragments :: statusCompra(${compra.status}, ${compra.statusRotulo})}"></div>
+                                    </td>
+                                    <td th:text="${compra.quantidadeItens}">0</td>
+                                    <td>
+                                        <strong th:text="${'R$ ' + #numbers.formatDecimal(compra.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:href="@{/sitio/compras/{id}(id=${compra.id})}" class="btn-edit" title="Detalhar" aria-label="Detalhar compra">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(compras)}">
+                                    <td colspan="6">
+                                        <div class="empty-state-card">
+                                            <i class="fa-solid fa-cart-shopping"></i>
+                                            <div>
+                                                <strong>Nenhuma compra encontrada</strong>
+                                                <p>Crie uma compra em rascunho e confirme quando os itens entrarem no estoque.</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="compras-panel h-100">
+                    <div class="panel-heading">
+                        <h3>Última confirmação</h3>
+                        <span>Estoque integrado</span>
+                    </div>
+                    <div class="compras-highlight" th:if="${resumo.ultimaCompraConfirmada != null}">
+                        <strong th:text="${resumo.ultimaCompraConfirmada.fornecedorNome}">Fornecedor</strong>
+                        <span th:text="${#temporals.format(resumo.ultimaCompraConfirmada.dataCompra, 'dd/MM/yyyy')}">21/08/2026</span>
+                        <div class="highlight-value" th:text="${'R$ ' + #numbers.formatDecimal(resumo.ultimaCompraConfirmada.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+                        <a th:href="@{/sitio/compras/{id}(id=${resumo.ultimaCompraConfirmada.id})}">Abrir compra</a>
+                    </div>
+                    <div class="empty-state-card" th:if="${resumo.ultimaCompraConfirmada == null}">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div>
+                            <strong>Nenhuma compra confirmada</strong>
+                            <p>As confirmações aparecerão aqui com rastreio para as entradas de estoque.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

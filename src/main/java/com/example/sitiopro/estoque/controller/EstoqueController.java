@@ -104,6 +104,13 @@ public class EstoqueController {
         return "estoque/movimentacoes";
     }
 
+    @GetMapping("/movimentacoes/{id}")
+    public String detalheMovimentacao(@PathVariable Long id, Model model) {
+        model.addAttribute("active", "estoque");
+        model.addAttribute("movimento", movimentoService.buscarMovimento(id));
+        return "estoque/movimento-detalhe";
+    }
+
     @GetMapping("/movimentacoes/nova")
     public String novaMovimentacao(Model model) {
         MovimentoEstoqueRequest request = new MovimentoEstoqueRequest();

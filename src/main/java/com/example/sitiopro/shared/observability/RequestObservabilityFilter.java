@@ -120,6 +120,10 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/estoque") || path.startsWith("/sitio/estoque")) {
             return "estoque";
         }
+        if (path.startsWith("/api/v1/compras") || path.startsWith("/api/v1/fornecedores")
+                || path.startsWith("/sitio/compras")) {
+            return "compras";
+        }
         if (path.startsWith("/sitio/admin/usuarios") || path.startsWith("/sitio/perfil") || path.startsWith("/login")
                 || path.startsWith("/logout")) {
             return "usuario";
@@ -138,9 +142,6 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/sitio/painel")) {
             return "dashboard";
-        }
-        if (path.startsWith("/sitio/compras")) {
-            return "compras";
         }
         if (path.startsWith("/sitio/tarefas")) {
             return "tarefas";

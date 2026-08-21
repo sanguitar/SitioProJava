@@ -12,8 +12,8 @@ public class OpenApiConfig {
     public OpenAPI sitioProOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Sítio Guaratinguetá - API de Estoque")
+                        .title("Sítio Guaratinguetá - API operacional")
                         .version("v1")
-                        .description("Endpoints iniciais do módulo de estoque."));
+                        .description("Endpoints iniciais dos módulos Estoque e Compras."));
     }
 }

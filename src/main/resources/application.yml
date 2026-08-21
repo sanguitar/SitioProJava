@@ -15,7 +15,12 @@ server:
         secure: ${SESSION_COOKIE_SECURE:false}
 
 springdoc:
-  paths-to-match: /api/v1/estoque/**
+  paths-to-match:
+    - /api/v1/estoque/**
+    - /api/v1/compras
+    - /api/v1/compras/**
+    - /api/v1/fornecedores
+    - /api/v1/fornecedores/**
   swagger-ui:
     path: /swagger-ui.html
 

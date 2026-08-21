@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class GestaoPlanejamentoController {
 
     @GetMapping({
-            "/compras",
-            "/compras/{acao}",
             "/tarefas",
             "/tarefas/{acao}"
     })

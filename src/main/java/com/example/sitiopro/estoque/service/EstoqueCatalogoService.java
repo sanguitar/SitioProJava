@@ -85,6 +85,17 @@ public class EstoqueCatalogoService {
                         "Item de estoque não encontrado.", HttpStatus.NOT_FOUND));
     }
 
+    @Transactional(readOnly = true)
+    public LocalEstoque buscarLocalAtivo(Long id) {
+        if (id == null) {
+            throw new EstoqueOperacaoException("LOCAL_DESTINO_OBRIGATORIO", "Informe o local de destino.");
+        }
+        return localRepository.findById(id)
+                .filter(LocalEstoque::isAtivo)
+                .orElseThrow(() -> new EstoqueOperacaoException("LOCAL_ESTOQUE_INATIVO",
+                        "Local de estoque não encontrado ou inativo."));
+    }
+
     @Transactional
     public CategoriaEstoque criarCategoria(CategoriaEstoqueRequest request) {
         String nome = normalizarNome(request.getNome());

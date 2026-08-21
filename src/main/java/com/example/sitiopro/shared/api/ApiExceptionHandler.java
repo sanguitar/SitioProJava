@@ -1,5 +1,6 @@
 package com.example.sitiopro.shared.api;
 
+import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
@@ -18,7 +19,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
-@RestControllerAdvice(basePackages = "com.example.sitiopro.estoque.api")
+@RestControllerAdvice(basePackages = {
+        "com.example.sitiopro.estoque.api",
+        "com.example.sitiopro.compras.api"
+})
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
@@ -27,19 +31,29 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(EstoqueOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> estoque(EstoqueOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(ComprasOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> compras(ComprasOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    private ResponseEntity<ApiErrorResponse> negocio(String code, String message, HttpStatus status,
+            HttpServletRequest request) {
         String requestId = RequestCorrelation.currentRequestId();
         try (MdcScope ignored = MdcScope.with(Map.of(
                 "event.action", "api_business_error",
                 "module", moduleForPath(request.getRequestURI()),
-                "http.response.status_code", ex.getStatus().value()))) {
-            if (ex.getStatus().is5xxServerError()) {
-                log.error("Erro de operação da API: {}", ex.getCode(), ex);
+                "http.response.status_code", status.value()))) {
+            if (status.is5xxServerError()) {
+                log.error("Erro de operação da API: {}", code);
             } else {
-                log.warn("Operação da API recusada: {}", ex.getCode());
+                log.warn("Operação da API recusada: {}", code);
             }
         }
-        return ResponseEntity.status(ex.getStatus())
-                .body(new ApiErrorResponse(Instant.now(), ex.getStatus().value(), ex.getCode(), ex.getMessage(),
+        return ResponseEntity.status(status)
+                .body(new ApiErrorResponse(Instant.now(), status.value(), code, message,
                         request.getRequestURI(), requestId));
     }
 
@@ -87,7 +101,16 @@ public class ApiExceptionHandler {
     }
 
     private String moduleForPath(String path) {
-        return path != null && path.startsWith("/api/v1/estoque") ? "estoque" : "api";
+        if (path == null) {
+            return "api";
+        }
+        if (path.startsWith("/api/v1/estoque")) {
+            return "estoque";
+        }
+        if (path.startsWith("/api/v1/compras") || path.startsWith("/api/v1/fornecedores")) {
+            return "compras";
+        }
+        return "api";
     }
 
     private String sanitizedStackTrace(Throwable throwable) {

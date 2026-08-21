@@ -73,13 +73,28 @@ public final class PlanejamentoCatalogo {
                 "Movimentações de entrada, consumo, perda, descarte, ajuste e transferência",
                 "Histórico como fonte confiável para cálculo de saldo"));
 
-        adicionar(modulos, modulo("Gestão", "Compras", "/sitio/compras", "compras", "compras.css",
-                "domain-compras", "fa-cart-shopping", StatusPlanejamento.PLANEJADO,
-                "Planejamento de compras, cotações, pedidos e recebimentos da propriedade.",
-                "Solicitações de compra por área do sítio",
-                "Comparação de fornecedores e valores cotados",
-                "Pedidos em aberto, recebidos e cancelados",
-                "Histórico de compras por centro de custo"));
+        adicionar(modulos, moduloComAcoes("Gestão", "Compras", "/sitio/compras", "compras", "compras.css",
+                "domain-compras", "fa-cart-shopping", StatusPlanejamento.FUNCIONAL,
+                "Compras funcionais com fornecedores, rascunhos, confirmação e entrada automática no estoque.",
+                links(
+                        link("Resumo de compras", "/sitio/compras", "fa-chart-line"),
+                        link("Nova compra", "/sitio/compras/nova", "fa-plus"),
+                        link("Fornecedores", "/sitio/compras/fornecedores", "fa-truck-field")
+                ),
+                List.of(
+                        acao("listagem", "Listagem funcional", "/sitio/compras",
+                                "Tela funcional para consultar compras por status, fornecedor e período."),
+                        acao("cadastro", "Cadastro funcional", "/sitio/compras/nova",
+                                "Tela funcional para criar compras em rascunho."),
+                        acao("detalhe", "Detalhe funcional", "/sitio/compras/detalhe",
+                                "Tela real disponível pelo identificador da compra, com itens, totais e auditoria."),
+                        acao("historico", "Histórico funcional", "/sitio/compras/historico",
+                                "Atalho funcional para compras confirmadas.")
+                ),
+                "Cadastro de fornecedores para compras",
+                "Compras em rascunho com inclusão e remoção de itens",
+                "Cálculo autoritativo de subtotal, frete, desconto e total",
+                "Confirmação transacional com entradas reais no estoque"));
 
         adicionar(modulos, modulo("Gestão", "Tarefas", "/sitio/tarefas", "tarefas", "tarefas.css",
                 "domain-tarefas", "fa-list-check", StatusPlanejamento.PLANEJADO,

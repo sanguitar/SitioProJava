@@ -2,6 +2,8 @@ package com.example.sitiopro;
 
 import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
+import com.example.sitiopro.compras.repository.CompraRepository;
+import com.example.sitiopro.compras.repository.FornecedorRepository;
 import com.example.sitiopro.estoque.repository.CategoriaEstoqueRepository;
 import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
 import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
@@ -46,6 +48,12 @@ class SitioProApplicationTests {
 
     @MockBean
     private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private CompraRepository compraRepository;
+
+    @MockBean
+    private FornecedorRepository fornecedorRepository;
 
     @MockBean
     private CategoriaEstoqueRepository estoqueCategoriaRepository;

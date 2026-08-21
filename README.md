@@ -366,7 +366,46 @@ GET  /api/v1/estoque/movimentos/{id}
 POST /api/v1/estoque/movimentos
 ```
 
-Não há JWT nesta etapa. A API usa a sessão Spring Security atual e permanece protegida por CSRF nos métodos mutáveis. A documentação OpenAPI publica apenas `/api/v1/estoque/**` e fica disponível para ADMIN em `/swagger-ui.html` e `/v3/api-docs`.
+Não há JWT nesta etapa. A API usa a sessão Spring Security atual e permanece protegida por CSRF nos métodos mutáveis. A documentação OpenAPI fica disponível para ADMIN em `/swagger-ui.html` e `/v3/api-docs`.
+
+## Compras
+
+O módulo funcional de compras registra fornecedores, compras em rascunho, itens comprados e a confirmação com entrada real no estoque. A compra não altera saldo manualmente: ao confirmar, ela chama o service oficial de estoque e cada item passa a apontar para a movimentação `ENTRADA` gerada.
+
+Rotas principais da interface:
+
+```text
+/sitio/compras
+/sitio/compras/nova
+/sitio/compras/{id}
+/sitio/compras/fornecedores
+/sitio/compras/fornecedores/novo
+/sitio/compras/fornecedores/{id}
+```
+
+Regras principais:
+
+- compras nascem como `RASCUNHO`;
+- rascunhos podem receber itens e ter dados de cabeçalho ajustados;
+- confirmação exige fornecedor ativo, ao menos um item, itens de estoque ativos e local de destino ativo;
+- confirmação é transacional e idempotente por status, bloqueio pessimista e vínculo único com movimento de estoque;
+- compras `CONFIRMADA` ou `CANCELADA` não são editadas;
+- cancelamento de rascunho é permitido apenas para `ADMIN`;
+- totais são recalculados no servidor com `BigDecimal`.
+
+API inicial:
+
+```text
+GET  /api/v1/compras
+GET  /api/v1/compras/{id}
+POST /api/v1/compras
+POST /api/v1/compras/{id}/itens
+POST /api/v1/compras/{id}/confirmar
+GET  /api/v1/fornecedores
+POST /api/v1/fornecedores
+```
+
+Não há integração externa com fornecedores, NF-e ou cotação nesta etapa.
 
 ## Flyway e schema
 
@@ -384,6 +423,7 @@ V2__add_current_lookup_indexes.sql
 V3__create_users_and_security.sql
 V4__add_business_audit_columns.sql
 V5__create_estoque_schema.sql
+V6__create_compras_schema.sql
 ```
 
 Regras:
