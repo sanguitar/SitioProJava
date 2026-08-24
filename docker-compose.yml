@@ -118,6 +118,34 @@ services:
     networks:
       - backend
 
+  redis:
+    image: redis:8.2.9-alpine
+    container_name: sitiopro-redis
+    profiles:
+      - cache
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    entrypoint:
+      - /bin/sh
+      - /usr/local/etc/redis/sitiopro-entrypoint.sh
+    volumes:
+      - ./infra/redis/entrypoint.sh:/usr/local/etc/redis/sitiopro-entrypoint.sh:ro
+    expose:
+      - "6379"
+    networks:
+      - backend
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli --user \"$${REDIS_USERNAME}\" ping | grep -q PONG"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   app:
     build:
       context: .
@@ -149,6 +177,17 @@ services:
       SITIOPRO_LOG_LEVEL: ${SITIOPRO_LOG_LEVEL:-INFO}
       HIBERNATE_SQL_LOG_LEVEL: ${HIBERNATE_SQL_LOG_LEVEL:-WARN}
       HIBERNATE_BIND_LOG_LEVEL: ${HIBERNATE_BIND_LOG_LEVEL:-WARN}
+      REDIS_ENABLED: ${REDIS_ENABLED:-false}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_USERNAME: ${REDIS_USERNAME:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_CONNECT_TIMEOUT: ${REDIS_CONNECT_TIMEOUT:-500ms}
+      REDIS_COMMAND_TIMEOUT: ${REDIS_COMMAND_TIMEOUT:-1s}
+      REDIS_RETRY_AFTER: ${REDIS_RETRY_AFTER:-10s}
+      CACHE_TTL_CLIMA_RESUMO: ${CACHE_TTL_CLIMA_RESUMO:-5m}
+      CACHE_TTL_INTEGRACOES_STATUS: ${CACHE_TTL_INTEGRACOES_STATUS:-30s}
+      CACHE_TTL_AGROFIT_CULTURAS: ${CACHE_TTL_AGROFIT_CULTURAS:-12h}
       SITIOPRO_OBSERVABILITY_ENABLED: ${SITIOPRO_OBSERVABILITY_ENABLED:-false}
       SITIOPRO_OBSERVABILITY_APM_SERVER_URL: ${SITIOPRO_OBSERVABILITY_APM_SERVER_URL:-http://apm-server:8200}
       SITIOPRO_INITIAL_ADMIN_ENABLED: ${SITIOPRO_INITIAL_ADMIN_ENABLED:-false}

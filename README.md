@@ -487,6 +487,52 @@ O recorte padrão consulta apenas uma página e faz upsert pelo nome normalizado
 
 Para um smoke test real, habilite apenas a integração desejada no `.env`, suba a aplicação e use o botão **Sincronizar agora**. Depois confirme o histórico em `/sitio/admin/integracoes/{fonte}`, os dados em `/api/v1/clima/previsao` e os eventos `integration.sync.*` no dashboard Kibana **External Integrations**. Testes Maven usam servidor HTTP local e não consomem internet ou quota de terceiros.
 
+## Cache Redis opcional
+
+Redis é uma camada descartável de aceleração no backend. SQL Server continua sendo a única fonte de verdade: sincronizações e regras persistem primeiro no banco e somente depois invalidam o cache. Browser e aplicativos móveis nunca acessam Redis diretamente.
+
+Os caches iniciais usam Spring Cache, DTOs em JSON e chaves prefixadas por `sitiopro:`:
+
+```text
+clima:resumo:v1          TTL padrão 5 minutos
+integracoes:status:v1    TTL padrão 30 segundos
+agrofit:culturas:v1      TTL padrão 12 horas
+```
+
+Configuração no `.env` local:
+
+```text
+REDIS_ENABLED=true
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_USERNAME=<usuário ACL local>
+REDIS_PASSWORD=<senha somente no .env local>
+REDIS_CONNECT_TIMEOUT=500ms
+REDIS_COMMAND_TIMEOUT=1s
+REDIS_RETRY_AFTER=10s
+CACHE_TTL_CLIMA_RESUMO=5m
+CACHE_TTL_INTEGRACOES_STATUS=30s
+CACHE_TTL_AGROFIT_CULTURAS=12h
+```
+
+O serviço usa o perfil Compose `cache`, não publica a porta `6379` e cria uma ACL limitada às chaves `sitiopro:*`. Para subir o ERP com cache:
+
+```powershell
+docker compose --env-file .env --profile cache up --build -d
+```
+
+Com `REDIS_ENABLED=false`, a aplicação usa `NoOpCacheManager` e não cria conexão Redis. Se Redis estiver habilitado e ficar indisponível ou exceder timeout, o `CacheErrorHandler` trata a leitura como miss e o service consulta SQL Server. Depois da primeira falha, novas operações de cache são suspensas por `REDIS_RETRY_AFTER`; invalidações ocorridas nesse período ficam pendentes e são reaplicadas antes da próxima leitura quando Redis voltar. O componente `cacheRedis` aparece no health geral como diagnóstico opcional, mas liveness e readiness continuam baseados somente no núcleo e no SQL Server.
+
+Para simular falha sem parar o ERP:
+
+```powershell
+docker compose --profile cache stop redis
+curl.exe http://localhost/actuator/health/readiness
+docker compose --profile cache start redis
+```
+
+Para remover somente os dados descartáveis do cache, recrie o container Redis ou, usando as credenciais locais, remova apenas chaves com prefixo `sitiopro:`. Não execute `docker compose down -v` para limpar cache, pois esse comando também pode remover o volume persistente do SQL Server.
+
 ## Flyway e schema
 
 O schema do banco é versionado por Flyway. As migrations ficam em:
@@ -542,6 +588,8 @@ docker compose -f docker-compose.yml --env-file .env.example config
 infra
 ├── nginx
 │   └── nginx.conf
+├── redis
+│   └── entrypoint.sh
 └── observability
     ├── apm
     ├── elastic-agent

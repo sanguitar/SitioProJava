@@ -4,6 +4,7 @@ import com.example.sitiopro.integracao.core.FonteIntegracao;
 import com.example.sitiopro.integracao.core.IntegracaoSincronizador;
 import com.example.sitiopro.integracao.core.ResultadoSincronizacao;
 import com.example.sitiopro.integracao.embrapa.agrofit.service.AgrofitPersistenceService;
+import com.example.sitiopro.shared.cache.CacheInvalidationService;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -17,12 +18,15 @@ public class AgrofitSincronizador implements IntegracaoSincronizador {
     private final AgrofitClient client;
     private final AgrofitPersistenceService persistenceService;
     private final AgrofitProperties properties;
+    private final CacheInvalidationService cacheInvalidationService;
 
     public AgrofitSincronizador(AgrofitClient client,
-            AgrofitPersistenceService persistenceService, AgrofitProperties properties) {
+            AgrofitPersistenceService persistenceService, AgrofitProperties properties,
+            CacheInvalidationService cacheInvalidationService) {
         this.client = client;
         this.persistenceService = persistenceService;
         this.properties = properties;
+        this.cacheInvalidationService = cacheInvalidationService;
     }
 
     @Override
@@ -71,6 +75,8 @@ public class AgrofitSincronizador implements IntegracaoSincronizador {
                 break;
             }
         }
-        return persistenceService.persistir(culturas);
+        ResultadoSincronizacao resultado = persistenceService.persistir(culturas);
+        cacheInvalidationService.invalidarAgrofitCulturas();
+        return resultado;
     }
 }

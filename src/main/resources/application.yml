@@ -1,6 +1,11 @@
 spring:
   application:
     name: sitioguaratingueta
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
@@ -27,6 +32,9 @@ springdoc:
     path: /swagger-ui.html
 
 management:
+  health:
+    redis:
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -62,6 +70,19 @@ info:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:
+  cache:
+    clima-resumo-ttl: ${CACHE_TTL_CLIMA_RESUMO:5m}
+    integracoes-status-ttl: ${CACHE_TTL_INTEGRACOES_STATUS:30s}
+    agrofit-culturas-ttl: ${CACHE_TTL_AGROFIT_CULTURAS:12h}
+    redis:
+      enabled: ${REDIS_ENABLED:false}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:500ms}
+      command-timeout: ${REDIS_COMMAND_TIMEOUT:1s}
+      retry-after: ${REDIS_RETRY_AFTER:10s}
   observability:
     service-name: sitioguaratingueta
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}

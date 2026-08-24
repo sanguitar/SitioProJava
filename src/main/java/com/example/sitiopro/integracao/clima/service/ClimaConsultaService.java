@@ -6,6 +6,8 @@ import com.example.sitiopro.integracao.clima.entity.PrevisaoClimatica;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoProperties;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
 import com.example.sitiopro.integracao.core.FonteIntegracao;
+import com.example.sitiopro.shared.cache.CacheNames;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class ClimaConsultaService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.CLIMA_RESUMO, key = "@cacheKeyFactory.climaResumo()")
     public ClimaResumo resumo() {
         LocalDateTime agoraLocal = LocalDateTime.ofInstant(clock.instant(), properties.zoneId());
         Optional<PrevisaoClimatica> atual = repository

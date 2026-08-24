@@ -9,7 +9,9 @@ import com.example.sitiopro.integracao.core.dto.IntegracaoExecucaoResumo;
 import com.example.sitiopro.integracao.core.dto.IntegracaoFonteResumo;
 import com.example.sitiopro.integracao.core.dto.IntegracaoPainelResumo;
 import com.example.sitiopro.integracao.core.entity.IntegracaoEstado;
+import com.example.sitiopro.shared.cache.CacheNames;
 import org.springframework.http.HttpStatus;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +54,7 @@ public class IntegracaoPainelService {
         this.clock = clock;
     }
 
+    @Cacheable(cacheNames = CacheNames.INTEGRACOES_STATUS, key = "'painel-completo'")
     public IntegracaoPainelResumo resumo() {
         List<IntegracaoFonteResumo> fontes = new ArrayList<>();
         sincronizadores.values().stream()

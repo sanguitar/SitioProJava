@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.example.sitiopro.shared.cache.CacheInvalidationService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,12 +34,16 @@ class IntegracaoOrquestradorTests {
     @Mock
     private IntegracaoExecucaoService execucaoService;
 
+    @Mock
+    private CacheInvalidationService cacheInvalidationService;
+
     private IntegracaoOrquestrador orquestrador;
 
     @BeforeEach
     void configurar() {
         when(sincronizador.fonte()).thenReturn(FonteIntegracao.OPEN_METEO);
-        orquestrador = new IntegracaoOrquestrador(List.of(sincronizador), execucaoService);
+        orquestrador = new IntegracaoOrquestrador(
+                List.of(sincronizador), execucaoService, cacheInvalidationService);
     }
 
     @Test
@@ -56,6 +61,7 @@ class IntegracaoOrquestradorTests {
 
         assertThat(retorno.registrosLidos()).isEqualTo(168);
         verify(execucaoService).concluir(10L, resultado);
+        verify(cacheInvalidationService, org.mockito.Mockito.times(2)).invalidarIntegracoesStatus();
         verify(execucaoService, never()).falhar(org.mockito.ArgumentMatchers.anyLong(), anyString(), anyString());
     }
 
@@ -74,6 +80,7 @@ class IntegracaoOrquestradorTests {
                 .isInstanceOf(IntegracaoOperacaoException.class)
                 .hasMessageContaining("dados locais anteriores foram preservados");
         verify(execucaoService).falhar(11L, "API_TIMEOUT", "Tempo limite.");
+        verify(cacheInvalidationService, org.mockito.Mockito.times(2)).invalidarIntegracoesStatus();
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.example.sitiopro.integracao.core.dto.IntegracaoExecucaoResumo;
 import com.example.sitiopro.integracao.core.entity.IntegracaoExecucao;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
+import com.example.sitiopro.shared.cache.CacheInvalidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -29,12 +30,14 @@ public class IntegracaoOrquestrador {
 
     private final Map<FonteIntegracao, IntegracaoSincronizador> sincronizadores;
     private final IntegracaoExecucaoService execucaoService;
+    private final CacheInvalidationService cacheInvalidationService;
 
     public IntegracaoOrquestrador(List<IntegracaoSincronizador> sincronizadores,
-            IntegracaoExecucaoService execucaoService) {
+            IntegracaoExecucaoService execucaoService, CacheInvalidationService cacheInvalidationService) {
         this.sincronizadores = new EnumMap<>(FonteIntegracao.class);
         sincronizadores.forEach(sincronizador -> this.sincronizadores.put(sincronizador.fonte(), sincronizador));
         this.execucaoService = execucaoService;
+        this.cacheInvalidationService = cacheInvalidationService;
     }
 
     public IntegracaoExecucaoResumo sincronizar(FonteIntegracao fonte) {
@@ -48,17 +51,20 @@ public class IntegracaoOrquestrador {
                 "module", "integracao",
                 "integration.source", fonte.getSlug()))) {
             IntegracaoExecucao execucao = execucaoService.iniciar(fonte, traceId);
+            cacheInvalidationService.invalidarIntegracoesStatus();
             logInicio(fonte, execucao.getId());
             long inicio = System.nanoTime();
             try {
                 ResultadoSincronizacao resultado = sincronizador.sincronizar();
                 IntegracaoExecucaoResumo concluida = execucaoService.concluir(execucao.getId(), resultado);
+                cacheInvalidationService.invalidarIntegracoesStatus();
                 logConclusao(fonte, concluida, System.nanoTime() - inicio);
                 return concluida;
             } catch (RuntimeException ex) {
                 String codigo = codigoErro(ex);
                 IntegracaoExecucaoResumo falha = execucaoService.falhar(
                         execucao.getId(), codigo, resumoSeguro(ex));
+                cacheInvalidationService.invalidarIntegracoesStatus();
                 logFalha(fonte, falha, System.nanoTime() - inicio, ex);
                 throw new IntegracaoOperacaoException(
                         codigo,
