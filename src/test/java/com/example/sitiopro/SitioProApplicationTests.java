@@ -17,6 +17,11 @@ import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepositor
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
+import com.example.sitiopro.tarefas.repository.AlertaRepository;
+import com.example.sitiopro.tarefas.repository.EventoTarefaAlertaRepository;
+import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
+import com.example.sitiopro.tarefas.repository.TarefaRepository;
+import com.example.sitiopro.tarefas.service.SqlServerApplicationLock;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -28,6 +33,7 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
+        "sitiopro.tarefas.scheduler-enabled=false",
         "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
@@ -91,6 +97,21 @@ class SitioProApplicationTests {
 
     @MockBean
     private AgrofitCulturaRepository agrofitCulturaRepository;
+
+    @MockBean
+    private TarefaRepository tarefaRepository;
+
+    @MockBean
+    private TarefaRecorrenciaRepository tarefaRecorrenciaRepository;
+
+    @MockBean
+    private AlertaRepository alertaRepository;
+
+    @MockBean
+    private EventoTarefaAlertaRepository eventoTarefaAlertaRepository;
+
+    @MockBean
+    private SqlServerApplicationLock sqlServerApplicationLock;
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;

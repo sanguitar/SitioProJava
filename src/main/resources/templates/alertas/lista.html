@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Alertas')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/tarefas.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-tarefas">
+    <div th:replace="~{fragments/ui :: topbar('Alertas', 'Gestão')}"></div>
+
+    <section class="task-hero alerts-hero">
+        <div>
+            <small class="module-group">Gestão operacional</small>
+            <h1>Alertas</h1>
+            <p>Condições detectadas automaticamente no estoque, nas integrações e na previsão climática.</p>
+        </div>
+        <div class="status-badge-visual status-funcional">FUNCIONAL</div>
+    </section>
+
+    <nav class="task-tabs" aria-label="Tarefas e alertas">
+        <a th:href="@{/sitio/tarefas}"><i class="fa-solid fa-list-check"></i>Tarefas</a>
+        <a class="active" th:href="@{/sitio/alertas}"><i class="fa-solid fa-triangle-exclamation"></i>Alertas</a>
+    </nav>
+
+    <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+    <div th:replace="~{tarefas/fragments :: resumo(${resumo})}"></div>
+
+    <section class="task-panel">
+        <div class="panel-heading"><h3>Filtros</h3><span>Condições operacionais</span></div>
+        <form th:object="${filtro}" th:action="@{/sitio/alertas}" method="get" class="row g-3 align-items-end">
+            <div class="col-sm-6 col-xl-2">
+                <label class="form-label" for="status">Status</label>
+                <select id="status" th:field="*{status}" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:each="item : ${statusAlertas}" th:value="${item}" th:text="${item.rotulo}">Status</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <label class="form-label" for="severidade">Severidade</label>
+                <select id="severidade" th:field="*{severidade}" class="form-select">
+                    <option value="">Todas</option>
+                    <option th:each="item : ${severidades}" th:value="${item}" th:text="${item.rotulo}">Severidade</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <label class="form-label" for="modulo">Módulo</label>
+                <select id="modulo" th:field="*{modulo}" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:each="item : ${modulos}" th:value="${item}" th:text="${item.rotulo}">Módulo</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="form-check form-switch filter-switch">
+                    <input id="somenteAtivos" type="checkbox" th:field="*{somenteAtivos}" class="form-check-input">
+                    <label for="somenteAtivos" class="form-check-label">Somente abertos</label>
+                </div>
+            </div>
+            <div class="col-xl-3 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-dark flex-grow-1"><i class="fa-solid fa-magnifying-glass me-2"></i>Filtrar</button>
+                <a th:href="@{/sitio/alertas}" class="btn btn-outline-secondary" title="Limpar filtros" aria-label="Limpar filtros"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </section>
+
+    <section class="alert-list" aria-label="Alertas operacionais">
+        <article class="operational-alert" th:each="alerta : ${pagina.conteudo}" th:classappend="${alerta.severidade.classeCss}">
+            <div class="alert-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="alert-main">
+                <div class="alert-title-line"><strong th:text="${alerta.titulo}">Alerta</strong>
+                    <div th:replace="~{tarefas/fragments :: severidade(${alerta.severidade})}"></div>
+                    <div th:replace="~{tarefas/fragments :: statusAlerta(${alerta.status})}"></div>
+                </div>
+                <span th:text="${alerta.moduloOrigem.rotulo + ' · ' + alerta.tipo.rotulo}">Estoque · tipo</span>
+                <small th:text="${'Detectado em ' + #temporals.format(alerta.detectadoEm, 'dd/MM/yyyy HH:mm')}">Detectado</small>
+            </div>
+            <div class="alert-linkage" th:if="${alerta.tarefaId != null}" title="Tarefa vinculada"><i class="fa-solid fa-link"></i></div>
+            <a th:href="@{/sitio/alertas/{id}(id=${alerta.id})}" class="btn-edit" title="Detalhar" aria-label="Detalhar alerta"><i class="fa-solid fa-circle-info"></i></a>
+        </article>
+        <div class="empty-state-card" th:if="${#lists.isEmpty(pagina.conteudo)}"><i class="fa-solid fa-circle-check"></i><div>
+            <strong>Nenhum alerta encontrado</strong><p>As condições automáticas aparecerão aqui quando forem detectadas.</p>
+        </div></div>
+    </section>
+    <div th:replace="~{tarefas/fragments :: paginacao(${pagina}, '/sitio/alertas')}"></div>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

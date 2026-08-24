@@ -28,6 +28,8 @@ springdoc:
     - /api/v1/fornecedores/**
     - /api/v1/clima/**
     - /api/v1/admin/integracoes
+    - /api/v1/tarefas/**
+    - /api/v1/alertas/**
   swagger-ui:
     path: /swagger-ui.html
 
@@ -70,6 +72,14 @@ info:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:
+  tarefas:
+    scheduler-enabled: ${SITIOPRO_TASKS_SCHEDULER_ENABLED:true}
+    alertas-intervalo: ${SITIOPRO_ALERTS_INTERVAL:PT5M}
+    recorrencias-intervalo: ${SITIOPRO_TASK_RECURRENCES_INTERVAL:PT1M}
+    scheduler-atraso-inicial: ${SITIOPRO_TASKS_INITIAL_DELAY:PT30S}
+    lote-proximo-vencimento-dias: ${SITIOPRO_LOT_EXPIRY_WARNING_DAYS:30}
+    chuva24h-limite-mm: ${SITIOPRO_RAIN_24H_ALERT_MM:50.0}
+    recorrencias-limite-por-execucao: ${SITIOPRO_TASK_RECURRENCES_BATCH_SIZE:100}
   cache:
     clima-resumo-ttl: ${CACHE_TTL_CLIMA_RESUMO:5m}
     integracoes-status-ttl: ${CACHE_TTL_INTEGRACOES_STATUS:30s}

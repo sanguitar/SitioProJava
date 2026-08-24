@@ -533,6 +533,71 @@ docker compose --profile cache start redis
 
 Para remover somente os dados descartáveis do cache, recrie o container Redis ou, usando as credenciais locais, remova apenas chaves com prefixo `sitiopro:`. Não execute `docker compose down -v` para limpar cache, pois esse comando também pode remover o volume persistente do SQL Server.
 
+## Tarefas e alertas
+
+O módulo operacional separa dois conceitos persistidos no SQL Server:
+
+- **Tarefa** é uma atividade manual ou gerada por recorrência/alerta. Usa os status `PENDENTE`, `EM_ANDAMENTO`, `CONCLUIDA` e `CANCELADA`, e as prioridades `BAIXA`, `NORMAL`, `ALTA` e `CRITICA`.
+- **Alerta** é uma condição detectada automaticamente. Usa os status `ATIVO`, `RECONHECIDO` e `RESOLVIDO`, e as severidades `INFO`, `ATENCAO`, `ALTA` e `CRITICA`.
+
+Alertas não criam tarefas automaticamente. Um usuário autenticado pode transformar um alerta em uma única tarefa vinculada. O histórico de criação, transição, reconhecimento, resolução e vínculo é persistido em `tarefa_alerta_eventos`.
+
+Recorrências suportadas:
+
+- diária;
+- semanal;
+- mensal;
+- intervalo entre 1 e 365 dias.
+
+A definição da série fica em `tarefa_recorrencias`; cada ocorrência possui a data programada e uma constraint única. O scheduler usa transação, lock pessimista, `@Version`, índice único e `sp_getapplock` com dono transacional para evitar duplicações em reinicializações, chamadas repetidas ou múltiplas instâncias.
+
+Regras automáticas atuais:
+
+- item ativo abaixo do estoque mínimo;
+- lote próximo do vencimento;
+- lote vencido com saldo;
+- integração habilitada/configurada desatualizada;
+- última sincronização de integração com falha;
+- chuva acumulada prevista nas próximas 24 horas acima do limite configurado.
+
+As regras consomem serviços/read models oficiais de Estoque, Integrações e Clima. Se uma fonte estiver indisponível, seu ciclo falha isoladamente e os demais continuam. Redis, Elastic e APM não são necessários para ler ou alterar Tarefas/Alertas.
+
+Configuração externa:
+
+```text
+SITIOPRO_TASKS_SCHEDULER_ENABLED=true
+SITIOPRO_ALERTS_INTERVAL=PT5M
+SITIOPRO_TASK_RECURRENCES_INTERVAL=PT1M
+SITIOPRO_TASKS_INITIAL_DELAY=PT30S
+SITIOPRO_LOT_EXPIRY_WARNING_DAYS=30
+SITIOPRO_RAIN_24H_ALERT_MM=50.0
+SITIOPRO_TASK_RECURRENCES_BATCH_SIZE=100
+```
+
+MVC:
+
+```text
+GET|POST /sitio/tarefas...
+GET|POST /sitio/alertas...
+```
+
+API autenticada:
+
+```text
+GET  /api/v1/tarefas
+GET  /api/v1/tarefas/resumo
+GET  /api/v1/tarefas/{id}
+POST /api/v1/tarefas
+POST /api/v1/tarefas/{id}/iniciar
+POST /api/v1/tarefas/{id}/concluir
+GET  /api/v1/alertas
+GET  /api/v1/alertas/{id}
+POST /api/v1/alertas/{id}/reconhecer
+POST /api/v1/alertas/{id}/criar-tarefa
+```
+
+`ADMIN` pode administrar todas as tarefas e resolver alertas. `OPERADOR` pode criar tarefas, alterar as não atribuídas, as próprias ou as que criou, e consultar/reconhecer alertas. Todas as mutações MVC/API exigem CSRF. Notificações push, e-mail, WhatsApp e clientes mobile permanecem no roadmap; a API e o resumo operacional já fornecem a base para essas evoluções.
+
 ## Flyway e schema
 
 O schema do banco é versionado por Flyway. As migrations ficam em:
@@ -552,6 +617,7 @@ V5__create_estoque_schema.sql
 V6__create_compras_schema.sql
 V7__create_external_integrations_schema.sql
 V8__align_climate_integer_columns.sql
+V9__create_tasks_and_alerts.sql
 ```
 
 Regras:
@@ -612,6 +678,7 @@ src/main/java/com/example/sitiopro
 ├── planejamento
 ├── producao
 ├── shared
+├── tarefas
 └── usuario
 ```
 
@@ -632,5 +699,7 @@ src/main/resources
     ├── planejamento
     ├── producao
     ├── security
+    ├── tarefas
+    ├── alertas
     └── usuario
 ```

@@ -40,14 +40,14 @@
 
         <div class="sidebar-section">
             <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
-               th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'producao'} ? ' active'"
+               th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'alertas' or active == 'producao'} ? ' active'"
                data-bs-toggle="collapse" href="#collapseGestao" role="button">
                 <span><i class="fa-solid fa-clipboard-list me-2"></i> Gestão</span>
                 <i class="fa-solid fa-chevron-down small"></i>
             </a>
             <div class="collapse"
                  id="collapseGestao"
-                 th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'producao'} ? ' show'">
+                 th:classappend="${active == 'estoque' or active == 'compras' or active == 'tarefas' or active == 'alertas' or active == 'producao'} ? ' show'">
                 <a th:href="@{/sitio/estoque}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'estoque' or active == 'producao'} ? ' active'">
                     <i class="fa-solid fa-boxes-stacked me-2"></i> Estoque
@@ -63,6 +63,10 @@
                 <a th:href="@{/sitio/tarefas}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'tarefas'} ? ' active'">
                     <i class="fa-solid fa-list-check me-2"></i> Tarefas
+                </a>
+                <a th:href="@{/sitio/alertas}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'alertas'} ? ' active'">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> Alertas
                 </a>
             </div>
         </div>

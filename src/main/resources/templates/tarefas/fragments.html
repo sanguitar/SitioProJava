@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="statusTarefa(status)">
+    <span class="task-badge" th:classappend="${status.classeCss}" th:text="${status.rotulo}">Pendente</span>
+</th:block>
+
+<th:block th:fragment="prioridade(prioridade)">
+    <span class="priority-badge" th:classappend="${prioridade.classeCss}" th:text="${prioridade.rotulo}">Normal</span>
+</th:block>
+
+<th:block th:fragment="statusAlerta(status)">
+    <span class="task-badge" th:classappend="${status.classeCss}" th:text="${status.rotulo}">Ativo</span>
+</th:block>
+
+<th:block th:fragment="severidade(severidade)">
+    <span class="severity-badge" th:classappend="${severidade.classeCss}" th:text="${severidade.rotulo}">Atenção</span>
+</th:block>
+
+<nav th:fragment="paginacao(pagina, rota)" class="task-pagination" aria-label="Paginação"
+     th:if="${pagina.totalPaginas > 1}">
+    <a class="btn btn-sm btn-outline-dark" th:classappend="${pagina.pagina == 0} ? ' disabled'"
+       th:href="@{${rota}(pagina=${pagina.pagina - 1})}" aria-label="Página anterior">
+        <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    <span th:text="${'Página ' + (pagina.pagina + 1) + ' de ' + pagina.totalPaginas}">Página 1 de 1</span>
+    <a class="btn btn-sm btn-outline-dark"
+       th:classappend="${pagina.pagina + 1 >= pagina.totalPaginas} ? ' disabled'"
+       th:href="@{${rota}(pagina=${pagina.pagina + 1})}" aria-label="Próxima página">
+        <i class="fa-solid fa-chevron-right"></i>
+    </a>
+</nav>
+
+<section th:fragment="resumo(resumo)" class="task-metrics">
+    <article><span>Pendentes hoje</span><strong th:text="${resumo.tarefasPendentesHoje}">0</strong></article>
+    <article class="is-danger"><span>Vencidas</span><strong th:text="${resumo.tarefasVencidas}">0</strong></article>
+    <article class="is-warning"><span>Críticas</span><strong th:text="${resumo.tarefasCriticas}">0</strong></article>
+    <article><span>Alertas ativos</span><strong th:text="${resumo.alertasAtivos}">0</strong></article>
+    <article class="is-danger"><span>Alertas críticos</span><strong th:text="${resumo.alertasCriticos}">0</strong></article>
+</section>
+</body>
+</html>

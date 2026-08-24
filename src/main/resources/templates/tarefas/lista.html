@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Tarefas')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/tarefas.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-tarefas">
+    <div th:replace="~{fragments/ui :: topbar('Tarefas', 'Gestão')}"></div>
+
+    <section class="task-hero">
+        <div>
+            <small class="module-group">Gestão operacional</small>
+            <h1>Tarefas</h1>
+            <p>Planeje, atribua e acompanhe atividades manuais ou recorrentes da propriedade.</p>
+        </div>
+        <div class="status-badge-visual status-funcional">FUNCIONAL</div>
+    </section>
+
+    <nav class="task-tabs" aria-label="Tarefas e alertas">
+        <a class="active" th:href="@{/sitio/tarefas}"><i class="fa-solid fa-list-check"></i>Tarefas</a>
+        <a th:href="@{/sitio/alertas}"><i class="fa-solid fa-triangle-exclamation"></i>Alertas</a>
+    </nav>
+
+    <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+    <div th:replace="~{tarefas/fragments :: resumo(${resumo})}"></div>
+
+    <section class="task-toolbar">
+        <a th:href="@{/sitio/tarefas/nova}" class="btn btn-success">
+            <i class="fa-solid fa-plus me-2"></i>Nova tarefa
+        </a>
+        <a th:href="@{/sitio/tarefas(prazo='HOJE')}" class="btn btn-outline-dark">Hoje</a>
+        <a th:href="@{/sitio/tarefas(prazo='VENCIDAS')}" class="btn btn-outline-danger">Vencidas</a>
+        <a th:href="@{/sitio/tarefas(status='CONCLUIDA')}" class="btn btn-outline-dark">Histórico</a>
+    </section>
+
+    <section class="task-panel">
+        <div class="panel-heading"><h3>Filtros</h3><span>Consulta operacional</span></div>
+        <form th:object="${filtro}" th:action="@{/sitio/tarefas}" method="get" class="row g-3 align-items-end">
+            <div class="col-sm-6 col-xl-2">
+                <label class="form-label" for="status">Status</label>
+                <select id="status" th:field="*{status}" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:each="item : ${statusTarefas}" th:value="${item}" th:text="${item.rotulo}">Status</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <label class="form-label" for="prioridade">Prioridade</label>
+                <select id="prioridade" th:field="*{prioridade}" class="form-select">
+                    <option value="">Todas</option>
+                    <option th:each="item : ${prioridades}" th:value="${item}" th:text="${item.rotulo}">Prioridade</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <label class="form-label" for="responsavelId">Responsável</label>
+                <select id="responsavelId" th:field="*{responsavelId}" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:each="item : ${responsaveis}" th:value="${item.id}" th:text="${item.nome}">Responsável</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <label class="form-label" for="prazo">Prazo</label>
+                <select id="prazo" th:field="*{prazo}" class="form-select">
+                    <option th:each="item : ${prazos}" th:value="${item}" th:text="${item.rotulo}">Prazo</option>
+                </select>
+            </div>
+            <div class="col-xl-3 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-dark flex-grow-1">
+                    <i class="fa-solid fa-magnifying-glass me-2"></i>Filtrar
+                </button>
+                <a th:href="@{/sitio/tarefas}" class="btn btn-outline-secondary" title="Limpar filtros" aria-label="Limpar filtros">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="table-container task-table-panel">
+        <div class="panel-heading">
+            <h3>Fila de trabalho</h3>
+            <span th:text="${pagina.totalElementos + ' registros'}">0 registros</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Tarefa</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Responsável</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="tarefa : ${pagina.conteudo}" th:classappend="${tarefa.vencida} ? ' task-overdue'">
+                    <td>
+                        <strong th:text="${tarefa.titulo}">Tarefa</strong>
+                        <span class="muted-line" th:text="${tarefa.origem.rotulo + (tarefa.moduloOrigem == null ? '' : ' · ' + tarefa.moduloOrigem.rotulo)}">Manual</span>
+                    </td>
+                    <td><div th:replace="~{tarefas/fragments :: statusTarefa(${tarefa.status})}"></div></td>
+                    <td><div th:replace="~{tarefas/fragments :: prioridade(${tarefa.prioridade})}"></div></td>
+                    <td>
+                        <span th:if="${tarefa.dataVencimento != null}" th:text="${#temporals.format(tarefa.dataVencimento, 'dd/MM/yyyy HH:mm')}">24/08/2026</span>
+                        <span th:unless="${tarefa.dataVencimento != null}" class="text-muted">Sem prazo</span>
+                        <span th:if="${tarefa.vencida}" class="overdue-label">Vencida</span>
+                    </td>
+                    <td th:text="${tarefa.responsavelNome ?: 'Não atribuída'}">Responsável</td>
+                    <td class="text-end">
+                        <a th:href="@{/sitio/tarefas/{id}(id=${tarefa.id})}" class="btn-edit" title="Detalhar" aria-label="Detalhar tarefa">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(pagina.conteudo)}"><td colspan="6">
+                    <div class="empty-state-card"><i class="fa-solid fa-list-check"></i><div>
+                        <strong>Nenhuma tarefa encontrada</strong><p>Ajuste os filtros ou registre a próxima atividade da propriedade.</p>
+                    </div></div>
+                </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{tarefas/fragments :: paginacao(${pagina}, '/sitio/tarefas')}"></div>
+    </section>
+
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

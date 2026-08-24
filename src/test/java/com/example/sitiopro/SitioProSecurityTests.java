@@ -38,6 +38,26 @@ import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.model.Producao;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.producao.service.ProducaoService;
+import com.example.sitiopro.tarefas.repository.AlertaRepository;
+import com.example.sitiopro.tarefas.repository.EventoTarefaAlertaRepository;
+import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
+import com.example.sitiopro.tarefas.repository.TarefaRepository;
+import com.example.sitiopro.tarefas.dto.AlertaDetalhe;
+import com.example.sitiopro.tarefas.dto.PaginaResponse;
+import com.example.sitiopro.tarefas.dto.TarefaDetalhe;
+import com.example.sitiopro.tarefas.dto.TarefaResumoOperacional;
+import com.example.sitiopro.tarefas.entity.ModuloOrigem;
+import com.example.sitiopro.tarefas.entity.OrigemTarefa;
+import com.example.sitiopro.tarefas.entity.PrioridadeTarefa;
+import com.example.sitiopro.tarefas.entity.SeveridadeAlerta;
+import com.example.sitiopro.tarefas.entity.StatusAlerta;
+import com.example.sitiopro.tarefas.entity.StatusTarefa;
+import com.example.sitiopro.tarefas.entity.TipoAlerta;
+import com.example.sitiopro.tarefas.entity.TipoRecorrencia;
+import com.example.sitiopro.tarefas.service.AlertaService;
+import com.example.sitiopro.tarefas.service.ResumoOperacionalService;
+import com.example.sitiopro.tarefas.service.SqlServerApplicationLock;
+import com.example.sitiopro.tarefas.service.TarefaService;
 import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
@@ -88,6 +108,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
+        "sitiopro.tarefas.scheduler-enabled=false",
         "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
@@ -142,6 +163,15 @@ class SitioProSecurityTests {
     private FornecedorService fornecedorService;
 
     @MockBean
+    private TarefaService tarefaService;
+
+    @MockBean
+    private AlertaService alertaService;
+
+    @MockBean
+    private ResumoOperacionalService resumoOperacionalService;
+
+    @MockBean
     private AbastecimentoRepository abastecimentoRepository;
 
     @MockBean
@@ -190,6 +220,21 @@ class SitioProSecurityTests {
     private AgrofitCulturaRepository agrofitCulturaRepository;
 
     @MockBean
+    private TarefaRepository tarefaRepository;
+
+    @MockBean
+    private TarefaRecorrenciaRepository tarefaRecorrenciaRepository;
+
+    @MockBean
+    private AlertaRepository alertaRepository;
+
+    @MockBean
+    private EventoTarefaAlertaRepository eventoTarefaAlertaRepository;
+
+    @MockBean
+    private SqlServerApplicationLock sqlServerApplicationLock;
+
+    @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @BeforeEach
@@ -225,6 +270,16 @@ class SitioProSecurityTests {
         when(compraService.adicionarItem(eq(1L), any())).thenReturn(compraRascunho);
         when(compraService.atualizarItem(eq(1L), eq(501L), any())).thenReturn(compraRascunho);
         when(compraService.confirmarCompra(1L)).thenReturn(compraConfirmada);
+        when(tarefaService.listar(any())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(tarefaService.listarResponsaveisAtivos()).thenReturn(List.of());
+        when(tarefaService.criar(any(), any())).thenReturn(tarefaDetalhe());
+        when(tarefaService.iniciar(eq(1L), any())).thenReturn(tarefaDetalhe());
+        when(tarefaService.concluir(eq(1L), any())).thenReturn(tarefaDetalhe());
+        when(tarefaService.cancelar(eq(1L), any())).thenReturn(tarefaDetalhe());
+        when(alertaService.listar(any())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(alertaService.reconhecer(eq(1L), any())).thenReturn(alertaDetalhe());
+        when(alertaService.resolver(eq(1L), any())).thenReturn(alertaDetalhe());
+        when(resumoOperacionalService.resumo()).thenReturn(new TarefaResumoOperacional(0, 0, 0, 0, 0));
 
         Usuario admin = usuario(1L, "Administrador", "admin", PerfilUsuario.ADMIN, true);
         Usuario operador = usuario(2L, "Operador", "operador", PerfilUsuario.OPERADOR, true);
@@ -724,6 +779,88 @@ class SitioProSecurityTests {
                 .andExpect(jsonPath("$.paths['/api/v1/admin/integracoes']").exists());
     }
 
+    @Test
+    void tarefasEAlertasBloqueiamAcessoAnonimo() throws Exception {
+        mockMvc.perform(get("/sitio/tarefas"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+        mockMvc.perform(get("/api/v1/alertas"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void operadorCriaTarefaPelaApiComDtoRestrito() throws Exception {
+        mockMvc.perform(post("/api/v1/tarefas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "titulo": "Verificar reservatório",
+                                  "prioridade": "NORMAL",
+                                  "recorrencia": "NENHUMA",
+                                  "status": "CONCLUIDA",
+                                  "origem": "AUTOMATICA",
+                                  "criadoPor": 999
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDENTE"))
+                .andExpect(jsonPath("$.origem").value("MANUAL"));
+
+        verify(tarefaService).criar(any(), any());
+    }
+
+    @Test
+    void apiTarefasValidaRequestEExigeCsrf() throws Exception {
+        mockMvc.perform(post("/api/v1/tarefas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"titulo\":\"Atividade\",\"prioridade\":\"NORMAL\",\"recorrencia\":\"NENHUMA\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+
+        mockMvc.perform(post("/api/v1/tarefas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"titulo\":\"\",\"prioridade\":\"NORMAL\",\"recorrencia\":\"NENHUMA\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void operadorReconheceAlertaMasNaoResolveNemCancelaTarefa() throws Exception {
+        mockMvc.perform(post("/sitio/alertas/1/reconhecer")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/alertas/1"));
+        mockMvc.perform(post("/sitio/alertas/1/resolver")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/sitio/tarefas/1/cancelar")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminResolveAlertaECancelaTarefa() throws Exception {
+        mockMvc.perform(post("/sitio/alertas/1/resolver")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/alertas/1"));
+        mockMvc.perform(post("/sitio/tarefas/1/cancelar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/tarefas/1"));
+    }
+
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {
         Usuario usuario = new Usuario();
         ReflectionTestUtils.setField(usuario, "id", id);
@@ -755,5 +892,21 @@ class SitioProSecurityTests {
                 null,
                 null,
                 null);
+    }
+
+    private TarefaDetalhe tarefaDetalhe() {
+        LocalDateTime agora = LocalDateTime.of(2026, 8, 24, 12, 0);
+        return new TarefaDetalhe(1L, "Verificar reservatório", null, StatusTarefa.PENDENTE,
+                PrioridadeTarefa.NORMAL, agora, null, agora.plusDays(1), null,
+                null, null, 1L, "Administrador", OrigemTarefa.MANUAL, null, null,
+                TipoRecorrencia.NENHUMA, null, null, false, true, 0, false, List.of());
+    }
+
+    private AlertaDetalhe alertaDetalhe() {
+        LocalDateTime agora = LocalDateTime.of(2026, 8, 24, 12, 0);
+        return new AlertaDetalhe(1L, "Ração abaixo do mínimo", "Saldo insuficiente.",
+                SeveridadeAlerta.ALTA, StatusAlerta.RECONHECIDO, ModuloOrigem.ESTOQUE,
+                TipoAlerta.ESTOQUE_ABAIXO_MINIMO, "ITEM:1", "ESTOQUE:ITEM:1:ABAIXO_MINIMO",
+                agora, agora, agora, "Administrador", null, java.util.Map.of(), null, 0, List.of());
     }
 }

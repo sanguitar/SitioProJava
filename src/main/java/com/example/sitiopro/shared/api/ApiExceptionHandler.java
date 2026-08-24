@@ -5,6 +5,7 @@ import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
+import com.example.sitiopro.tarefas.service.TarefaAlertaOperacaoException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,8 @@ import java.util.regex.Pattern;
 @RestControllerAdvice(basePackages = {
         "com.example.sitiopro.estoque.api",
         "com.example.sitiopro.compras.api",
-        "com.example.sitiopro.integracao.api"
+        "com.example.sitiopro.integracao.api",
+        "com.example.sitiopro.tarefas.api"
 })
 public class ApiExceptionHandler {
 
@@ -43,6 +45,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(IntegracaoOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> integracao(IntegracaoOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(TarefaAlertaOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> tarefas(TarefaAlertaOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
     }
 
@@ -119,6 +126,9 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/clima") || path.startsWith("/api/v1/admin/integracoes")) {
             return "integracao";
+        }
+        if (path.startsWith("/api/v1/tarefas") || path.startsWith("/api/v1/alertas")) {
+            return "tarefas";
         }
         return "api";
     }

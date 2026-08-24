@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Detalhe do alerta')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/tarefas.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-tarefas">
+    <div th:replace="~{fragments/ui :: topbar('Detalhe do alerta', 'Gestão')}"></div>
+    <section class="task-detail-header">
+        <div>
+            <a th:href="@{/sitio/alertas}" class="back-link"><i class="fa-solid fa-arrow-left"></i>Voltar para alertas</a>
+            <h1 th:text="${alerta.titulo}">Alerta</h1>
+            <div class="task-detail-badges">
+                <div th:replace="~{tarefas/fragments :: severidade(${alerta.severidade})}"></div>
+                <div th:replace="~{tarefas/fragments :: statusAlerta(${alerta.status})}"></div>
+                <span class="origin-badge" th:text="${alerta.moduloOrigem.rotulo}">Estoque</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+
+    <section class="task-action-bar" th:if="${alerta.status.name() != 'RESOLVIDO'}">
+        <form th:if="${alerta.status.name() == 'ATIVO'}" th:action="@{/sitio/alertas/{id}/reconhecer(id=${alerta.id})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button class="btn btn-success" type="submit"><i class="fa-solid fa-eye me-2"></i>Reconhecer</button>
+        </form>
+        <form th:if="${alerta.tarefaId == null}" th:action="@{/sitio/alertas/{id}/criar-tarefa(id=${alerta.id})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button class="btn btn-outline-dark" type="submit"><i class="fa-solid fa-list-check me-2"></i>Criar tarefa</button>
+        </form>
+        <form sec:authorize="hasRole('ADMIN')" th:action="@{/sitio/alertas/{id}/resolver(id=${alerta.id})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-circle-check me-2"></i>Resolver</button>
+        </form>
+    </section>
+
+    <div class="task-detail-grid">
+        <section class="task-panel">
+            <div class="panel-heading"><h3>Condição detectada</h3><span th:text="${alerta.tipo.rotulo}">Tipo</span></div>
+            <p class="task-description" th:text="${alerta.descricao}">Descrição</p>
+            <dl class="task-data-grid">
+                <div><dt>Detectado em</dt><dd th:text="${#temporals.format(alerta.detectadoEm, 'dd/MM/yyyy HH:mm')}">Data</dd></div>
+                <div><dt>Atualizado em</dt><dd th:text="${#temporals.format(alerta.atualizadoEm, 'dd/MM/yyyy HH:mm')}">Data</dd></div>
+                <div><dt>Referência</dt><dd th:text="${alerta.referenciaOrigem ?: 'Sem referência'}">Referência</dd></div>
+                <div><dt>Reconhecimento</dt><dd th:text="${alerta.reconhecidoEm == null ? 'Não reconhecido' : #temporals.format(alerta.reconhecidoEm, 'dd/MM/yyyy HH:mm') + ' · ' + alerta.reconhecidoPorNome}">Status</dd></div>
+                <div><dt>Resolução</dt><dd th:text="${alerta.resolvidoEm == null ? 'Condição aberta' : #temporals.format(alerta.resolvidoEm, 'dd/MM/yyyy HH:mm')}">Status</dd></div>
+            </dl>
+        </section>
+
+        <section class="task-panel">
+            <div class="panel-heading"><h3>Tratamento</h3><span>Vínculo opcional</span></div>
+            <div class="recurrence-summary" th:if="${alerta.tarefaId != null}"><i class="fa-solid fa-link"></i><div>
+                <strong>Tarefa vinculada</strong><a th:href="@{/sitio/tarefas/{id}(id=${alerta.tarefaId})}" th:text="${'Abrir tarefa #' + alerta.tarefaId}">Abrir tarefa</a>
+            </div></div>
+            <div class="empty-state-card" th:unless="${alerta.tarefaId != null}"><i class="fa-solid fa-list-check"></i><div>
+                <strong>Sem tarefa vinculada</strong><p>Crie uma tarefa quando a condição exigir uma ação acompanhável.</p>
+            </div></div>
+            <div class="alert-context" th:if="${!#maps.isEmpty(alerta.contexto)}">
+                <h4>Contexto seguro</h4>
+                <dl><div th:each="item : ${alerta.contexto}"><dt th:text="${item.key}">Campo</dt><dd th:text="${item.value}">Valor</dd></div></dl>
+            </div>
+        </section>
+    </div>
+
+    <section class="task-panel">
+        <div class="panel-heading"><h3>Histórico</h3><span>Detecção e tratamento</span></div>
+        <div class="task-timeline">
+            <article th:each="evento : ${alerta.historico}"><div class="timeline-marker"></div><div>
+                <strong th:text="${evento.tipo}">ALERTA_DETECTADO</strong>
+                <span th:text="${#temporals.format(evento.ocorridoEm, 'dd/MM/yyyy HH:mm') + ' · ' + evento.ator}">Data · ator</span>
+                <p th:if="${evento.detalhe}" th:text="${evento.detalhe}">Detalhe</p>
+            </div></article>
+        </div>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

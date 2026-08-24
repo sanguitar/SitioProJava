@@ -17,10 +17,10 @@
     </div>
 
     <div class="topbar-actions" sec:authorize="isAuthenticated()">
-        <button class="topbar-icon-button is-muted" type="button"
-                title="Notificações futuras" aria-label="Notificações futuras" disabled>
+        <a class="topbar-icon-button" th:href="@{/sitio/alertas(somenteAtivos=true)}"
+                title="Alertas operacionais" aria-label="Alertas operacionais">
             <i class="fa-regular fa-bell"></i>
-        </button>
+        </a>
         <a th:href="@{/sitio/perfil}" class="topbar-icon-button" title="Minha conta" aria-label="Minha conta">
             <i class="fa-regular fa-id-card"></i>
         </a>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead(${tarefaId == null ? 'Nova tarefa' : 'Editar tarefa'})}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/tarefas.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content domain-tarefas">
+    <div th:replace="~{fragments/ui :: topbar(${tarefaId == null ? 'Nova tarefa' : 'Editar tarefa'}, 'Gestão')}"></div>
+    <section class="task-form-header">
+        <a th:href="${tarefaId == null ? '/sitio/tarefas' : '/sitio/tarefas/' + tarefaId}" class="back-link">
+            <i class="fa-solid fa-arrow-left"></i>Voltar
+        </a>
+        <h1 th:text="${tarefaId == null ? 'Nova tarefa' : 'Editar tarefa'}">Nova tarefa</h1>
+        <p>Defina a atividade, o prazo, o responsável e uma recorrência opcional.</p>
+    </section>
+
+    <section class="task-panel task-form-panel">
+        <form th:object="${tarefaForm}"
+              th:action="${tarefaId == null ? '/sitio/tarefas' : '/sitio/tarefas/' + tarefaId}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="erro : ${#fields.globalErrors()}" th:text="${erro}"></div>
+            <div class="row g-4">
+                <div class="col-12">
+                    <label class="form-label" for="titulo">Título</label>
+                    <input id="titulo" th:field="*{titulo}" class="form-control" maxlength="160" required autofocus>
+                    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="descricao">Descrição</label>
+                    <textarea id="descricao" th:field="*{descricao}" class="form-control" rows="5" maxlength="2000"></textarea>
+                    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('descricao')}" th:errors="*{descricao}"></div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="prioridade">Prioridade</label>
+                    <select id="prioridade" th:field="*{prioridade}" class="form-select" required>
+                        <option th:each="item : ${prioridades}" th:value="${item}" th:text="${item.rotulo}">Normal</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="dataVencimento">Vencimento</label>
+                    <input id="dataVencimento" type="datetime-local" th:field="*{dataVencimento}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="responsavelId">Responsável</label>
+                    <select id="responsavelId" th:field="*{responsavelId}" class="form-select">
+                        <option value="">Não atribuída</option>
+                        <option th:each="item : ${responsaveis}" th:value="${item.id}" th:text="${item.nome}">Responsável</option>
+                    </select>
+                    <small sec:authorize="hasRole('OPERADOR')" class="form-text">Operadores podem atribuir somente a si próprios.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="recorrencia">Recorrência</label>
+                    <select id="recorrencia" th:field="*{recorrencia}" class="form-select">
+                        <option th:each="item : ${recorrencias}" th:value="${item}" th:text="${item.rotulo}">Não recorrente</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="intervaloDias">Intervalo em dias</label>
+                    <input id="intervaloDias" type="number" min="1" max="365" th:field="*{intervaloDias}" class="form-control">
+                    <small class="form-text">Preencha somente ao escolher intervalo em dias.</small>
+                    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('intervaloValido')}" th:errors="*{intervaloValido}"></div>
+                </div>
+            </div>
+            <div class="task-form-actions">
+                <a th:href="${tarefaId == null ? '/sitio/tarefas' : '/sitio/tarefas/' + tarefaId}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk me-2"></i>Salvar tarefa</button>
+            </div>
+        </form>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

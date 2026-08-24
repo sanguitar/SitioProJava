@@ -77,14 +77,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/movimentos").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/compras/**", "/api/v1/fornecedores").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/clima/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tarefas/**", "/api/v1/alertas/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/integracoes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/compras", "/api/v1/compras/*/itens",
                                 "/api/v1/compras/*/confirmar", "/api/v1/fornecedores").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tarefas", "/api/v1/tarefas/*/iniciar",
+                                "/api/v1/tarefas/*/concluir", "/api/v1/alertas/*/reconhecer",
+                                "/api/v1/alertas/*/criar-tarefa").authenticated()
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers("/administracao/**", "/configuracoes/roadmap").hasRole("ADMIN")
                         .requestMatchers("/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/fornecedores/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/*/cancelar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/tarefas/*/cancelar",
+                                "/sitio/alertas/*/resolver").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/tarefas/**", "/sitio/alertas/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/sitio/tarefas/**", "/sitio/alertas/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/sitio/compras/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/sitio/estoque/**").authenticated()

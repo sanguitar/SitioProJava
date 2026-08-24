@@ -96,13 +96,42 @@ public final class PlanejamentoCatalogo {
                 "Cálculo autoritativo de subtotal, frete, desconto e total",
                 "Confirmação transacional com entradas reais no estoque"));
 
-        adicionar(modulos, modulo("Gestão", "Tarefas", "/sitio/tarefas", "tarefas", "tarefas.css",
-                "domain-tarefas", "fa-list-check", StatusPlanejamento.PLANEJADO,
-                "Agenda operacional para atividades recorrentes, responsáveis, prazos e pendências.",
-                "Quadro de tarefas por prioridade e responsável",
-                "Cadastro de tarefas avulsas e recorrentes",
-                "Detalhe com checklist, anexos e observações",
-                "Histórico de execução por módulo"));
+        adicionar(modulos, moduloComAcoes("Gestão", "Tarefas", "/sitio/tarefas", "tarefas", "tarefas.css",
+                "domain-tarefas", "fa-list-check", StatusPlanejamento.FUNCIONAL,
+                "Agenda operacional para atividades manuais e recorrentes, responsáveis, prazos e pendências.",
+                links(
+                        link("Nova tarefa", "/sitio/tarefas/nova", "fa-plus"),
+                        link("Alertas", "/sitio/alertas", "fa-triangle-exclamation")
+                ),
+                List.of(
+                        acao("listagem", "Listagem funcional", "/sitio/tarefas",
+                                "Consulta paginada por status, prioridade, responsável e prazo."),
+                        acao("cadastro", "Cadastro funcional", "/sitio/tarefas/nova",
+                                "Criação de tarefas manuais e recorrentes."),
+                        acao("detalhe", "Detalhe funcional", "/sitio/tarefas/detalhe",
+                                "Detalhe por identificador com ações e histórico imutável."),
+                        acao("historico", "Histórico funcional", "/sitio/tarefas/historico",
+                                "Atalho para tarefas concluídas.")
+                ),
+                "Fluxo de início, conclusão e cancelamento",
+                "Recorrências diárias, semanais, mensais ou por intervalo",
+                "Controle por responsável e perfil",
+                "Histórico operacional persistido"));
+
+        adicionar(modulos, moduloComAcoes("Gestão", "Alertas", "/sitio/alertas", "alertas", "tarefas.css",
+                "domain-tarefas", "fa-triangle-exclamation", StatusPlanejamento.FUNCIONAL,
+                "Condições automáticas detectadas no estoque, nas integrações e na previsão climática.",
+                links(link("Tarefas", "/sitio/tarefas", "fa-list-check")),
+                List.of(
+                        acao("listagem", "Listagem funcional", "/sitio/alertas",
+                                "Consulta paginada por status, severidade e módulo."),
+                        acao("detalhe", "Detalhe funcional", "/sitio/alertas",
+                                "Detalhe por identificador com reconhecimento, resolução e vínculo com tarefa.")
+                ),
+                "Deduplicação determinística de condições abertas",
+                "Reconhecimento e resolução auditáveis",
+                "Conversão opcional de alerta em tarefa",
+                "Regras para Estoque, Integrações e Clima"));
 
         adicionar(modulos, modulo("Criações", "Aves", "/sitio/aves", "aves", "aves.css",
                 "domain-aves", "fa-egg", StatusPlanejamento.PLANEJADO,
@@ -522,6 +551,7 @@ public final class PlanejamentoCatalogo {
                 item("/sitio/estoque"),
                 item("/sitio/compras"),
                 item("/sitio/tarefas"),
+                item("/sitio/alertas"),
                 item("/sitio/aves"),
                 item("/sitio/aves/chocadeira"),
                 item("/sitio/aves/pinteiro"),

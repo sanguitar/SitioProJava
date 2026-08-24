@@ -42,13 +42,29 @@ import com.example.sitiopro.planejamento.controller.AdministracaoPlanejamentoCon
 import com.example.sitiopro.planejamento.controller.AgriculturaPlanejamentoController;
 import com.example.sitiopro.planejamento.controller.AguaPlanejamentoController;
 import com.example.sitiopro.planejamento.controller.CriacoesPlanejamentoController;
-import com.example.sitiopro.planejamento.controller.GestaoPlanejamentoController;
 import com.example.sitiopro.planejamento.controller.PlanejamentoRedirectController;
 import com.example.sitiopro.planejamento.controller.PropriedadePlanejamentoController;
 import com.example.sitiopro.planejamento.controller.VeiculosPlanejamentoController;
 import com.example.sitiopro.producao.controller.ProducaoController;
 import com.example.sitiopro.producao.model.Producao;
 import com.example.sitiopro.producao.service.ProducaoService;
+import com.example.sitiopro.tarefas.controller.AlertaController;
+import com.example.sitiopro.tarefas.controller.TarefaController;
+import com.example.sitiopro.tarefas.dto.AlertaDetalhe;
+import com.example.sitiopro.tarefas.dto.PaginaResponse;
+import com.example.sitiopro.tarefas.dto.TarefaDetalhe;
+import com.example.sitiopro.tarefas.dto.TarefaResumoOperacional;
+import com.example.sitiopro.tarefas.entity.ModuloOrigem;
+import com.example.sitiopro.tarefas.entity.OrigemTarefa;
+import com.example.sitiopro.tarefas.entity.PrioridadeTarefa;
+import com.example.sitiopro.tarefas.entity.SeveridadeAlerta;
+import com.example.sitiopro.tarefas.entity.StatusAlerta;
+import com.example.sitiopro.tarefas.entity.StatusTarefa;
+import com.example.sitiopro.tarefas.entity.TipoAlerta;
+import com.example.sitiopro.tarefas.entity.TipoRecorrencia;
+import com.example.sitiopro.tarefas.service.AlertaService;
+import com.example.sitiopro.tarefas.service.ResumoOperacionalService;
+import com.example.sitiopro.tarefas.service.TarefaService;
 import com.example.sitiopro.usuario.controller.UsuarioController;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +102,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AbastecimentoController.class,
         EstoqueController.class,
         ComprasController.class,
-        GestaoPlanejamentoController.class,
+        TarefaController.class,
+        AlertaController.class,
         CriacoesPlanejamentoController.class,
         AgriculturaPlanejamentoController.class,
         AguaPlanejamentoController.class,
@@ -142,6 +159,15 @@ class SitioProRoutesTests {
 
     @MockBean
     private IntegracaoOrquestrador integracaoOrquestrador;
+
+    @MockBean
+    private TarefaService tarefaService;
+
+    @MockBean
+    private AlertaService alertaService;
+
+    @MockBean
+    private ResumoOperacionalService resumoOperacionalService;
 
     @BeforeEach
     void configurarMocks() {
@@ -201,6 +227,12 @@ class SitioProRoutesTests {
         when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
                 "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
                 "DESABILITADA", "test-request"));
+        when(tarefaService.listar(any())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(tarefaService.listarResponsaveisAtivos()).thenReturn(List.of());
+        when(tarefaService.detalhar(1L)).thenReturn(tarefaDetalhe());
+        when(alertaService.listar(any())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(alertaService.detalhar(1L)).thenReturn(alertaDetalhe());
+        when(resumoOperacionalService.resumo()).thenReturn(new TarefaResumoOperacional(0, 0, 0, 0, 0));
     }
 
     @ParameterizedTest
@@ -229,6 +261,11 @@ class SitioProRoutesTests {
             "/sitio/compras/fornecedores",
             "/sitio/compras/fornecedores/novo",
             "/sitio/compras/fornecedores/1",
+            "/sitio/tarefas",
+            "/sitio/tarefas/nova",
+            "/sitio/tarefas/1",
+            "/sitio/alertas",
+            "/sitio/alertas/1",
             "/sitio/admin/saude",
             "/sitio/admin/integracoes",
             "/sitio/admin/integracoes/open-meteo",
@@ -248,7 +285,6 @@ class SitioProRoutesTests {
 
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/sitio/tarefas",
                 "/sitio/aves",
                 "/sitio/aves/chocadeira",
                 "/sitio/aves/pinteiro",
@@ -317,5 +353,21 @@ class SitioProRoutesTests {
     void rotasAntigasOuAliasesRedirecionam(String rota) throws Exception {
         mockMvc.perform(get(rota))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    private TarefaDetalhe tarefaDetalhe() {
+        LocalDateTime agora = LocalDateTime.of(2026, 8, 24, 10, 0);
+        return new TarefaDetalhe(1L, "Verificar caixa d'água", null, StatusTarefa.PENDENTE,
+                PrioridadeTarefa.NORMAL, agora, null, agora.plusDays(1), null,
+                null, null, 1L, "Administrador", OrigemTarefa.MANUAL, null, null,
+                TipoRecorrencia.NENHUMA, null, null, false, true, 0, false, List.of());
+    }
+
+    private AlertaDetalhe alertaDetalhe() {
+        LocalDateTime agora = LocalDateTime.of(2026, 8, 24, 10, 0);
+        return new AlertaDetalhe(1L, "Ração abaixo do mínimo", "Saldo abaixo do mínimo.",
+                SeveridadeAlerta.ALTA, StatusAlerta.ATIVO, ModuloOrigem.ESTOQUE,
+                TipoAlerta.ESTOQUE_ABAIXO_MINIMO, "ITEM:1", "ESTOQUE:ITEM:1:ABAIXO_MINIMO",
+                agora, agora, null, null, null, Map.of("saldo", 1), null, 0, List.of());
     }
 }
