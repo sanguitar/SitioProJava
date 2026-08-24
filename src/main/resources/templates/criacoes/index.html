@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"><head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Criações')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/aves.css}">
+</head><body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-aves aves-page">
+    <div th:replace="~{fragments/ui :: topbar('Criações', 'Produção animal')}"></div>
+    <header class="aves-page-heading"><div><small class="module-group">Criações</small><h1>Operação animal</h1><p>Ambiente comum para os ciclos produtivos da propriedade.</p></div></header>
+    <section class="creation-domain-grid">
+        <a class="creation-domain creation-domain-live" th:href="@{/sitio/criacoes/aves}"><i class="fa-solid fa-egg"></i><div><span>FUNCIONAL</span><h2>Aves</h2><p>Lotes, instalações, incubação e manejo diário.</p></div><i class="fa-solid fa-arrow-right"></i></a>
+        <article class="creation-domain"><i class="fa-solid fa-bacon"></i><div><span>PLANEJADO</span><h2>Suínos</h2><p>Plantel, baias e ciclos produtivos.</p></div></article>
+        <article class="creation-domain"><i class="fa-solid fa-fish"></i><div><span>PLANEJADO</span><h2>Piscicultura</h2><p>Tanques, lotes e alimentação.</p></div></article>
+        <article class="creation-domain"><i class="fa-solid fa-cow"></i><div><span>PLANEJADO</span><h2>Outras criações</h2><p>Bovinos, ovinos e caprinos entrarão em etapas próprias.</p></div></article>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

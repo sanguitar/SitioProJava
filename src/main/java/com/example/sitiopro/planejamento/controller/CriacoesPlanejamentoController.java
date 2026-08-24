@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class CriacoesPlanejamentoController {
 
     @GetMapping({
-            "/aves",
-            "/aves/{segmento}",
-            "/aves/{segmento}/{acao}",
             "/suinos",
             "/suinos/{acao}",
             "/piscicultura",

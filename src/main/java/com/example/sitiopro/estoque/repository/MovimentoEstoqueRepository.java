@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
 public interface MovimentoEstoqueRepository extends JpaRepository<MovimentoEstoque, Long> {
@@ -21,6 +22,9 @@ public interface MovimentoEstoqueRepository extends JpaRepository<MovimentoEstoq
     List<MovimentoEstoque> findByItemId(Long itemId);
 
     List<MovimentoEstoque> findByItemIdAndLoteId(Long itemId, Long loteId);
+
+    @EntityGraph(attributePaths = {"item", "item.unidadeMedida", "localOrigem", "localDestino", "lote"})
+    List<MovimentoEstoque> findByLoteIdInOrderByDataMovimentoDescIdDesc(Collection<Long> loteIds);
 
     @Override
     @EntityGraph(attributePaths = {"item", "item.unidadeMedida", "localOrigem", "localDestino", "lote"})

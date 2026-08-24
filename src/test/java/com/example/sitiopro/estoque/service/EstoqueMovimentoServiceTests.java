@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -167,13 +170,33 @@ class EstoqueMovimentoServiceTests {
     void estoqueMinimoIdentificaItemAbaixoDoMinimo() {
         item.setEstoqueMinimo(new BigDecimal("80"));
         when(itemRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(item));
-        when(movimentoRepository.findByItemId(1L)).thenReturn(List.of(
+        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc()).thenReturn(List.of(
                 movimento(TipoMovimentoEstoque.ENTRADA, "43", null, deposito)));
 
         ItemEstoqueResumo resumo = service.listarItensComSaldo().getFirst();
 
         assertThat(resumo.estoqueBaixo()).isTrue();
         assertThat(resumo.saldo()).isEqualByComparingTo("43");
+    }
+
+    @Test
+    void listagemDeItensCarregaMovimentosEmLoteSemConsultaPorItem() {
+        ItemEstoque segundoItem = item(2L, "Milho");
+        MovimentoEstoque primeiroMovimento = movimento(TipoMovimentoEstoque.ENTRADA, "43", null, deposito);
+        MovimentoEstoque segundoMovimento = movimento(TipoMovimentoEstoque.ENTRADA, "25", null, deposito);
+        segundoMovimento.setItem(segundoItem);
+        when(itemRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(item, segundoItem));
+        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc())
+                .thenReturn(List.of(primeiroMovimento, segundoMovimento));
+
+        List<ItemEstoqueResumo> itens = service.listarItensComSaldo();
+
+        assertThat(itens).hasSize(2);
+        assertThat(itens.get(0).saldo()).isEqualByComparingTo("43");
+        assertThat(itens.get(1).saldo()).isEqualByComparingTo("25");
+        verify(movimentoRepository).findAllByOrderByDataMovimentoDescIdDesc();
+        verify(movimentoRepository, never()).findByItemId(any());
+        verify(movimentoRepository, never()).findByItemIdOrderByDataMovimentoDescIdDesc(any());
     }
 
     @Test
@@ -258,6 +281,26 @@ class EstoqueMovimentoServiceTests {
                 .getAnnotation(Transactional.class);
 
         assertThat(transactional).isNotNull();
+    }
+
+    @Test
+    void consumoDeCriacaoUsaRegraOficialERegistraOrigem() throws NoSuchMethodException {
+        prepararMovimentoBasico();
+        when(movimentoRepository.findByItemId(1L)).thenReturn(List.of(
+                movimento(TipoMovimentoEstoque.ENTRADA, "10", null, deposito)));
+        MovimentoEstoqueRequest request = request(TipoMovimentoEstoque.ENTRADA, "2.5");
+        request.setLocalOrigemId(10L);
+
+        MovimentoEstoque movimento = service.registrarConsumoCriacao(request, 50L, 7L);
+
+        assertThat(movimento.getTipo()).isEqualTo(TipoMovimentoEstoque.CONSUMO);
+        assertThat(movimento.getOrigemModulo()).isEqualTo("criacoes");
+        assertThat(movimento.getOrigemReferenciaId()).isEqualTo(50L);
+        assertThat(movimento.getOrigemDescricao()).contains("#7");
+        Transactional transactional = EstoqueMovimentoService.class
+                .getMethod("registrarConsumoCriacao", MovimentoEstoqueRequest.class, Long.class, Long.class)
+                .getAnnotation(Transactional.class);
+        assertThat(transactional.propagation()).isEqualTo(Propagation.MANDATORY);
     }
 
     private void prepararMovimentoBasico() {

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="attentionBadge(nivel, mensagem)">
+    <div class="dashboard-attention-badge" th:classappend="${nivel.classeCss}" role="status">
+        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+        <div>
+            <span th:text="${'Atenção ' + nivel.rotulo}">Atenção normal</span>
+            <strong th:text="${mensagem}">Operação sem pendências prioritárias.</strong>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="kpi(icon, rotulo, valor, detalhe, nivelClasse, rota)">
+    <a class="dashboard-kpi" th:classappend="${nivelClasse}" th:href="@{${rota}}">
+        <span class="dashboard-kpi-icon" aria-hidden="true"><i th:class="'fa-solid ' + ${icon}"></i></span>
+        <span class="dashboard-kpi-copy">
+            <span th:text="${rotulo}">Indicador</span>
+            <strong th:text="${valor}">0</strong>
+            <small th:text="${detalhe}">Detalhe</small>
+        </span>
+        <i class="fa-solid fa-chevron-right dashboard-kpi-arrow" aria-hidden="true"></i>
+    </a>
+</th:block>
+
+<th:block th:fragment="sectionHeader(id, titulo, subtitulo, rota, acao)">
+    <header class="dashboard-section-header">
+        <div>
+            <h2 th:id="${id}" th:text="${titulo}">Seção</h2>
+            <p th:text="${subtitulo}">Resumo operacional</p>
+        </div>
+        <a th:if="${rota != null}" class="dashboard-section-link" th:href="@{${rota}}">
+            <span th:text="${acao}">Ver todos</span>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </a>
+    </header>
+</th:block>
+
+<th:block th:fragment="emptyState(icon, titulo, mensagem)">
+    <div class="dashboard-empty" role="status">
+        <i th:class="'fa-solid ' + ${icon}" aria-hidden="true"></i>
+        <div>
+            <strong th:text="${titulo}">Nenhum registro</strong>
+            <span th:text="${mensagem}">Não há itens para mostrar.</span>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="alertRow(alerta)">
+    <a class="dashboard-alert-row" th:href="@{/sitio/alertas/{id}(id=${alerta.id})}">
+        <span class="dashboard-row-marker" th:classappend="${alerta.severidade.classeCss}" aria-hidden="true"></span>
+        <span class="dashboard-row-main">
+            <strong th:text="${alerta.titulo}">Alerta operacional</strong>
+            <small>
+                <span th:text="${alerta.modulo.rotulo}">Módulo</span>
+                <span aria-hidden="true">•</span>
+                <time th:datetime="${alerta.detectadoEm}"
+                      th:text="${#temporals.format(alerta.detectadoEm, 'dd/MM HH:mm')}">24/08 10:30</time>
+            </small>
+        </span>
+        <span class="dashboard-row-badge" th:classappend="${alerta.severidade.classeCss}"
+              th:text="${alerta.severidade.rotulo}">Alta</span>
+    </a>
+</th:block>
+
+<th:block th:fragment="taskRow(tarefa)">
+    <a class="dashboard-task-row" th:href="@{/sitio/tarefas/{id}(id=${tarefa.id})}">
+        <span class="dashboard-task-check" aria-hidden="true"><i class="fa-regular fa-circle"></i></span>
+        <span class="dashboard-row-main">
+            <strong th:text="${tarefa.titulo}">Tarefa operacional</strong>
+            <small>
+                <span th:text="${tarefa.responsavel == null ? 'Sem responsável' : tarefa.responsavel}">Responsável</span>
+                <th:block th:if="${tarefa.dataVencimento != null}">
+                    <span aria-hidden="true">•</span>
+                    <time th:datetime="${tarefa.dataVencimento}"
+                          th:text="${#temporals.format(tarefa.dataVencimento, 'dd/MM HH:mm')}">24/08 16:00</time>
+                </th:block>
+            </small>
+        </span>
+        <span class="dashboard-row-badge" th:classappend="${tarefa.vencida ? 'is-overdue' : tarefa.prioridade.classeCss}"
+              th:text="${tarefa.vencida ? 'Vencida' : tarefa.prioridade.rotulo}">Normal</span>
+    </a>
+</th:block>
+</body>
+</html>

@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class EstoqueMovimentoService {
@@ -68,6 +69,18 @@ public class EstoqueMovimentoService {
         }
         MovimentoEstoqueRequest entrada = copiarComoEntrada(request);
         return registrarMovimentoInterno(entrada, false, "compras", compraId, "Compra #" + compraId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoCriacao(MovimentoEstoqueRequest request,
+            Long alimentacaoId, Long loteAvesId) {
+        if (alimentacaoId == null || loteAvesId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_CRIACAO_OBRIGATORIA",
+                    "Informe a alimentação e o lote de criação de origem.");
+        }
+        MovimentoEstoqueRequest consumo = copiarComoConsumo(request);
+        return registrarMovimentoInterno(consumo, false, "criacoes", alimentacaoId,
+                "Alimentação do lote de aves #" + loteAvesId);
     }
 
     private MovimentoEstoque registrarMovimentoInterno(MovimentoEstoqueRequest request,
@@ -130,8 +143,11 @@ public class EstoqueMovimentoService {
 
     @Transactional(readOnly = true)
     public List<ItemEstoqueResumo> listarItensComSaldo() {
+        Map<Long, List<MovimentoEstoque>> movimentosPorItem = movimentoRepository
+                .findAllByOrderByDataMovimentoDescIdDesc().stream()
+                .collect(Collectors.groupingBy(movimento -> movimento.getItem().getId()));
         return itemRepository.findAllByOrderByNomeAsc().stream()
-                .map(this::paraResumoItem)
+                .map(item -> paraResumoItem(item, movimentosPorItem.getOrDefault(item.getId(), List.of())))
                 .toList();
     }
 
@@ -197,19 +213,13 @@ public class EstoqueMovimentoService {
     @Transactional(readOnly = true)
     public List<LoteEstoqueResumo> listarLotesVencidos() {
         LocalDate hoje = LocalDate.now();
-        return loteRepository.findByValidadeBeforeOrderByValidadeAsc(hoje).stream()
-                .map(this::paraResumoLote)
-                .filter(lote -> lote.saldo().compareTo(BigDecimal.ZERO) > 0)
-                .toList();
+        return resumirLotes(loteRepository.findByValidadeBeforeOrderByValidadeAsc(hoje));
     }
 
     @Transactional(readOnly = true)
     public List<LoteEstoqueResumo> listarLotesProximosVencimento(int dias) {
         LocalDate hoje = LocalDate.now();
-        return loteRepository.findByValidadeBetweenOrderByValidadeAsc(hoje, hoje.plusDays(dias)).stream()
-                .map(this::paraResumoLote)
-                .filter(lote -> lote.saldo().compareTo(BigDecimal.ZERO) > 0)
-                .toList();
+        return resumirLotes(loteRepository.findByValidadeBetweenOrderByValidadeAsc(hoje, hoje.plusDays(dias)));
     }
 
     @Transactional(readOnly = true)
@@ -255,7 +265,13 @@ public class EstoqueMovimentoService {
     }
 
     private ItemEstoqueResumo paraResumoItem(ItemEstoque item) {
-        BigDecimal saldo = saldoItemTotal(item.getId());
+        return paraResumoItem(item, movimentoRepository.findByItemIdOrderByDataMovimentoDescIdDesc(item.getId()));
+    }
+
+    private ItemEstoqueResumo paraResumoItem(ItemEstoque item, List<MovimentoEstoque> movimentos) {
+        BigDecimal saldo = movimentos.stream()
+                .map(this::efeitoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal minimo = item.getEstoqueMinimo();
         boolean baixo = item.isAtivo()
                 && minimo != null
@@ -270,18 +286,59 @@ public class EstoqueMovimentoService {
                 minimo,
                 item.isAtivo(),
                 baixo,
-                ultimoPreco(item.getId()),
-                custoMedio(item.getId()));
+                ultimoPreco(movimentos),
+                custoMedio(movimentos));
     }
 
-    private LoteEstoqueResumo paraResumoLote(LoteEstoque lote) {
+    private List<LoteEstoqueResumo> resumirLotes(List<LoteEstoque> lotes) {
+        if (lotes.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, List<MovimentoEstoque>> movimentosPorLote = movimentoRepository
+                .findByLoteIdInOrderByDataMovimentoDescIdDesc(
+                        lotes.stream().map(LoteEstoque::getId).toList()).stream()
+                .filter(movimento -> movimento.getLote() != null)
+                .collect(Collectors.groupingBy(movimento -> movimento.getLote().getId()));
+        return lotes.stream()
+                .map(lote -> paraResumoLote(lote, movimentosPorLote.getOrDefault(lote.getId(), List.of())))
+                .filter(lote -> lote.saldo().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+    }
+
+    private LoteEstoqueResumo paraResumoLote(LoteEstoque lote, List<MovimentoEstoque> movimentos) {
         return new LoteEstoqueResumo(
                 lote.getId(),
                 lote.getItem().getNome(),
                 lote.getCodigo(),
                 lote.getValidade(),
-                saldoLoteTotal(lote.getItem().getId(), lote.getId()),
+                movimentos.stream().map(this::efeitoTotal).reduce(BigDecimal.ZERO, BigDecimal::add),
                 lote.getItem().getUnidadeMedida().getSigla());
+    }
+
+    private BigDecimal ultimoPreco(List<MovimentoEstoque> movimentos) {
+        return movimentos.stream()
+                .filter(movimento -> movimento.getTipo() == TipoMovimentoEstoque.ENTRADA)
+                .map(MovimentoEstoque::getCustoUnitario)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private BigDecimal custoMedio(List<MovimentoEstoque> movimentos) {
+        List<MovimentoEstoque> entradas = movimentos.stream()
+                .filter(movimento -> movimento.getTipo() == TipoMovimentoEstoque.ENTRADA)
+                .filter(movimento -> movimento.getCustoTotal() != null)
+                .toList();
+        BigDecimal quantidade = entradas.stream()
+                .map(MovimentoEstoque::getQuantidade)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (quantidade.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        BigDecimal total = entradas.stream()
+                .map(MovimentoEstoque::getCustoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.divide(quantidade, ESCALA, RoundingMode.HALF_UP);
     }
 
     private MovimentoEstoqueResponse paraResponse(MovimentoEstoque movimento) {
@@ -319,6 +376,18 @@ public class EstoqueMovimentoService {
         entrada.setObservacao(request.getObservacao());
         entrada.setDataMovimento(request.getDataMovimento());
         return entrada;
+    }
+
+    private MovimentoEstoqueRequest copiarComoConsumo(MovimentoEstoqueRequest request) {
+        MovimentoEstoqueRequest consumo = new MovimentoEstoqueRequest();
+        consumo.setItemId(request.getItemId());
+        consumo.setTipo(TipoMovimentoEstoque.CONSUMO);
+        consumo.setQuantidade(request.getQuantidade());
+        consumo.setLocalOrigemId(request.getLocalOrigemId());
+        consumo.setLoteCodigo(request.getLoteCodigo());
+        consumo.setObservacao(request.getObservacao());
+        consumo.setDataMovimento(request.getDataMovimento());
+        return consumo;
     }
 
     private BigDecimal valorEstimado(ItemEstoqueResumo item) {

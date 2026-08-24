@@ -144,14 +144,15 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
         if (path.startsWith("/sitio/cadastro") || path.startsWith("/sitio/editar")) {
             return "producao";
         }
-        if (path.startsWith("/sitio/painel")) {
+        if (path.startsWith("/sitio/painel") || path.startsWith("/api/v1/painel")) {
             return "dashboard";
         }
         if (path.startsWith("/api/v1/tarefas") || path.startsWith("/api/v1/alertas")
                 || path.startsWith("/sitio/tarefas") || path.startsWith("/sitio/alertas")) {
             return "tarefas";
         }
-        if (path.startsWith("/sitio/aves")) {
+        if (path.startsWith("/sitio/aves") || path.startsWith("/sitio/criacoes")
+                || path.startsWith("/api/v1/criacoes")) {
             return "aves";
         }
         if (path.startsWith("/sitio/suinos")) {

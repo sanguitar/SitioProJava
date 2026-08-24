@@ -30,6 +30,8 @@ springdoc:
     - /api/v1/admin/integracoes
     - /api/v1/tarefas/**
     - /api/v1/alertas/**
+    - /api/v1/painel/**
+    - /api/v1/criacoes/**
   swagger-ui:
     path: /swagger-ui.html
 
@@ -72,6 +74,11 @@ info:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:
+  criacoes:
+    aves:
+      mortalidade-alerta-percentual: ${CRIACAO_AVES_MORTALIDADE_ALERTA_PERCENTUAL:5.0}
+      mortalidade-periodo-dias: ${CRIACAO_AVES_MORTALIDADE_PERIODO_DIAS:7}
+      eclosao-proxima-dias: ${CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS:2}
   tarefas:
     scheduler-enabled: ${SITIOPRO_TASKS_SCHEDULER_ENABLED:true}
     alertas-intervalo: ${SITIOPRO_ALERTS_INTERVAL:PT5M}

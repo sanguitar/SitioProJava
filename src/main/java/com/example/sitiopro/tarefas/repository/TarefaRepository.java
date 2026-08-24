@@ -14,9 +14,20 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
+
+    interface PainelContadores {
+        Long getPendentesHoje();
+
+        Long getVencidas();
+
+        Long getCriticas();
+
+        Long getEmAndamento();
+    }
 
     @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario"})
     @Query("""
@@ -66,6 +77,57 @@ public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
 
     long countByStatusInAndPrioridade(Collection<StatusTarefa> statuses, PrioridadeTarefa prioridade);
 
+    @Query("""
+            select
+              coalesce(sum(case when t.status in :abertas
+                and t.dataVencimento >= :inicioHoje and t.dataVencimento < :fimHoje then 1 else 0 end), 0)
+                as pendentesHoje,
+              coalesce(sum(case when t.status in :abertas
+                and t.dataVencimento < :agora then 1 else 0 end), 0) as vencidas,
+              coalesce(sum(case when t.status in :abertas
+                and t.prioridade = com.example.sitiopro.tarefas.entity.PrioridadeTarefa.CRITICA then 1 else 0 end), 0)
+                as criticas,
+              coalesce(sum(case when t.status = com.example.sitiopro.tarefas.entity.StatusTarefa.EM_ANDAMENTO
+                then 1 else 0 end), 0) as emAndamento
+            from Tarefa t
+            """)
+    PainelContadores contarParaPainel(@Param("abertas") Collection<StatusTarefa> abertas,
+            @Param("inicioHoje") LocalDateTime inicioHoje,
+            @Param("fimHoje") LocalDateTime fimHoje,
+            @Param("agora") LocalDateTime agora);
+
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario"})
+    @Query("""
+            select t from Tarefa t
+            where t.status in :abertas
+            order by
+              case
+                when t.dataVencimento < :agora then 0
+                when t.dataVencimento >= :inicioHoje and t.dataVencimento < :fimHoje then 1
+                when t.prioridade = com.example.sitiopro.tarefas.entity.PrioridadeTarefa.CRITICA then 2
+                when t.status = com.example.sitiopro.tarefas.entity.StatusTarefa.EM_ANDAMENTO then 3
+                else 4
+              end,
+              case t.prioridade
+                when com.example.sitiopro.tarefas.entity.PrioridadeTarefa.CRITICA then 0
+                when com.example.sitiopro.tarefas.entity.PrioridadeTarefa.ALTA then 1
+                when com.example.sitiopro.tarefas.entity.PrioridadeTarefa.NORMAL then 2
+                else 3
+              end,
+              case when t.dataVencimento is null then 1 else 0 end,
+              t.dataVencimento,
+              t.id desc
+            """)
+    List<Tarefa> buscarDestaquesPainel(@Param("abertas") Collection<StatusTarefa> abertas,
+            @Param("agora") LocalDateTime agora,
+            @Param("inicioHoje") LocalDateTime inicioHoje,
+            @Param("fimHoje") LocalDateTime fimHoje,
+            Pageable pageable);
+
     boolean existsByRecorrenciaOrigemIdAndOcorrenciaProgramadaEm(Long recorrenciaId,
             LocalDateTime ocorrenciaProgramadaEm);
+
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario"})
+    List<Tarefa> findByModuloOrigemAndReferenciaOrigemOrderByCriadoEmDesc(
+            com.example.sitiopro.tarefas.entity.ModuloOrigem modulo, String referencia);
 }

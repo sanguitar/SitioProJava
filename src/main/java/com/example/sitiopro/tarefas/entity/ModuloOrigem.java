@@ -5,7 +5,8 @@ public enum ModuloOrigem {
     ESTOQUE("Estoque"),
     INTEGRACOES("Integrações"),
     CLIMA("Clima"),
-    COMPRAS("Compras");
+    COMPRAS("Compras"),
+    CRIACOES("Criações");
 
     private final String rotulo;
 

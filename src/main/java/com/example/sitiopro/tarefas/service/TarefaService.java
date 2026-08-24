@@ -116,6 +116,29 @@ public class TarefaService {
     }
 
     @Transactional
+    public TarefaDetalhe criarVinculada(TarefaRequest request, UsuarioAtor ator,
+            ModuloOrigem modulo, String referencia) {
+        Usuario criador = buscarAtor(ator);
+        Tarefa tarefa = novaTarefa(request, criador, resolverResponsavel(request.getResponsavelId(), ator, criador));
+        tarefa.setOrigem(OrigemTarefa.MANUAL);
+        tarefa.setModuloOrigem(modulo);
+        tarefa.setReferenciaOrigem(referencia);
+        tarefa = tarefaRepository.save(tarefa);
+        TarefaRecorrencia recorrencia = configurarRecorrencia(tarefa, request, null);
+        historicoService.registrarTarefa(tarefa, TipoEventoOperacional.TAREFA_CRIADA, criador, ator.ator(),
+                "Tarefa vinculada a " + modulo + " " + referencia + ".");
+        registrarLog("tarefa.created", tarefa);
+        return detalhe(tarefa, recorrencia, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<TarefaResumo> listarRelacionadas(ModuloOrigem modulo, String referencia) {
+        LocalDateTime agora = LocalDateTime.now(clock);
+        return tarefaRepository.findByModuloOrigemAndReferenciaOrigemOrderByCriadoEmDesc(modulo, referencia)
+                .stream().map(tarefa -> resumo(tarefa, agora)).toList();
+    }
+
+    @Transactional
     public TarefaDetalhe atualizar(Long id, TarefaRequest request, UsuarioAtor ator) {
         Tarefa tarefa = buscarParaAtualizacao(id);
         autorizarAlteracao(tarefa, ator);

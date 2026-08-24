@@ -1,5 +1,6 @@
 package com.example.sitiopro.tarefas.service;
 
+import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
@@ -44,6 +45,8 @@ class RegrasAlertasServiceTests {
     private ClimaConsultaService climaService;
     @Mock
     private AlertaService alertaService;
+    @Mock
+    private AvesAlertasService avesAlertasService;
 
     private RegrasAlertasService service;
 
@@ -53,7 +56,7 @@ class RegrasAlertasServiceTests {
         properties.setLoteProximoVencimentoDias(15);
         properties.setChuva24hLimiteMm(new BigDecimal("50"));
         service = new RegrasAlertasService(estoqueService, integracaoService, climaService,
-                alertaService, properties);
+                alertaService, properties, avesAlertasService);
         lenient().when(estoqueService.listarItensComSaldo()).thenReturn(List.of());
         lenient().when(estoqueService.listarLotesProximosVencimento(15)).thenReturn(List.of());
         lenient().when(estoqueService.listarLotesVencidos()).thenReturn(List.of());

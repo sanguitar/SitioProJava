@@ -1,6 +1,7 @@
 package com.example.sitiopro.tarefas.service;
 
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
+import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
@@ -33,17 +34,20 @@ public class RegrasAlertasService {
     private final ClimaConsultaService climaService;
     private final AlertaService alertaService;
     private final TarefasAlertasProperties properties;
+    private final AvesAlertasService avesAlertasService;
 
     public RegrasAlertasService(EstoqueMovimentoService estoqueService,
             IntegracaoPainelService integracaoService,
             ClimaConsultaService climaService,
             AlertaService alertaService,
-            TarefasAlertasProperties properties) {
+            TarefasAlertasProperties properties,
+            AvesAlertasService avesAlertasService) {
         this.estoqueService = estoqueService;
         this.integracaoService = integracaoService;
         this.climaService = climaService;
         this.alertaService = alertaService;
         this.properties = properties;
+        this.avesAlertasService = avesAlertasService;
     }
 
     public void avaliar() {
@@ -52,6 +56,7 @@ public class RegrasAlertasService {
         avaliarRegra("lotes-vencidos", this::avaliarLotesVencidos);
         avaliarRegra("integracoes", this::avaliarIntegracoes);
         avaliarRegra("clima", this::avaliarChuva);
+        avaliarRegra("criacoes-aves", avesAlertasService::avaliar);
     }
 
     private void avaliarEstoqueMinimo() {

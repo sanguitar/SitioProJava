@@ -79,6 +79,14 @@ public class AlertaService {
         return detalhe(buscar(id));
     }
 
+    @Transactional(readOnly = true)
+    public List<AlertaResumo> listarRelacionados(ModuloOrigem modulo, String referencia) {
+        return alertaRepository.findByModuloOrigemAndReferenciaOrigemAndStatusInOrderByDetectadoEmDesc(
+                        modulo, referencia, STATUS_ABERTOS).stream()
+                .map(this::resumo)
+                .toList();
+    }
+
     @Transactional
     public AlertaDetalhe reconhecer(Long id, UsuarioAtor ator) {
         Alerta alerta = buscarParaAtualizacao(id);

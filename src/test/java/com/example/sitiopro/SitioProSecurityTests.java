@@ -12,9 +12,16 @@ import com.example.sitiopro.compras.entity.StatusCompra;
 import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.compras.service.FornecedorService;
-import com.example.sitiopro.dashboard.dto.DashboardResumo;
+import com.example.sitiopro.criacao.aves.dto.AvesResumo;
+import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
+import com.example.sitiopro.criacao.aves.service.AvesResumoService;
+import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
+import com.example.sitiopro.criacao.aves.service.LoteAvesService;
+import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoResumo;
+import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.dashboard.service.DashboardService;
-import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
@@ -74,7 +81,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -93,7 +99,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
+import static com.example.sitiopro.DashboardTestFixture.vazio;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -234,15 +240,19 @@ class SitioProSecurityTests {
     @MockBean
     private SqlServerApplicationLock sqlServerApplicationLock;
 
+    @MockBean private AvesResumoService avesResumoService;
+    @MockBean private InstalacaoCriacaoService instalacaoCriacaoService;
+    @MockBean private LoteAvesService loteAvesService;
+    @MockBean private ManejoAvesService manejoAvesService;
+    @MockBean private IncubacaoAvesService incubacaoAvesService;
+    @MockBean private AvesAlertasService avesAlertasService;
+
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @BeforeEach
     void configurarMocks() {
-        DashboardResumo resumo = new DashboardResumo(
-                new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0,
-                ClimaResumo.naoSincronizado());
-        when(dashboardService.montarResumo(nullable(Long.class), anyInt())).thenReturn(resumo);
+        when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novo()).thenReturn(new Producao());
@@ -280,6 +290,10 @@ class SitioProSecurityTests {
         when(alertaService.reconhecer(eq(1L), any())).thenReturn(alertaDetalhe());
         when(alertaService.resolver(eq(1L), any())).thenReturn(alertaDetalhe());
         when(resumoOperacionalService.resumo()).thenReturn(new TarefaResumoOperacional(0, 0, 0, 0, 0));
+        when(avesResumoService.resumo()).thenReturn(new AvesResumo(0, 0, 0, 0, 0, 0, 0, LocalDateTime.now()));
+        when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
+                1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
+                100, 0, true, 0, null, null, null, null));
 
         Usuario admin = usuario(1L, "Administrador", "admin", PerfilUsuario.ADMIN, true);
         Usuario operador = usuario(2L, "Operador", "operador", PerfilUsuario.OPERADOR, true);
@@ -460,6 +474,22 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/api/v1/estoque/resumo"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void apiPainelExigeAutenticacaoEAceitaAdminEOperador() throws Exception {
+        mockMvc.perform(get("/api/v1/painel/resumo"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nivelAtencao").value("NORMAL"));
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -662,6 +692,58 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void criacoesAvesExigeAutenticacaoEPermiteConsultaAoOperador() throws Exception {
+        mockMvc.perform(get("/api/v1/criacoes/aves/resumo"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/api/v1/criacoes/aves/resumo").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lotesAtivos").value(0));
+    }
+
+    @Test
+    void operadorNaoCriaInstalacaoMasAdminPodeCriar() throws Exception {
+        String json = """
+                {"nome":"Galinheiro 1","tipo":"GALINHEIRO","capacidade":100,"ativo":true}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/aves/instalacoes")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/criacoes/aves/instalacoes")
+                        .with(user("admin").roles("ADMIN")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void paginasAdministrativasDeAvesSaoRestritasAoAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/aves/lotes/novo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/criacoes/aves/instalacoes/nova")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operadorRegistraManejoComCsrfMasRequestSemCsrfERecusado() throws Exception {
+        String json = """
+                {"quantidade":1,"causa":"Acidente","chaveIdempotencia":"op-12345678"}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/aves/lotes/1/mortalidades")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/criacoes/aves/lotes/1/mortalidades")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void apiRetornaErroPadronizadoParaRequestInvalido() throws Exception {
         mockMvc.perform(post("/api/v1/estoque/movimentos")
                         .with(user("operador").roles("OPERADOR"))
@@ -771,12 +853,16 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/v3/api-docs")
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/painel/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/estoque/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/compras']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/fornecedores']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/clima/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/clima/previsao']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/admin/integracoes']").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/admin/integracoes']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/resumo']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/lotes']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/incubacoes']").exists());
     }
 
     @Test

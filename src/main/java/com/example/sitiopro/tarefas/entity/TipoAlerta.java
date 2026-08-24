@@ -6,7 +6,10 @@ public enum TipoAlerta {
     LOTE_VENCIDO("Lote vencido"),
     INTEGRACAO_DESATUALIZADA("Integração desatualizada"),
     INTEGRACAO_COM_FALHA("Integração com falha"),
-    CHUVA_INTENSA_24H("Chuva intensa nas próximas 24h");
+    CHUVA_INTENSA_24H("Chuva intensa nas próximas 24h"),
+    CRIACAO_MORTALIDADE_ALTA("Mortalidade elevada no lote"),
+    CRIACAO_INCUBACAO_ECLOSAO_PROXIMA("Eclosão próxima"),
+    CRIACAO_INCUBACAO_ATRASADA("Incubação atrasada");
 
     private final String rotulo;
 

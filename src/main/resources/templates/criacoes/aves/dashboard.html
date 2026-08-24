@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"><head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Aves')}"></th:block><link rel="stylesheet" th:href="@{/css/aves.css}">
+</head><body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-aves aves-page">
+    <div th:replace="~{fragments/ui :: topbar('Aves', 'Criações')}"></div>
+    <header class="aves-page-heading"><div><small class="module-group">Criações</small><h1>Painel de aves</h1><p>Visão diária dos lotes, postura e incubação.</p></div><div class="aves-heading-actions"><a sec:authorize="hasRole('ADMIN')" th:href="@{/sitio/criacoes/aves/lotes/novo}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo lote</a><a th:href="@{/sitio/criacoes/aves/incubacoes/nova}" class="btn btn-outline-dark"><i class="fa-solid fa-egg me-2"></i>Nova incubação</a></div></header>
+    <div th:replace="~{criacoes/aves/fragments :: tabs('resumo')}"></div>
+    <section class="aves-kpi-grid" aria-label="Resumo operacional">
+        <article><span>Lotes ativos</span><strong th:text="${resumo.lotesAtivos}">0</strong><i class="fa-solid fa-layer-group"></i></article>
+        <article><span>Total de aves</span><strong th:text="${resumo.totalAves}">0</strong><i class="fa-solid fa-feather"></i></article>
+        <article><span>Incubações</span><strong th:text="${resumo.incubacoesAtivas}">0</strong><small th:text="${resumo.eclosoesProximas + ' próximas'}">0 próximas</small></article>
+        <article><span>Ovos hoje</span><strong th:text="${resumo.ovosHoje}">0</strong><i class="fa-solid fa-egg"></i></article>
+        <article th:classappend="${resumo.alertasAtivos > 0} ? ' kpi-attention'"><span>Alertas ativos</span><strong th:text="${resumo.alertasAtivos}">0</strong><i class="fa-solid fa-triangle-exclamation"></i></article>
+        <article><span>Mortalidade recente</span><strong th:text="${resumo.mortalidadeRecente}">0</strong><i class="fa-solid fa-heart-pulse"></i></article>
+    </section>
+    <section class="aves-two-column">
+        <div class="aves-panel"><div class="panel-heading"><h2>Lotes recentes</h2><a th:href="@{/sitio/criacoes/aves/lotes}">Ver todos</a></div>
+            <a class="aves-row-link" th:each="lote : ${lotes}" th:href="@{/sitio/criacoes/aves/lotes/{id}(id=${lote.id})}"><div><strong th:text="${lote.codigo}">L-1</strong><span th:text="${lote.instalacaoNome}">Galinheiro</span></div><div><b th:text="${lote.quantidadeAtual}">0</b><small>aves</small></div></a>
+            <div class="empty-state-card" th:if="${#lists.isEmpty(lotes)}"><i class="fa-solid fa-feather"></i><div><strong>Nenhum lote</strong><p>Cadastre o primeiro lote para iniciar a operação.</p></div></div>
+        </div>
+        <div class="aves-panel"><div class="panel-heading"><h2>Incubações recentes</h2><a th:href="@{/sitio/criacoes/aves/incubacoes}">Ver todas</a></div>
+            <a class="aves-row-link" th:each="item : ${incubacoes}" th:href="@{/sitio/criacoes/aves/incubacoes/{id}(id=${item.id})}"><div><strong th:text="${item.codigo}">I-1</strong><span th:text="${item.instalacaoNome}">Incubadora</span></div><div><b th:text="${#temporals.format(item.dataPrevistaEclosao, 'dd/MM')}">01/09</b><small>previsão</small></div></a>
+            <div class="empty-state-card" th:if="${#lists.isEmpty(incubacoes)}"><i class="fa-solid fa-temperature-half"></i><div><strong>Nenhuma incubação</strong><p>Não há ciclos de incubação registrados.</p></div></div>
+        </div>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

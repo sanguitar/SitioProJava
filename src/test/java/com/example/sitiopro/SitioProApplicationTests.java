@@ -4,6 +4,15 @@ import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.compras.repository.CompraRepository;
 import com.example.sitiopro.compras.repository.FornecedorRepository;
+import com.example.sitiopro.criacao.aves.repository.AlimentacaoAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.EventoLoteAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.LoteAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.MortalidadeAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.PesagemAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.RegistroPosturaAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.TransferenciaLoteAvesRepository;
+import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
 import com.example.sitiopro.estoque.repository.CategoriaEstoqueRepository;
 import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
 import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
@@ -85,6 +94,33 @@ class SitioProApplicationTests {
 
     @MockBean
     private MovimentoEstoqueRepository movimentoEstoqueRepository;
+
+    @MockBean
+    private InstalacaoCriacaoRepository instalacaoCriacaoRepository;
+
+    @MockBean
+    private LoteAvesRepository loteAvesRepository;
+
+    @MockBean
+    private EventoLoteAvesRepository eventoLoteAvesRepository;
+
+    @MockBean
+    private MortalidadeAvesRepository mortalidadeAvesRepository;
+
+    @MockBean
+    private AlimentacaoAvesRepository alimentacaoAvesRepository;
+
+    @MockBean
+    private PesagemAvesRepository pesagemAvesRepository;
+
+    @MockBean
+    private RegistroPosturaAvesRepository registroPosturaAvesRepository;
+
+    @MockBean
+    private TransferenciaLoteAvesRepository transferenciaLoteAvesRepository;
+
+    @MockBean
+    private IncubacaoAvesRepository incubacaoAvesRepository;
 
     @MockBean
     private IntegracaoEstadoRepository integracaoEstadoRepository;

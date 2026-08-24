@@ -81,18 +81,18 @@
             <div class="collapse"
                  id="collapseCriacoes"
                  th:classappend="${active == 'aves' or active == 'suinos' or active == 'piscicultura'} ? ' show'">
-                <a th:href="@{/sitio/aves}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/criacoes/aves}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'aves'} ? ' active'">
                     <i class="fa-solid fa-egg me-2"></i> Aves
                 </a>
-                <a th:href="@{/sitio/aves/chocadeira}" class="sidebar-link sidebar-grandchild">
-                    <i class="fa-solid fa-temperature-half me-2"></i> Chocadeira
+                <a th:href="@{/sitio/criacoes/aves/lotes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-layer-group me-2"></i> Lotes
                 </a>
-                <a th:href="@{/sitio/aves/pinteiro}" class="sidebar-link sidebar-grandchild">
-                    <i class="fa-solid fa-feather me-2"></i> Pinteiro
+                <a th:href="@{/sitio/criacoes/aves/incubacoes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-temperature-half me-2"></i> Incubações
                 </a>
-                <a th:href="@{/sitio/aves/galinheiro}" class="sidebar-link sidebar-grandchild">
-                    <i class="fa-solid fa-house-chimney me-2"></i> Galinheiro
+                <a th:href="@{/sitio/criacoes/aves/instalacoes}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-house-chimney me-2"></i> Instalações
                 </a>
                 <a th:href="@{/sitio/suinos}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'suinos'} ? ' active'">

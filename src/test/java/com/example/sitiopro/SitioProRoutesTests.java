@@ -6,6 +6,16 @@ import com.example.sitiopro.categoria.controller.CategoriaController;
 import com.example.sitiopro.categoria.model.Categoria;
 import com.example.sitiopro.categoria.service.CategoriaService;
 import com.example.sitiopro.compras.controller.ComprasController;
+import com.example.sitiopro.criacao.aves.dto.AvesResumo;
+import com.example.sitiopro.criacao.aves.service.AvesResumoService;
+import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
+import com.example.sitiopro.criacao.aves.service.LoteAvesService;
+import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.criacao.aves.web.CriacoesController;
+import com.example.sitiopro.criacao.aves.web.IncubacoesAvesController;
+import com.example.sitiopro.criacao.aves.web.InstalacoesAvesController;
+import com.example.sitiopro.criacao.aves.web.LotesAvesController;
 import com.example.sitiopro.compras.dto.CompraDetalhe;
 import com.example.sitiopro.compras.dto.CompraFiltro;
 import com.example.sitiopro.compras.dto.CompraResumo;
@@ -15,10 +25,9 @@ import com.example.sitiopro.compras.dto.FornecedorResumo;
 import com.example.sitiopro.compras.entity.StatusCompra;
 import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.compras.service.FornecedorService;
+import com.example.sitiopro.dashboard.api.DashboardApiController;
 import com.example.sitiopro.dashboard.controller.DashboardController;
-import com.example.sitiopro.dashboard.dto.DashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
-import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.integracao.controller.IntegracaoAdminController;
 import com.example.sitiopro.integracao.core.StatusOperacionalIntegracao;
 import com.example.sitiopro.integracao.core.dto.IntegracaoFonteResumo;
@@ -68,20 +77,23 @@ import com.example.sitiopro.tarefas.service.TarefaService;
 import com.example.sitiopro.usuario.controller.UsuarioController;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -89,13 +101,17 @@ import java.util.stream.Stream;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
+import static com.example.sitiopro.DashboardTestFixture.vazio;
+import static com.example.sitiopro.DashboardTestFixture.comDestaques;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
         DashboardController.class,
+        DashboardApiController.class,
         ProducaoController.class,
         CategoriaController.class,
         VeiculoController.class,
@@ -105,6 +121,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         TarefaController.class,
         AlertaController.class,
         CriacoesPlanejamentoController.class,
+        CriacoesController.class,
+        InstalacoesAvesController.class,
+        LotesAvesController.class,
+        IncubacoesAvesController.class,
         AgriculturaPlanejamentoController.class,
         AguaPlanejamentoController.class,
         PropriedadePlanejamentoController.class,
@@ -169,13 +189,18 @@ class SitioProRoutesTests {
     @MockBean
     private ResumoOperacionalService resumoOperacionalService;
 
+    @MockBean private AvesResumoService avesResumoService;
+    @MockBean private InstalacaoCriacaoService instalacaoCriacaoService;
+    @MockBean private LoteAvesService loteAvesService;
+    @MockBean private ManejoAvesService manejoAvesService;
+    @MockBean private IncubacaoAvesService incubacaoAvesService;
+    @MockBean private Clock clock;
+
     @BeforeEach
     void configurarMocks() {
-        DashboardResumo resumo = new DashboardResumo(
-                new PageImpl<>(List.of()), List.of(), "[]", "[]", 0, 0, 0,
-                ClimaResumo.naoSincronizado());
-
-        when(dashboardService.montarResumo(nullable(Long.class), anyInt())).thenReturn(resumo);
+        when(clock.instant()).thenReturn(Instant.parse("2026-08-24T12:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novo()).thenReturn(new Producao());
@@ -233,6 +258,15 @@ class SitioProRoutesTests {
         when(alertaService.listar(any())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
         when(alertaService.detalhar(1L)).thenReturn(alertaDetalhe());
         when(resumoOperacionalService.resumo()).thenReturn(new TarefaResumoOperacional(0, 0, 0, 0, 0));
+        when(avesResumoService.resumo()).thenReturn(new AvesResumo(0, 0, 0, 0, 0, 0, 0, LocalDateTime.now()));
+        when(loteAvesService.listar(org.mockito.ArgumentMatchers.nullable(com.example.sitiopro.criacao.aves.entity.StatusLoteAves.class),
+                org.mockito.ArgumentMatchers.nullable(String.class), anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(loteAvesService.listarAtivos()).thenReturn(List.of());
+        when(incubacaoAvesService.listar(anyInt(), anyInt())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(instalacaoCriacaoService.listar(anyInt(), anyInt())).thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(instalacaoCriacaoService.listarAtivas()).thenReturn(List.of());
+        when(instalacaoCriacaoService.listarIncubadorasAtivas()).thenReturn(List.of());
     }
 
     @ParameterizedTest
@@ -270,10 +304,47 @@ class SitioProRoutesTests {
             "/sitio/admin/integracoes",
             "/sitio/admin/integracoes/open-meteo",
             "/sitio/admin/integracoes/embrapa-agrofit"
+            ,"/sitio/criacoes"
+            ,"/sitio/criacoes/aves"
+            ,"/sitio/aves"
+            ,"/sitio/criacoes/aves/lotes"
+            ,"/sitio/criacoes/aves/lotes/novo"
+            ,"/sitio/criacoes/aves/incubacoes"
+            ,"/sitio/criacoes/aves/incubacoes/nova"
+            ,"/sitio/criacoes/aves/instalacoes"
+            ,"/sitio/criacoes/aves/instalacoes/nova"
     })
     void rotasFuncionaisExistentesContinuamRespondendo(String rota) throws Exception {
         mockMvc.perform(get(rota))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void painelOperacionalRenderizaPrioridadesEEstadosVazios() throws Exception {
+        mockMvc.perform(get("/sitio/painel"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("O que precisa da sua")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Sem alertas ativos")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("dashboard-climate-empty")));
+    }
+
+    @Test
+    void apiPainelRetornaReadModelOperacional() throws Exception {
+        mockMvc.perform(get("/api/v1/painel/resumo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nivelAtencao").value("NORMAL"))
+                .andExpect(jsonPath("$.tarefas.vencidas").value(0))
+                .andExpect(jsonPath("$.clima.estado").value("SEM_DADOS"));
+    }
+
+    @Test
+    void painelOperacionalRenderizaLinhasComDados() throws Exception {
+        when(dashboardService.montarResumo()).thenReturn(comDestaques());
+
+        mockMvc.perform(get("/sitio/painel"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/sitio/alertas/20")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/sitio/tarefas/10")));
     }
 
     @ParameterizedTest
@@ -285,10 +356,6 @@ class SitioProRoutesTests {
 
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/sitio/aves",
-                "/sitio/aves/chocadeira",
-                "/sitio/aves/pinteiro",
-                "/sitio/aves/galinheiro",
                 "/sitio/suinos",
                 "/sitio/piscicultura",
                 "/sitio/agricultura/areas",
@@ -342,6 +409,9 @@ class SitioProRoutesTests {
             "/sitio/compras/detalhe",
             "/sitio/compras/historico",
             "/criacoes/aves/chocadeira",
+            "/sitio/aves/chocadeira",
+            "/sitio/aves/pinteiro",
+            "/sitio/aves/galinheiro",
             "/agricultura/plantios",
             "/agua/irrigacao",
             "/propriedade/seguranca-cameras",

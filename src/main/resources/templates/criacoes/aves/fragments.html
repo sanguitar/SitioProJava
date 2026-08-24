@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"><body>
+<nav th:fragment="tabs(activeTab)" class="aves-tabs" aria-label="Navegação de aves">
+    <a th:href="@{/sitio/criacoes/aves}" th:classappend="${activeTab == 'resumo'} ? ' active'">Resumo</a>
+    <a th:href="@{/sitio/criacoes/aves/lotes}" th:classappend="${activeTab == 'lotes'} ? ' active'">Lotes</a>
+    <a th:href="@{/sitio/criacoes/aves/incubacoes}" th:classappend="${activeTab == 'incubacoes'} ? ' active'">Incubações</a>
+    <a th:href="@{/sitio/criacoes/aves/instalacoes}" th:classappend="${activeTab == 'instalacoes'} ? ' active'">Instalações</a>
+</nav>
+<span th:fragment="status(status)" class="status-badge-visual" th:classappend="${status.classeCss}" th:text="${status.rotulo}">Ativo</span>
+<div th:fragment="messages" class="aves-messages" aria-live="polite">
+    <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}"></div>
+</div>
+</body></html>

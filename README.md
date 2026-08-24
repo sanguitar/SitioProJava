@@ -48,6 +48,66 @@ http://localhost:8083/sitio/painel
 
 As telas `/sitio/**` redirecionam para `/login` quando não há sessão autenticada.
 
+## Dashboard operacional
+
+O painel existente em `/sitio/painel` concentra o que precisa de ação no dia, sem gráficos decorativos. A ordem visual prioriza alertas ativos, tarefas vencidas ou críticas, compromissos do dia, estoque abaixo do mínimo e vencimentos; em seguida apresenta clima, compras e saúde das integrações.
+
+O `DashboardService` monta um read model próprio e consulta somente serviços locais. Tarefas e alertas usam contagens agregadas e listas limitadas aos cinco itens mais relevantes; estoque reutiliza os cálculos oficiais de saldo com leitura em lote; compras reutilizam o resumo do domínio; clima e integrações leem o último estado disponível no SQL Server e podem aproveitar os caches opcionais já existentes. Abrir o painel nunca dispara sincronização nem chamada a Open-Meteo ou Agrofit, e o dashboard completo não é armazenado em cache.
+
+Estados vazios e degradados são parte do fluxo normal: ausência de tarefas, alertas ou compras produz mensagens discretas; clima pode ficar `NORMAL`, `DESATUALIZADO` ou `SEM_DADOS`; falha de Redis recorre ao banco pelo mecanismo fail-open; Elastic/Kibana não participa da geração da página. SQL Server permanece a dependência essencial e a única fonte de verdade.
+
+`ADMIN` e `OPERADOR` autenticados podem acessar tanto a página quanto o DTO estável para futuros clientes móveis:
+
+```text
+GET /sitio/painel
+GET /api/v1/painel/resumo
+```
+
+O endpoint retorna apenas DTOs do dashboard, sem entidades JPA, segredos ou credenciais. Cada geração registra o evento estruturado `dashboard.loaded`, com duração, alertas ativos, tarefas vencidas, itens críticos e estado do clima.
+
+## Criações e Aves
+
+`Criações` é uma fronteira do monólito modular para manejo rural por espécie. A fundação comum desta versão contém apenas instalações; o subdomínio funcional é `Aves`. Suínos e piscicultura continuam no roadmap e não herdam uma entidade animal genérica.
+
+O manejo de aves é orientado a lotes. Cada lote mantém identificação, finalidade, origem, instalação atual, quantidade inicial e quantidade atual protegida. Mudanças quantitativas e operacionais são registradas por serviços transacionais e por um histórico imutável de eventos. A interface principal fica em:
+
+```text
+/sitio/criacoes
+/sitio/criacoes/aves
+/sitio/criacoes/aves/instalacoes
+/sitio/criacoes/aves/lotes
+/sitio/criacoes/aves/incubacoes
+```
+
+Instalações suportam incubadora, criadouro de pintinhos, galinheiro, piquete e outros alojamentos. A capacidade configurada funciona como limite rígido para criação e transferência de lotes; instalações ocupadas não podem ser inativadas.
+
+A ficha de lote reúne alimentação, mortalidade, pesagens, postura, transferências, custos conhecidos, alertas, tarefas e linha do tempo. Alimentação chama o serviço oficial de Estoque na mesma transação: o movimento `CONSUMO` permanece a fonte de verdade do saldo e fica vinculado ao registro de alimentação. Falha ou saldo insuficiente reverte a operação inteira. Consumo acumulado, consumo médio, custo conhecido e autonomia são read models derivados; autonomia é exibida somente como estimativa quando há dados suficientes.
+
+Mortalidade reduz a quantidade disponível e pode gerar alerta deduplicado quando o percentual no período configurado ultrapassa o limite. Postura é aceita somente em lotes compatíveis e produz métricas de hoje, 7 e 30 dias. Pesos usam `BigDecimal`. Transferências preservam origem, destino, usuário e data. Nenhuma dessas operações cria controle individual por ave.
+
+Incubações registram ovos, origem, incubadora e previsão. A finalização valida eclodidos e perdas, calcula taxas e pode criar atomicamente um lote de pintinhos vinculado. Chaves de idempotência e bloqueios de atualização impedem que reenvios de alimentação, mortalidade ou finalização criem efeitos duplicados.
+
+Alertas de mortalidade, eclosão próxima e incubação atrasada reutilizam a engine de Alertas. Tarefas manuais ou recorrentes podem ser vinculadas a `LOTE:{id}` ou `INCUBACAO:{id}` sem duplicar a implementação de recorrência. Os limites são configuráveis externamente:
+
+```text
+CRIACAO_AVES_MORTALIDADE_ALERTA_PERCENTUAL=5.0
+CRIACAO_AVES_MORTALIDADE_PERIODO_DIAS=7
+CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS=2
+```
+
+API autenticada, paginada nas coleções e baseada somente em DTOs:
+
+```text
+GET  /api/v1/criacoes/aves/resumo
+GET|POST /api/v1/criacoes/aves/instalacoes
+GET|POST /api/v1/criacoes/aves/lotes
+POST /api/v1/criacoes/aves/lotes/{id}/alimentacoes|mortalidades|pesagens|posturas|transferencias
+GET|POST /api/v1/criacoes/aves/incubacoes
+POST /api/v1/criacoes/aves/incubacoes/{id}/finalizar
+```
+
+`ADMIN` cadastra e edita instalações e lotes, encerra lotes e cancela incubação. `OPERADOR` consulta e registra o manejo normal, inclusive incubação. Todas as mutações continuam protegidas por sessão e CSRF. SQL Server é a única fonte de verdade; Redis e Elastic não participam das regras e podem permanecer desligados. O roadmap preserva extensões naturais para Suínos e Peixes, sem antecipar campos, tabelas ou regras desses domínios.
+
 Para usar o host local planejado, adicione ao arquivo de hosts do sistema:
 
 ```text
@@ -618,6 +678,7 @@ V6__create_compras_schema.sql
 V7__create_external_integrations_schema.sql
 V8__align_climate_integer_columns.sql
 V9__create_tasks_and_alerts.sql
+V10__create_criacoes_aves_schema.sql
 ```
 
 Regras:

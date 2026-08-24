@@ -1,6 +1,7 @@
 package com.example.sitiopro.shared.api;
 
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
+import com.example.sitiopro.criacao.aves.service.AvesOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
@@ -25,7 +26,8 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.estoque.api",
         "com.example.sitiopro.compras.api",
         "com.example.sitiopro.integracao.api",
-        "com.example.sitiopro.tarefas.api"
+        "com.example.sitiopro.tarefas.api",
+        "com.example.sitiopro.criacao.aves.api"
 })
 public class ApiExceptionHandler {
 
@@ -50,6 +52,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(TarefaAlertaOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> tarefas(TarefaAlertaOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(AvesOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> criacoes(AvesOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
     }
 
@@ -129,6 +136,9 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/tarefas") || path.startsWith("/api/v1/alertas")) {
             return "tarefas";
+        }
+        if (path.startsWith("/api/v1/criacoes")) {
+            return "criacoes";
         }
         return "api";
     }

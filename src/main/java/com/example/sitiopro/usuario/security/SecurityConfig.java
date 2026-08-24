@@ -77,7 +77,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/movimentos").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/compras/**", "/api/v1/fornecedores").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/clima/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/tarefas/**", "/api/v1/alertas/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tarefas/**", "/api/v1/alertas/**",
+                                "/api/v1/painel/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/criacoes/aves/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/aves/instalacoes",
+                                "/api/v1/criacoes/aves/lotes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/aves/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/integracoes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/compras", "/api/v1/compras/*/itens",
                                 "/api/v1/compras/*/confirmar", "/api/v1/fornecedores").authenticated()
@@ -99,6 +104,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/sitio/estoque/itens",
                                 "/sitio/estoque/categorias", "/sitio/estoque/locais").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/estoque/movimentacoes").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/sitio/criacoes/aves/instalacoes",
+                                "/sitio/criacoes/aves/instalacoes/*",
+                                "/sitio/criacoes/aves/lotes",
+                                "/sitio/criacoes/aves/lotes/*",
+                                "/sitio/criacoes/aves/lotes/*/encerrar",
+                                "/sitio/criacoes/aves/incubacoes/*/cancelar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,
+                                "/sitio/criacoes/aves/instalacoes/nova",
+                                "/sitio/criacoes/aves/instalacoes/*/editar",
+                                "/sitio/criacoes/aves/lotes/novo",
+                                "/sitio/criacoes/aves/lotes/*/editar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/criacoes/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/sitio/criacoes/aves/**").authenticated()
                         .requestMatchers("/gestao/**", "/criacoes/**", "/agricultura/**", "/agua/**",
                                 "/propriedade/**", "/ola", "/saudacao").authenticated()
                         .requestMatchers("/sitio/**", "/api/fipe/**").authenticated()

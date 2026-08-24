@@ -20,6 +20,14 @@ import java.util.Optional;
 
 public interface AlertaRepository extends JpaRepository<Alerta, Long> {
 
+    interface PainelContadores {
+        Long getAtivos();
+
+        Long getCriticos();
+
+        Long getAltaSeveridade();
+    }
+
     @EntityGraph(attributePaths = {"reconhecidoPor", "tarefa"})
     @Query("""
             select a from Alerta a
@@ -67,4 +75,40 @@ public interface AlertaRepository extends JpaRepository<Alerta, Long> {
     long countByStatusIn(Collection<StatusAlerta> statuses);
 
     long countByStatusInAndSeveridade(Collection<StatusAlerta> statuses, SeveridadeAlerta severidade);
+
+    @Query("""
+            select
+              coalesce(sum(case when a.status in :abertos then 1 else 0 end), 0) as ativos,
+              coalesce(sum(case when a.status in :abertos
+                and a.severidade = com.example.sitiopro.tarefas.entity.SeveridadeAlerta.CRITICA then 1 else 0 end), 0)
+                as criticos,
+              coalesce(sum(case when a.status in :abertos
+                and a.severidade = com.example.sitiopro.tarefas.entity.SeveridadeAlerta.ALTA then 1 else 0 end), 0)
+                as altaSeveridade
+            from Alerta a
+            """)
+    PainelContadores contarParaPainel(@Param("abertos") Collection<StatusAlerta> abertos);
+
+    @EntityGraph(attributePaths = {"reconhecidoPor", "tarefa"})
+    @Query("""
+            select a from Alerta a
+            where a.status in :abertos
+            order by
+              case a.severidade
+                when com.example.sitiopro.tarefas.entity.SeveridadeAlerta.CRITICA then 0
+                when com.example.sitiopro.tarefas.entity.SeveridadeAlerta.ALTA then 1
+                when com.example.sitiopro.tarefas.entity.SeveridadeAlerta.ATENCAO then 2
+                else 3
+              end,
+              a.detectadoEm desc,
+              a.id desc
+            """)
+    List<Alerta> buscarDestaquesPainel(@Param("abertos") Collection<StatusAlerta> abertos,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"reconhecidoPor", "tarefa"})
+    List<Alerta> findByModuloOrigemAndReferenciaOrigemAndStatusInOrderByDetectadoEmDesc(
+            ModuloOrigem modulo, String referencia, Collection<StatusAlerta> statuses);
+
+    long countByModuloOrigemAndStatusIn(ModuloOrigem modulo, Collection<StatusAlerta> statuses);
 }
