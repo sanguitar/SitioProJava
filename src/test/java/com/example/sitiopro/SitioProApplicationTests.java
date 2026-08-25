@@ -13,6 +13,7 @@ import com.example.sitiopro.criacao.aves.repository.PesagemAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.RegistroPosturaAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.TransferenciaLoteAvesRepository;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.estoque.repository.CategoriaEstoqueRepository;
 import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
 import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
@@ -148,6 +149,9 @@ class SitioProApplicationTests {
 
     @MockBean
     private SqlServerApplicationLock sqlServerApplicationLock;
+
+    @MockBean
+    private CodigoCriacaoService codigoCriacaoService;
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;

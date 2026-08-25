@@ -170,8 +170,8 @@ class EstoqueMovimentoServiceTests {
     void estoqueMinimoIdentificaItemAbaixoDoMinimo() {
         item.setEstoqueMinimo(new BigDecimal("80"));
         when(itemRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(item));
-        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc()).thenReturn(List.of(
-                movimento(TipoMovimentoEstoque.ENTRADA, "43", null, deposito)));
+        when(movimentoRepository.agregarPorItem()).thenReturn(List.of(
+                agregado(1L, "43", "43", null, null)));
 
         ItemEstoqueResumo resumo = service.listarItensComSaldo().getFirst();
 
@@ -180,21 +180,22 @@ class EstoqueMovimentoServiceTests {
     }
 
     @Test
-    void listagemDeItensCarregaMovimentosEmLoteSemConsultaPorItem() {
+    void listagemDeItensUsaAgregacaoSqlSemCarregarHistorico() {
         ItemEstoque segundoItem = item(2L, "Milho");
-        MovimentoEstoque primeiroMovimento = movimento(TipoMovimentoEstoque.ENTRADA, "43", null, deposito);
-        MovimentoEstoque segundoMovimento = movimento(TipoMovimentoEstoque.ENTRADA, "25", null, deposito);
-        segundoMovimento.setItem(segundoItem);
         when(itemRepository.findAllByOrderByNomeAsc()).thenReturn(List.of(item, segundoItem));
-        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc())
-                .thenReturn(List.of(primeiroMovimento, segundoMovimento));
+        when(movimentoRepository.agregarPorItem()).thenReturn(List.of(
+                agregado(1L, "43", "43", "129", "3"),
+                agregado(2L, "25", "25", "100", "4")));
 
         List<ItemEstoqueResumo> itens = service.listarItensComSaldo();
 
         assertThat(itens).hasSize(2);
         assertThat(itens.get(0).saldo()).isEqualByComparingTo("43");
         assertThat(itens.get(1).saldo()).isEqualByComparingTo("25");
-        verify(movimentoRepository).findAllByOrderByDataMovimentoDescIdDesc();
+        assertThat(itens.get(0).custoMedio()).isEqualByComparingTo("3");
+        assertThat(itens.get(1).ultimoPreco()).isEqualByComparingTo("4");
+        verify(movimentoRepository).agregarPorItem();
+        verify(movimentoRepository, never()).findAllByOrderByDataMovimentoDescIdDesc();
         verify(movimentoRepository, never()).findByItemId(any());
         verify(movimentoRepository, never()).findByItemIdOrderByDataMovimentoDescIdDesc(any());
     }
@@ -305,6 +306,7 @@ class EstoqueMovimentoServiceTests {
 
     private void prepararMovimentoBasico() {
         lenient().when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+        lenient().when(itemRepository.buscarParaMovimentacao(1L)).thenReturn(Optional.of(item));
         lenient().when(localRepository.findById(10L)).thenReturn(Optional.of(deposito));
         lenient().when(localRepository.findById(11L)).thenReturn(Optional.of(galinheiro));
     }
@@ -327,6 +329,23 @@ class EstoqueMovimentoServiceTests {
         movimento.setLocalOrigem(origem);
         movimento.setLocalDestino(destino);
         return movimento;
+    }
+
+    private MovimentoEstoqueRepository.ItemMovimentoAgregado agregado(Long itemId, String saldo,
+            String quantidadeEntradas, String custoEntradas, String ultimoPreco) {
+        return new MovimentoEstoqueRepository.ItemMovimentoAgregado() {
+            @Override public Long getItemId() { return itemId; }
+            @Override public BigDecimal getSaldo() { return new BigDecimal(saldo); }
+            @Override public BigDecimal getQuantidadeEntradasComCusto() {
+                return quantidadeEntradas == null ? BigDecimal.ZERO : new BigDecimal(quantidadeEntradas);
+            }
+            @Override public BigDecimal getCustoTotalEntradas() {
+                return custoEntradas == null ? BigDecimal.ZERO : new BigDecimal(custoEntradas);
+            }
+            @Override public BigDecimal getUltimoPreco() {
+                return ultimoPreco == null ? null : new BigDecimal(ultimoPreco);
+            }
+        };
     }
 
     private ItemEstoque item(Long id, String nome) {

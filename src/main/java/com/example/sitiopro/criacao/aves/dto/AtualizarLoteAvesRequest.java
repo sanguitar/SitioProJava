@@ -11,7 +11,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 
 public class AtualizarLoteAvesRequest {
-    @NotBlank @Size(max = 80) private String codigo;
     @Size(max = 120) private String nome;
     @NotNull private EspecieAves especie;
     @NotNull private FinalidadeLoteAves finalidade;
@@ -22,7 +21,6 @@ public class AtualizarLoteAvesRequest {
     @NotNull private SexoLoteAves sexo;
     @Size(max = 1000) private String observacoes;
 
-    public String getCodigo() { return codigo; } public void setCodigo(String v) { codigo = v; }
     public String getNome() { return nome; } public void setNome(String v) { nome = v; }
     public EspecieAves getEspecie() { return especie; } public void setEspecie(EspecieAves v) { especie = v; }
     public FinalidadeLoteAves getFinalidade() { return finalidade; } public void setFinalidade(FinalidadeLoteAves v) { finalidade = v; }

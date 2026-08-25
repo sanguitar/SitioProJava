@@ -50,9 +50,9 @@ As telas `/sitio/**` redirecionam para `/login` quando não há sessão autentic
 
 ## Dashboard operacional
 
-O painel existente em `/sitio/painel` concentra o que precisa de ação no dia, sem gráficos decorativos. A ordem visual prioriza alertas ativos, tarefas vencidas ou críticas, compromissos do dia, estoque abaixo do mínimo e vencimentos; em seguida apresenta clima, compras e saúde das integrações.
+O painel existente em `/sitio/painel` concentra o que precisa de ação no dia. A ordem visual prioriza alertas ativos, tarefas vencidas ou críticas, compromissos do dia, estoque abaixo do mínimo e vencimentos; em seguida apresenta clima, tendências operacionais, compras e saúde das integrações.
 
-O `DashboardService` monta um read model próprio e consulta somente serviços locais. Tarefas e alertas usam contagens agregadas e listas limitadas aos cinco itens mais relevantes; estoque reutiliza os cálculos oficiais de saldo com leitura em lote; compras reutilizam o resumo do domínio; clima e integrações leem o último estado disponível no SQL Server e podem aproveitar os caches opcionais já existentes. Abrir o painel nunca dispara sincronização nem chamada a Open-Meteo ou Agrofit, e o dashboard completo não é armazenado em cache.
+O `DashboardService` monta um read model próprio e consulta somente serviços locais. Tarefas e alertas usam contagens agregadas e listas limitadas aos cinco itens mais relevantes; estoque reutiliza os cálculos oficiais de saldo com leitura em lote; compras reutilizam o resumo do domínio; clima e integrações leem o último estado disponível no SQL Server e podem aproveitar os caches opcionais já existentes. O bloco `tendencias` agrega no banco a postura e o consumo de ração dos últimos sete dias, além das compras confirmadas dos últimos seis meses; unidades de consumo permanecem separadas e períodos sem movimento são preenchidos com zero no read model. Abrir o painel nunca dispara sincronização nem chamada a Open-Meteo ou Agrofit, e o dashboard completo não é armazenado em cache.
 
 Estados vazios e degradados são parte do fluxo normal: ausência de tarefas, alertas ou compras produz mensagens discretas; clima pode ficar `NORMAL`, `DESATUALIZADO` ou `SEM_DADOS`; falha de Redis recorre ao banco pelo mecanismo fail-open; Elastic/Kibana não participa da geração da página. SQL Server permanece a dependência essencial e a única fonte de verdade.
 
@@ -86,6 +86,8 @@ A ficha de lote reúne alimentação, mortalidade, pesagens, postura, transferê
 Mortalidade reduz a quantidade disponível e pode gerar alerta deduplicado quando o percentual no período configurado ultrapassa o limite. Postura é aceita somente em lotes compatíveis e produz métricas de hoje, 7 e 30 dias. Pesos usam `BigDecimal`. Transferências preservam origem, destino, usuário e data. Nenhuma dessas operações cria controle individual por ave.
 
 Incubações registram ovos, origem, incubadora e previsão. A finalização valida eclodidos e perdas, calcula taxas e pode criar atomicamente um lote de pintinhos vinculado. Chaves de idempotência e bloqueios de atualização impedem que reenvios de alimentação, mortalidade ou finalização criem efeitos duplicados.
+
+Os códigos operacionais são definidos exclusivamente pelo backend. Lotes usam `AV-AAAA-NNNN` e incubações usam `INC-AAAA-NNNN`; uma sequência anual no SQL Server, protegida por application lock transacional, evita duplicidade em requisições concorrentes sem derivar o valor de IDs. Os DTOs de criação e edição não aceitam o código, inclusive no lote resultante de uma incubação.
 
 Alertas de mortalidade, eclosão próxima e incubação atrasada reutilizam a engine de Alertas. Tarefas manuais ou recorrentes podem ser vinculadas a `LOTE:{id}` ou `INCUBACAO:{id}` sem duplicar a implementação de recorrência. Os limites são configuráveis externamente:
 
@@ -708,6 +710,8 @@ Nunca coloque credenciais reais no README, em migrations ou em arquivos versiona
 docker compose --env-file .env.example config
 docker compose -f docker-compose.yml --env-file .env.example config
 ```
+
+Os testes de integração usam Testcontainers 1.21.4 e descobrem o Docker Desktop pelo named pipe do Windows. Mantenha o Docker Desktop iniciado antes do `clean verify`; não configure `DOCKER_HOST` ou caminhos `npipe` específicos da máquina no projeto. Se a descoberta falhar, valide primeiro `docker context show` e `docker info` no mesmo terminal que executará o Maven.
 
 ## Estrutura principal
 

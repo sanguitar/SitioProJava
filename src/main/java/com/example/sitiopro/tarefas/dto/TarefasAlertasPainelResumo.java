@@ -7,6 +7,7 @@ public record TarefasAlertasPainelResumo(
         Alertas alertas) {
 
     public record Tarefas(
+            long abertas,
             long pendentesHoje,
             long vencidas,
             long criticas,

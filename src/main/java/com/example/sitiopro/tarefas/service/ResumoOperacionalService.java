@@ -83,7 +83,7 @@ public class ResumoOperacionalService {
 
         return new TarefasAlertasPainelResumo(
                 new TarefasAlertasPainelResumo.Tarefas(
-                        valor(tarefas.getPendentesHoje()), valor(tarefas.getVencidas()),
+                        valor(tarefas.getAbertas()), valor(tarefas.getPendentesHoje()), valor(tarefas.getVencidas()),
                         valor(tarefas.getCriticas()), valor(tarefas.getEmAndamento()), tarefasDestaque),
                 new TarefasAlertasPainelResumo.Alertas(
                         valor(alertas.getAtivos()), valor(alertas.getCriticos()),

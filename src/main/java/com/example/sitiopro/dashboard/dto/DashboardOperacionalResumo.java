@@ -22,9 +22,11 @@ public record DashboardOperacionalResumo(
         ComprasResumo compras,
         ClimaResumo clima,
         IntegracoesResumo integracoes,
+        DashboardTendenciasResumo tendencias,
         LocalDateTime geradoEm) {
 
     public record TarefasResumo(
+            long abertas,
             long pendentesHoje,
             long vencidas,
             long criticas,

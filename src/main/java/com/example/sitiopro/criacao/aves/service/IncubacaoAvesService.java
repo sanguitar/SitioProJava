@@ -5,6 +5,7 @@ import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
 import com.example.sitiopro.criacao.core.entity.InstalacaoCriacao;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import com.example.sitiopro.tarefas.service.UsuarioAtor;
@@ -30,12 +31,14 @@ public class IncubacaoAvesService {
     private final InstalacaoCriacaoService instalacaoService;
     private final LoteAvesService loteService;
     private final AvesAlertasService alertasService;
+    private final CodigoCriacaoService codigoService;
     private final Clock clock;
 
     public IncubacaoAvesService(IncubacaoAvesRepository repository, InstalacaoCriacaoService instalacaoService,
-            LoteAvesService loteService, AvesAlertasService alertasService, Clock clock) {
+            LoteAvesService loteService, AvesAlertasService alertasService,
+            CodigoCriacaoService codigoService, Clock clock) {
         this.repository = repository; this.instalacaoService = instalacaoService; this.loteService = loteService;
-        this.alertasService = alertasService; this.clock = clock;
+        this.alertasService = alertasService; this.codigoService = codigoService; this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -50,11 +53,11 @@ public class IncubacaoAvesService {
     @Transactional
     public IncubacaoAvesDetalhe criar(CriarIncubacaoAvesRequest request, UsuarioAtor ator) {
         long inicio = System.nanoTime(); String chave = obrigatorio(request.getChaveIdempotencia(), "Chave de idempotência");
+        codigoService.bloquearIdempotencia("INCUBACAO_AVES", chave);
         IncubacaoAves existente = repository.findByChaveIdempotencia(chave).orElse(null);
         if (existente != null) return detalhe(existente);
         validar(request);
-        String codigo = obrigatorio(request.getCodigo(), "Código");
-        if (repository.existsByCodigoIgnoreCase(codigo)) throw conflito("INCUBACAO_CODIGO_DUPLICADO", "Já existe incubação com esse código.");
+        String codigo = codigoService.proximaIncubacaoAves();
         InstalacaoCriacao instalacao = instalacaoService.buscarAtiva(request.getInstalacaoId());
         if (instalacao.getTipo() != TipoInstalacaoCriacao.INCUBADORA) throw erro("INSTALACAO_NAO_INCUBADORA", "Selecione uma instalação do tipo incubadora.");
         LoteAves reprodutor = request.getLoteReprodutorId() == null ? null : loteService.buscar(request.getLoteReprodutorId());
@@ -96,9 +99,9 @@ public class IncubacaoAvesService {
     }
 
     private CriarLoteAvesRequest loteResultante(IncubacaoAves i, FinalizarIncubacaoAvesRequest r) {
-        if (!StringUtils.hasText(r.getCodigoLote()) || r.getInstalacaoDestinoId() == null || !StringUtils.hasText(r.getChaveIdempotenciaLote()))
-            throw erro("LOTE_RESULTANTE_INCOMPLETO", "Informe código, instalação e chave idempotente do lote de pintinhos.");
-        CriarLoteAvesRequest lote = new CriarLoteAvesRequest(); lote.setCodigo(r.getCodigoLote()); lote.setNome(r.getNomeLote());
+        if (r.getInstalacaoDestinoId() == null || !StringUtils.hasText(r.getChaveIdempotenciaLote()))
+            throw erro("LOTE_RESULTANTE_INCOMPLETO", "Informe instalação e chave idempotente do lote de pintinhos.");
+        CriarLoteAvesRequest lote = new CriarLoteAvesRequest(); lote.setNome(r.getNomeLote());
         lote.setEspecie(i.getLoteReprodutor() == null ? EspecieAves.GALINHA : i.getLoteReprodutor().getEspecie());
         lote.setFinalidade(r.getFinalidadeLote() == null ? FinalidadeLoteAves.MISTA : r.getFinalidadeLote());
         lote.setOrigem("Incubação " + i.getCodigo()); lote.setDataEntrada(r.getDataEclosao()); lote.setDataNascimento(r.getDataEclosao());

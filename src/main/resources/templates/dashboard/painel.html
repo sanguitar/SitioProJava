@@ -78,24 +78,26 @@
                         <div th:replace="~{dashboard/fragments :: alertRow(${alerta})}"></div>
                     </th:block>
                 </div>
-                <div th:if="${#lists.isEmpty(resumo.alertas.principais)}"
-                     th:replace="~{dashboard/fragments :: emptyState(
-                        'fa-circle-check', 'Sem alertas ativos', 'Nenhuma exceção operacional exige atenção agora.')}"></div>
+                <th:block th:if="${#lists.isEmpty(resumo.alertas.principais)}">
+                    <div th:replace="~{dashboard/fragments :: emptyState(
+                            'fa-circle-check', 'Sem alertas ativos', 'Nenhuma exceção operacional exige atenção agora.')}"></div>
+                </th:block>
             </article>
 
             <article class="dashboard-panel dashboard-tasks" aria-labelledby="next-tasks-title">
                 <div th:replace="~{dashboard/fragments :: sectionHeader(
                         'next-tasks-title', 'Próximas tarefas',
-                        ${resumo.tarefas.emAndamento + ' em andamento'},
+                        ${resumo.tarefas.abertas == 1 ? '1 tarefa aberta' : resumo.tarefas.abertas + ' tarefas abertas'},
                         '/sitio/tarefas', 'Ver todas')}"></div>
                 <div class="dashboard-row-list" th:if="${!#lists.isEmpty(resumo.tarefas.proximas)}">
                     <th:block th:each="tarefa : ${resumo.tarefas.proximas}">
                         <div th:replace="~{dashboard/fragments :: taskRow(${tarefa})}"></div>
                     </th:block>
                 </div>
-                <div th:if="${#lists.isEmpty(resumo.tarefas.proximas)}"
-                     th:replace="~{dashboard/fragments :: emptyState(
-                        'fa-list-check', 'Nenhuma tarefa prioritária', 'A rotina não possui tarefas abertas para destacar.')}"></div>
+                <th:block th:if="${#lists.isEmpty(resumo.tarefas.proximas)}">
+                    <div th:replace="~{dashboard/fragments :: emptyState(
+                            'fa-list-check', 'Nenhuma tarefa prioritária', 'A rotina não possui tarefas abertas para destacar.')}"></div>
+                </th:block>
             </article>
         </section>
 
@@ -140,6 +142,111 @@
             </dl>
         </section>
 
+        <section class="dashboard-trends" aria-labelledby="operational-trends-title">
+            <header class="dashboard-trends-heading">
+                <span>Tendências operacionais</span>
+                <h2 id="operational-trends-title">Ritmo recente da propriedade</h2>
+                <p>Leituras consolidadas dos registros operacionais, sem estimativas.</p>
+            </header>
+
+            <div class="dashboard-trends-grid">
+                <article class="dashboard-panel dashboard-chart-panel" aria-labelledby="egg-trend-title">
+                    <header class="dashboard-chart-header">
+                        <div>
+                            <span>Últimos 7 dias</span>
+                            <h3 id="egg-trend-title">Produção de ovos</h3>
+                        </div>
+                        <strong th:text="${resumo.tendencias.postura7Dias.totalOvos + ' ovos'}">0 ovos</strong>
+                    </header>
+
+                    <div class="dashboard-chart-legend" th:if="${resumo.tendencias.postura7Dias.temDados}">
+                        <span><i class="legend-eggs" aria-hidden="true"></i>Inteiros</span>
+                        <span><i class="legend-losses" aria-hidden="true"></i>Perdas</span>
+                    </div>
+                    <div class="dashboard-bar-chart" role="img"
+                         th:if="${resumo.tendencias.postura7Dias.temDados}"
+                         th:aria-label="${'Produção de ' + resumo.tendencias.postura7Dias.totalOvos + ' ovos nos últimos sete dias'}">
+                        <div class="dashboard-bar-row" th:each="ponto : ${resumo.tendencias.postura7Dias.pontos}"
+                             th:aria-label="${ponto.rotulo + ': ' + ponto.inteiros + ' inteiros e ' + ponto.perdas + ' perdas'}">
+                            <span th:text="${ponto.rotulo}">24/08</span>
+                            <div class="dashboard-bar-track" aria-hidden="true">
+                                <span class="dashboard-stacked-bar" th:style="${'width:' + ponto.percentualEscala + '%'}">
+                                    <i class="dashboard-bar-eggs" th:style="${'width:' + ponto.percentualInteiros + '%'}"></i>
+                                    <i class="dashboard-bar-losses" th:style="${'width:' + (100 - ponto.percentualInteiros) + '%'}"></i>
+                                </span>
+                            </div>
+                            <strong th:text="${ponto.total}">0</strong>
+                        </div>
+                    </div>
+                    <th:block th:unless="${resumo.tendencias.postura7Dias.temDados}">
+                        <div th:replace="~{dashboard/fragments :: emptyState(
+                                'fa-egg', 'Sem registros de postura', 'Registre a coleta de ovos para acompanhar a tendência semanal.')}"></div>
+                    </th:block>
+                </article>
+
+                <article class="dashboard-panel dashboard-chart-panel" aria-labelledby="feed-trend-title">
+                    <header class="dashboard-chart-header">
+                        <div>
+                            <span>Últimos 7 dias</span>
+                            <h3 id="feed-trend-title">Consumo de ração</h3>
+                        </div>
+                    </header>
+
+                    <div class="dashboard-feed-series" th:if="${!#lists.isEmpty(resumo.tendencias.consumoRacao7Dias)}">
+                        <section th:each="serie : ${resumo.tendencias.consumoRacao7Dias}"
+                                 th:aria-label="${'Consumo em ' + serie.unidade}">
+                            <header>
+                                <h4 th:text="${serie.unidade}">kg</h4>
+                                <strong th:text="${#numbers.formatDecimal(serie.total, 1, 'POINT', 2, 'COMMA') + ' ' + serie.unidade}">0 kg</strong>
+                            </header>
+                            <div class="dashboard-bar-chart" role="img"
+                                 th:aria-label="${'Consumo de ' + #numbers.formatDecimal(serie.total, 1, 'POINT', 2, 'COMMA') + ' ' + serie.unidade + ' nos últimos sete dias'}">
+                                <div class="dashboard-bar-row" th:each="ponto : ${serie.pontos}"
+                                     th:aria-label="${ponto.rotulo + ': ' + #numbers.formatDecimal(ponto.valor, 1, 'POINT', 2, 'COMMA') + ' ' + serie.unidade}">
+                                    <span th:text="${ponto.rotulo}">24/08</span>
+                                    <div class="dashboard-bar-track" aria-hidden="true">
+                                        <i class="dashboard-bar-feed" th:style="${'width:' + ponto.percentualEscala + '%'}"></i>
+                                    </div>
+                                    <strong th:text="${#numbers.formatDecimal(ponto.valor, 1, 'POINT', 2, 'COMMA')}">0</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <th:block th:if="${#lists.isEmpty(resumo.tendencias.consumoRacao7Dias)}">
+                        <div th:replace="~{dashboard/fragments :: emptyState(
+                                'fa-wheat-awn', 'Sem consumo registrado', 'As alimentações dos lotes aparecerão aqui, separadas por unidade.')}"></div>
+                    </th:block>
+                </article>
+
+                <article class="dashboard-panel dashboard-chart-panel dashboard-chart-panel-wide"
+                         aria-labelledby="purchase-trend-title">
+                    <header class="dashboard-chart-header">
+                        <div>
+                            <span>Últimos 6 meses</span>
+                            <h3 id="purchase-trend-title">Compras confirmadas</h3>
+                        </div>
+                        <strong th:text="${'R$ ' + #numbers.formatDecimal(resumo.tendencias.compras6Meses.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                    </header>
+                    <div class="dashboard-column-chart" role="img"
+                         th:if="${resumo.tendencias.compras6Meses.temDados}"
+                         th:aria-label="${'Compras confirmadas no total de R$ ' + #numbers.formatDecimal(resumo.tendencias.compras6Meses.total, 1, 'POINT', 2, 'COMMA') + ' nos últimos seis meses'}">
+                        <div class="dashboard-column" th:each="ponto : ${resumo.tendencias.compras6Meses.pontos}"
+                             th:aria-label="${ponto.rotulo + ': R$ ' + #numbers.formatDecimal(ponto.valor, 1, 'POINT', 2, 'COMMA')}">
+                            <strong th:text="${'R$ ' + #numbers.formatDecimal(ponto.valor, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                            <div class="dashboard-column-track" aria-hidden="true">
+                                <i th:style="${'height:' + ponto.percentualEscala + '%'}"></i>
+                            </div>
+                            <span th:text="${ponto.rotulo}">08/2026</span>
+                        </div>
+                    </div>
+                    <th:block th:unless="${resumo.tendencias.compras6Meses.temDados}">
+                        <div th:replace="~{dashboard/fragments :: emptyState(
+                                'fa-cart-shopping', 'Sem compras confirmadas', 'Confirme uma compra para iniciar o histórico mensal.')}"></div>
+                    </th:block>
+                </article>
+            </div>
+        </section>
+
         <section class="dashboard-support-grid" aria-label="Visão dos módulos operacionais">
             <article class="dashboard-panel" aria-labelledby="stock-summary-title">
                 <div th:replace="~{dashboard/fragments :: sectionHeader(
@@ -157,9 +264,10 @@
                         <span th:text="${#numbers.formatDecimal(item.saldo, 1, 2) + ' ' + item.unidade}">0 kg</span>
                     </a>
                 </div>
-                <div th:if="${#lists.isEmpty(resumo.estoque.itensCriticos)}"
-                     th:replace="~{dashboard/fragments :: emptyState(
-                        'fa-box-open', 'Estoque dentro do esperado', 'Nenhum item está abaixo do mínimo cadastrado.')}"></div>
+                <th:block th:if="${#lists.isEmpty(resumo.estoque.itensCriticos)}">
+                    <div th:replace="~{dashboard/fragments :: emptyState(
+                            'fa-box-open', 'Estoque dentro do esperado', 'Nenhum item está abaixo do mínimo cadastrado.')}"></div>
+                </th:block>
             </article>
 
             <article class="dashboard-panel" aria-labelledby="purchases-summary-title">
@@ -181,9 +289,10 @@
                         <span th:text="${'R$ ' + #numbers.formatDecimal(compra.total, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
                     </a>
                 </div>
-                <div th:if="${#lists.isEmpty(resumo.compras.recentes)}"
-                     th:replace="~{dashboard/fragments :: emptyState(
-                        'fa-cart-shopping', 'Nenhuma compra recente', 'As compras registradas aparecerão aqui.')}"></div>
+                <th:block th:if="${#lists.isEmpty(resumo.compras.recentes)}">
+                    <div th:replace="~{dashboard/fragments :: emptyState(
+                            'fa-cart-shopping', 'Nenhuma compra recente', 'As compras registradas aparecerão aqui.')}"></div>
+                </th:block>
             </article>
 
             <article class="dashboard-panel" aria-labelledby="integrations-summary-title">
@@ -215,9 +324,10 @@
                         <span>Há integrações que exigem revisão administrativa.</span>
                     </div>
                 </div>
-                <div th:if="${#lists.isEmpty(resumo.integracoes.problemas)}"
-                     th:replace="~{dashboard/fragments :: emptyState(
-                        'fa-plug-circle-check', 'Integrações sem falhas', 'Nenhuma integração operacional exige atenção.')}"></div>
+                <th:block th:if="${#lists.isEmpty(resumo.integracoes.problemas)}">
+                    <div th:replace="~{dashboard/fragments :: emptyState(
+                            'fa-plug-circle-check', 'Integrações sem falhas', 'Nenhuma integração operacional exige atenção.')}"></div>
+                </th:block>
             </article>
         </section>
 

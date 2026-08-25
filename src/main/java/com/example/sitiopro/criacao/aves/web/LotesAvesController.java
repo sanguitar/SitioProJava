@@ -55,12 +55,12 @@ public class LotesAvesController {
     }
 
     @GetMapping("/{id}") public String detalhe(@PathVariable Long id, Model model) { prepararDetalhe(id, model); return "criacoes/aves/lotes/detalhe"; }
-    @GetMapping("/{id}/editar") public String editar(@PathVariable Long id, Model model) { base(model); model.addAttribute("loteId", id); model.addAttribute("loteForm", loteService.formularioEdicao(id)); enums(model); return "criacoes/aves/lotes/editar"; }
+    @GetMapping("/{id}/editar") public String editar(@PathVariable Long id, Model model) { prepararEdicao(id, model, loteService.formularioEdicao(id)); return "criacoes/aves/lotes/editar"; }
 
     @PostMapping("/{id}")
     public String atualizar(@PathVariable Long id, @Valid @ModelAttribute("loteForm") AtualizarLoteAvesRequest request,
             BindingResult result, Model model, RedirectAttributes redirect, Authentication auth) {
-        if (result.hasErrors()) { base(model); model.addAttribute("loteId", id); enums(model); return "criacoes/aves/lotes/editar"; }
+        if (result.hasErrors()) { prepararEdicao(id, model, request); return "criacoes/aves/lotes/editar"; }
         return executar(id, redirect, () -> loteService.atualizar(id, request, UsuarioAtor.de(auth)), "Lote atualizado.");
     }
 
@@ -97,6 +97,7 @@ public class LotesAvesController {
     }
 
     private void formularioCriacao(Model m, CriarLoteAvesRequest r) { base(m); m.addAttribute("loteForm", r); m.addAttribute("instalacoes", instalacaoService.listarAtivas()); enums(m); }
+    private void prepararEdicao(Long id, Model m, AtualizarLoteAvesRequest r) { base(m); m.addAttribute("loteId", id); m.addAttribute("loteCodigo", loteService.codigo(id)); m.addAttribute("loteForm", r); enums(m); }
     private void enums(Model m) { m.addAttribute("especies", EspecieAves.values()); m.addAttribute("finalidades", FinalidadeLoteAves.values()); m.addAttribute("sexos", SexoLoteAves.values()); }
     private void base(Model m) { m.addAttribute("active", "aves"); }
     private void inicializar(OperacaoLoteAvesRequest r) { r.setChaveIdempotencia(chave()); r.setDataEvento(LocalDateTime.now(clock).withSecond(0).withNano(0)); }

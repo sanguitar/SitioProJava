@@ -83,6 +83,7 @@ class ResumoOperacionalServiceTests {
 
     @Test
     void resumoPainelMapeiaDestaquesELimitaCadaLista() {
+        when(tarefasContadores.getAbertas()).thenReturn(3L);
         when(tarefasContadores.getPendentesHoje()).thenReturn(1L);
         when(tarefasContadores.getVencidas()).thenReturn(1L);
         when(tarefasContadores.getCriticas()).thenReturn(1L);
@@ -122,6 +123,7 @@ class ResumoOperacionalServiceTests {
 
         var resumo = service.resumoPainel(5);
 
+        assertThat(resumo.tarefas().abertas()).isEqualTo(3);
         assertThat(resumo.tarefas().destaques()).singleElement().satisfies(item -> {
             assertThat(item.id()).isEqualTo(10L);
             assertThat(item.responsavelNome()).isEqualTo("Operador");

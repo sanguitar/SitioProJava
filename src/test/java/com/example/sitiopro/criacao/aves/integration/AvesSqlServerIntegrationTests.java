@@ -1,5 +1,9 @@
 package com.example.sitiopro.criacao.aves.integration;
 
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
+import com.example.sitiopro.criacao.aves.dto.TransferirLoteAvesRequest;
+import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.tarefas.service.UsuarioAtor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,6 +13,15 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,6 +48,8 @@ class AvesSqlServerIntegrationTests {
     }
 
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private CodigoCriacaoService codigoService;
+    @Autowired private ManejoAvesService manejoService;
 
     @Test
     void flywayCriaSchemaDeAvesEHibernateValidaMapeamentos() {
@@ -42,15 +57,32 @@ class AvesSqlServerIntegrationTests {
                 SELECT COUNT(*) FROM sys.tables WHERE name IN (
                   'criacao_instalacoes', 'aves_lotes', 'aves_eventos', 'aves_mortalidades',
                   'aves_alimentacoes', 'aves_pesagens', 'aves_posturas', 'aves_transferencias',
-                  'aves_incubacoes')
+                  'aves_incubacoes', 'criacao_codigo_sequencias')
                 """, Integer.class);
         Integer migration = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*) FROM dbo.flyway_schema_history
-                WHERE version = '10' AND success = 1
+                WHERE version IN ('10', '11') AND success = 1
                 """, Integer.class);
 
-        assertThat(tabelas).isEqualTo(9);
-        assertThat(migration).isEqualTo(1);
+        assertThat(tabelas).isEqualTo(10);
+        assertThat(migration).isEqualTo(2);
+    }
+
+    @Test
+    void geraCodigosConcorrentesSemDuplicidadeOuMaximoDeId() throws Exception {
+        List<String> lotes = gerarEmParalelo(8, codigoService::proximoLoteAves);
+        List<String> incubacoes = gerarEmParalelo(8, codigoService::proximaIncubacaoAves);
+
+        assertThat(lotes).hasSize(8).doesNotHaveDuplicates()
+                .allMatch(codigo -> codigo.matches("AV-\\d{4}-\\d{4}"));
+        assertThat(incubacoes).hasSize(8).doesNotHaveDuplicates()
+                .allMatch(codigo -> codigo.matches("INC-\\d{4}-\\d{4}"));
+        assertThat(lotes).containsExactlyInAnyOrder(
+                "AV-2026-0001", "AV-2026-0002", "AV-2026-0003", "AV-2026-0004",
+                "AV-2026-0005", "AV-2026-0006", "AV-2026-0007", "AV-2026-0008");
+        assertThat(incubacoes).containsExactlyInAnyOrder(
+                "INC-2026-0001", "INC-2026-0002", "INC-2026-0003", "INC-2026-0004",
+                "INC-2026-0005", "INC-2026-0006", "INC-2026-0007", "INC-2026-0008");
     }
 
     @Test
@@ -81,12 +113,81 @@ class AvesSqlServerIntegrationTests {
                 .hasStackTraceContaining("ck_aves_incubacoes_ovos");
     }
 
+    @Test
+    void transferenciasConcorrentesNaoExcedemCapacidadeDaInstalacao() throws Exception {
+        long origemA = criarInstalacao("Origem A " + System.nanoTime(), "GALINHEIRO", 100);
+        long origemB = criarInstalacao("Origem B " + System.nanoTime(), "GALINHEIRO", 100);
+        long destino = criarInstalacao("Destino limitado " + System.nanoTime(), "PIQUETE", 10);
+        long loteA = criarLote(origemA, 6);
+        long loteB = criarLote(origemB, 6);
+
+        AtomicInteger indice = new AtomicInteger();
+        List<Boolean> resultados = gerarEmParalelo(2, () -> {
+            long loteId = indice.getAndIncrement() == 0 ? loteA : loteB;
+            TransferirLoteAvesRequest request = new TransferirLoteAvesRequest();
+            request.setInstalacaoDestinoId(destino);
+            request.setChaveIdempotencia("transfer-audit-" + loteId + "-" + System.nanoTime());
+            try {
+                manejoService.transferir(loteId, request, new UsuarioAtor(null, "auditoria", true));
+                return true;
+            } catch (RuntimeException ex) {
+                return false;
+            }
+        });
+
+        Integer ocupacao = jdbcTemplate.queryForObject("""
+                SELECT COALESCE(SUM(quantidade_atual), 0)
+                FROM dbo.aves_lotes
+                WHERE instalacao_atual_id = ? AND status = 'ATIVO'
+                """, Integer.class, destino);
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+        assertThat(ocupacao).isEqualTo(6);
+    }
+
     private long criarInstalacao(String nome, String tipo) {
+        return criarInstalacao(nome, tipo, 100);
+    }
+
+    private long criarInstalacao(String nome, String tipo, int capacidade) {
         jdbcTemplate.update("""
                 INSERT INTO dbo.criacao_instalacoes (nome, tipo, capacidade, ativo)
-                VALUES (?, ?, 100, 1)
-                """, nome, tipo);
+                VALUES (?, ?, ?, 1)
+                """, nome, tipo, capacidade);
         return jdbcTemplate.queryForObject(
                 "SELECT id FROM dbo.criacao_instalacoes WHERE nome = ?", Long.class, nome);
+    }
+
+    private long criarLote(long instalacaoId, int quantidade) {
+        String codigo = "SQL-LOTE-" + System.nanoTime();
+        String chave = "sql-lote-key-" + System.nanoTime();
+        jdbcTemplate.update("""
+                INSERT INTO dbo.aves_lotes
+                (codigo, especie, finalidade, origem, data_entrada, quantidade_inicial, quantidade_atual,
+                 sexo, instalacao_atual_id, status, chave_idempotencia)
+                VALUES (?, 'GALINHA', 'POSTURA', 'Auditoria', '2026-08-24', ?, ?,
+                        'FEMEAS', ?, 'ATIVO', ?)
+                """, codigo, quantidade, quantidade, instalacaoId, chave);
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM dbo.aves_lotes WHERE chave_idempotencia = ?", Long.class, chave);
+    }
+
+    private <T> List<T> gerarEmParalelo(int quantidade, Supplier<T> gerador) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(quantidade);
+        CountDownLatch inicio = new CountDownLatch(1);
+        try {
+            List<Future<T>> futuros = new ArrayList<>();
+            for (int indice = 0; indice < quantidade; indice++) {
+                futuros.add(executor.submit(() -> {
+                    inicio.await();
+                    return gerador.get();
+                }));
+            }
+            inicio.countDown();
+            List<T> resultados = new ArrayList<>();
+            for (Future<T> futuro : futuros) resultados.add(futuro.get());
+            return resultados;
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

@@ -4,6 +4,7 @@ import com.example.sitiopro.criacao.aves.dto.*;
 import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
 import com.example.sitiopro.criacao.core.entity.*;
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.tarefas.service.UsuarioAtor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,16 +27,18 @@ class IncubacaoAvesServiceTests {
     @Mock private InstalacaoCriacaoService instalacaoService;
     @Mock private LoteAvesService loteService;
     @Mock private AvesAlertasService alertasService;
+    @Mock private CodigoCriacaoService codigoService;
     private IncubacaoAvesService service;
     private InstalacaoCriacao incubadora;
     private final UsuarioAtor operador = new UsuarioAtor(2L, "operador", false);
 
     @BeforeEach
     void preparar() {
-        service = new IncubacaoAvesService(repository, instalacaoService, loteService, alertasService,
+        service = new IncubacaoAvesService(repository, instalacaoService, loteService, alertasService, codigoService,
                 Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneOffset.UTC));
         incubadora = new InstalacaoCriacao(); ReflectionTestUtils.setField(incubadora, "id", 10L);
         incubadora.setNome("Incubadora principal"); incubadora.setTipo(TipoInstalacaoCriacao.INCUBADORA); incubadora.setAtivo(true);
+        lenient().when(codigoService.proximaIncubacaoAves()).thenReturn("INC-2026-0001");
     }
 
     @Test
@@ -47,6 +50,8 @@ class IncubacaoAvesServiceTests {
         IncubacaoAvesDetalhe detalhe = service.criar(request, operador);
         assertThat(detalhe.status()).isEqualTo(StatusIncubacaoAves.EM_INCUBACAO);
         assertThat(detalhe.quantidadeOvos()).isEqualTo(60);
+        assertThat(detalhe.codigo()).isEqualTo("INC-2026-0001");
+        verify(codigoService).bloquearIdempotencia("INCUBACAO_AVES", "inc-1");
         verify(alertasService).avaliar();
     }
 
@@ -78,6 +83,8 @@ class IncubacaoAvesServiceTests {
         verify(loteService).criarDeIncubacao(captor.capture(), anyString(), anyLong());
         assertThat(captor.getValue().getQuantidadeInicial()).isEqualTo(48);
         assertThat(captor.getValue().getDataNascimento()).isEqualTo(LocalDate.of(2026, 8, 23));
+        assertThat(java.util.Arrays.stream(CriarLoteAvesRequest.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName)).doesNotContain("codigo");
     }
 
     @Test
@@ -98,7 +105,15 @@ class IncubacaoAvesServiceTests {
         assertThat(incubacao.getStatus()).isEqualTo(StatusIncubacaoAves.CANCELADA);
     }
 
-    private CriarIncubacaoAvesRequest criarRequest() { CriarIncubacaoAvesRequest r = new CriarIncubacaoAvesRequest(); r.setCodigo("INC-001"); r.setInstalacaoId(10L); r.setDataInicio(LocalDate.of(2026,8,3)); r.setQuantidadeOvos(60); r.setDataPrevistaEclosao(LocalDate.of(2026,8,24)); r.setChaveIdempotencia("inc-1"); return r; }
+    @Test
+    void codigosNaoPodemSerEnviadosNosDtosDeIncubacao() {
+        assertThat(java.util.Arrays.stream(CriarIncubacaoAvesRequest.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName)).doesNotContain("codigo");
+        assertThat(java.util.Arrays.stream(FinalizarIncubacaoAvesRequest.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName)).doesNotContain("codigoLote");
+    }
+
+    private CriarIncubacaoAvesRequest criarRequest() { CriarIncubacaoAvesRequest r = new CriarIncubacaoAvesRequest(); r.setInstalacaoId(10L); r.setDataInicio(LocalDate.of(2026,8,3)); r.setQuantidadeOvos(60); r.setDataPrevistaEclosao(LocalDate.of(2026,8,24)); r.setChaveIdempotencia("inc-1"); return r; }
     private IncubacaoAves incubacaoAberta() { IncubacaoAves i = new IncubacaoAves(); ReflectionTestUtils.setField(i, "id", 1L); i.setCodigo("INC-001"); i.setInstalacao(incubadora); i.setDataInicio(LocalDate.of(2026,8,3)); i.setQuantidadeOvos(60); i.setDataPrevistaEclosao(LocalDate.of(2026,8,24)); i.setStatus(StatusIncubacaoAves.EM_INCUBACAO); i.setChaveIdempotencia("inc-1"); return i; }
-    private FinalizarIncubacaoAvesRequest finalizarRequest() { FinalizarIncubacaoAvesRequest r = new FinalizarIncubacaoAvesRequest(); r.setPintinhosEclodidos(48); r.setOvosPerdidos(12); r.setDataEclosao(LocalDate.of(2026,8,23)); r.setCriarLote(true); r.setCodigoLote("PIN-001"); r.setInstalacaoDestinoId(11L); r.setChaveIdempotenciaLote("pintinhos-1"); return r; }
+    private FinalizarIncubacaoAvesRequest finalizarRequest() { FinalizarIncubacaoAvesRequest r = new FinalizarIncubacaoAvesRequest(); r.setPintinhosEclodidos(48); r.setOvosPerdidos(12); r.setDataEclosao(LocalDate.of(2026,8,23)); r.setCriarLote(true); r.setInstalacaoDestinoId(11L); r.setChaveIdempotenciaLote("pintinhos-1"); return r; }
 }

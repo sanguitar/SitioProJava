@@ -5,7 +5,9 @@ import com.example.sitiopro.producao.model.Producao;
 import com.example.sitiopro.producao.service.ProducaoService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +23,11 @@ public class ProducaoController {
     public ProducaoController(ProducaoService producaoService, CategoriaService categoriaService) {
         this.producaoService = producaoService;
         this.categoriaService = categoriaService;
+    }
+
+    @InitBinder("producao")
+    void restringirCamposProducao(WebDataBinder binder) {
+        binder.setAllowedFields("id", "categoria.id", "item", "quantidade", "unidade", "status");
     }
 
     @GetMapping("/cadastro")

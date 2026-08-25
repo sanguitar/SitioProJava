@@ -63,7 +63,7 @@ public class TarefasAlertasScheduler {
                     "module", "tarefas",
                     "error.type", ex.getClass().getName(),
                     "event.duration", System.nanoTime() - inicio))) {
-                log.error("Falha no ciclo automático do módulo de tarefas: {}", ex.getMessage(), ex);
+                log.error("Falha no ciclo automático do módulo de tarefas.");
             }
         }
     }

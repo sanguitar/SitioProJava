@@ -4,6 +4,7 @@ import com.example.sitiopro.criacao.aves.dto.*;
 import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.*;
 import com.example.sitiopro.criacao.core.entity.InstalacaoCriacao;
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
@@ -45,6 +46,7 @@ public class LoteAvesService {
     private final EstoqueMovimentoService estoqueService;
     private final AlertaService alertaService;
     private final TarefaService tarefaService;
+    private final CodigoCriacaoService codigoService;
     private final Clock clock;
 
     public LoteAvesService(LoteAvesRepository loteRepository, EventoLoteAvesRepository eventoRepository,
@@ -52,7 +54,7 @@ public class LoteAvesService {
             PesagemAvesRepository pesagemRepository, RegistroPosturaAvesRepository posturaRepository,
             TransferenciaLoteAvesRepository transferenciaRepository, InstalacaoCriacaoService instalacaoService,
             EstoqueMovimentoService estoqueService, AlertaService alertaService, TarefaService tarefaService,
-            Clock clock) {
+            CodigoCriacaoService codigoService, Clock clock) {
         this.loteRepository = loteRepository;
         this.eventoRepository = eventoRepository;
         this.alimentacaoRepository = alimentacaoRepository;
@@ -64,6 +66,7 @@ public class LoteAvesService {
         this.estoqueService = estoqueService;
         this.alertaService = alertaService;
         this.tarefaService = tarefaService;
+        this.codigoService = codigoService;
         this.clock = clock;
     }
 
@@ -111,11 +114,16 @@ public class LoteAvesService {
     public AtualizarLoteAvesRequest formularioEdicao(Long id) {
         LoteAves lote = buscar(id);
         AtualizarLoteAvesRequest r = new AtualizarLoteAvesRequest();
-        r.setCodigo(lote.getCodigo()); r.setNome(lote.getNome()); r.setEspecie(lote.getEspecie());
+        r.setNome(lote.getNome()); r.setEspecie(lote.getEspecie());
         r.setFinalidade(lote.getFinalidade()); r.setLinhagem(lote.getLinhagem()); r.setOrigem(lote.getOrigem());
         r.setDataEntrada(lote.getDataEntrada()); r.setDataNascimento(lote.getDataNascimento());
         r.setSexo(lote.getSexo()); r.setObservacoes(lote.getObservacoes());
         return r;
+    }
+
+    @Transactional(readOnly = true)
+    public String codigo(Long id) {
+        return buscar(id).getCodigo();
     }
 
     @Transactional
@@ -126,17 +134,15 @@ public class LoteAvesService {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public LoteAves criarDeIncubacao(CriarLoteAvesRequest request, String ator, Long incubacaoId) {
-        return criarEntidade(request, ator, TipoEventoLoteAves.ECLOSAO, "INCUBACAO:" + incubacaoId);
+        return criarEntidadeIdempotente(request, ator, TipoEventoLoteAves.ECLOSAO, "INCUBACAO:" + incubacaoId);
     }
 
     @Transactional
     public LoteAvesDetalhe atualizar(Long id, AtualizarLoteAvesRequest request, UsuarioAtor ator) {
         exigirAdmin(ator);
         LoteAves lote = buscarParaAtualizacao(id);
-        String codigo = obrigatorio(request.getCodigo(), "Código");
-        if (loteRepository.existsByCodigoIgnoreCaseAndIdNot(codigo, id)) throw conflito("LOTE_CODIGO_DUPLICADO", "Já existe lote com esse código.");
         validarDatas(request.getDataEntrada(), request.getDataNascimento());
-        lote.setCodigo(codigo); lote.setNome(texto(request.getNome())); lote.setEspecie(obrigatorio(request.getEspecie(), "Espécie"));
+        lote.setNome(texto(request.getNome())); lote.setEspecie(obrigatorio(request.getEspecie(), "Espécie"));
         lote.setFinalidade(obrigatorio(request.getFinalidade(), "Finalidade")); lote.setLinhagem(texto(request.getLinhagem()));
         lote.setOrigem(obrigatorio(request.getOrigem(), "Origem")); lote.setDataEntrada(request.getDataEntrada());
         lote.setDataNascimento(request.getDataNascimento()); lote.setSexo(obrigatorio(request.getSexo(), "Sexo"));
@@ -160,17 +166,19 @@ public class LoteAvesService {
     }
 
     private LoteAvesDetalhe criarInterno(CriarLoteAvesRequest r, String ator, TipoEventoLoteAves tipo, String referencia) {
-        LoteAves existente = loteRepository.findByChaveIdempotencia(chave(r.getChaveIdempotencia())).orElse(null);
-        if (existente != null) return detalhar(existente.getId());
-        return detalhar(criarEntidade(r, ator, tipo, referencia).getId());
+        return detalhar(criarEntidadeIdempotente(r, ator, tipo, referencia).getId());
     }
 
-    private LoteAves criarEntidade(CriarLoteAvesRequest r, String ator, TipoEventoLoteAves tipo, String referencia) {
+    private LoteAves criarEntidadeIdempotente(CriarLoteAvesRequest r, String ator,
+            TipoEventoLoteAves tipo, String referencia) {
+        String chave = chave(r.getChaveIdempotencia());
+        codigoService.bloquearIdempotencia("LOTE_AVES", chave);
+        LoteAves existente = loteRepository.findByChaveIdempotencia(chave).orElse(null);
+        if (existente != null) return existente;
         validarCriacao(r);
-        String codigo = obrigatorio(r.getCodigo(), "Código");
-        if (loteRepository.existsByCodigoIgnoreCase(codigo)) throw conflito("LOTE_CODIGO_DUPLICADO", "Já existe lote com esse código.");
-        InstalacaoCriacao instalacao = instalacaoService.buscarAtiva(r.getInstalacaoId());
-        instalacaoService.validarCapacidade(instalacao, r.getQuantidadeInicial(), null);
+        String codigo = codigoService.proximoLoteAves();
+        InstalacaoCriacao instalacao = instalacaoService.reservarCapacidade(
+                r.getInstalacaoId(), r.getQuantidadeInicial(), null);
         LoteAves lote = new LoteAves();
         lote.setCodigo(codigo); lote.setNome(texto(r.getNome())); lote.setEspecie(r.getEspecie()); lote.setFinalidade(r.getFinalidade());
         lote.setLinhagem(texto(r.getLinhagem())); lote.setOrigem(obrigatorio(r.getOrigem(), "Origem"));
@@ -178,7 +186,7 @@ public class LoteAvesService {
         lote.setQuantidadeInicial(r.getQuantidadeInicial()); lote.setQuantidadeAtual(r.getQuantidadeInicial());
         lote.setSexo(r.getSexo()); lote.setInstalacaoAtual(instalacao); lote.setStatus(StatusLoteAves.ATIVO);
         lote.setObservacoes(texto(r.getObservacoes())); lote.setCustoInicial(escala(r.getCustoInicial()));
-        lote.setChaveIdempotencia(chave(r.getChaveIdempotencia()));
+        lote.setChaveIdempotencia(chave);
         lote = loteRepository.save(lote);
         registrarEvento(lote, tipo, lote.getQuantidadeInicial(), r.getDataEntrada().atStartOfDay(), ator,
                 "Lote registrado com " + lote.getQuantidadeInicial() + " aves.", referencia, null, instalacao);
@@ -254,6 +262,5 @@ public class LoteAvesService {
     private <T> T obrigatorio(T v, String campo) { if (v == null) throw new AvesOperacaoException("CAMPO_OBRIGATORIO", campo + " é obrigatório."); return v; }
     private void exigirAdmin(UsuarioAtor ator) { if (!ator.admin()) throw new AvesOperacaoException("OPERACAO_ADMIN_OBRIGATORIA", "Operação restrita a administradores.", HttpStatus.FORBIDDEN); }
     private AvesOperacaoException naoEncontrado(Long id) { return new AvesOperacaoException("LOTE_NAO_ENCONTRADO", "Lote de aves não encontrado: " + id, HttpStatus.NOT_FOUND); }
-    private AvesOperacaoException conflito(String c, String m) { return new AvesOperacaoException(c, m, HttpStatus.CONFLICT); }
     private void log(LoteAves lote, String evento, Integer qtd) { Map<String, Object> dados = new LinkedHashMap<>(); dados.put("event.action", evento); dados.put("module", "criacoes"); dados.put("criacao.aves.lote.id", String.valueOf(lote.getId())); if (qtd != null) dados.put("criacao.quantidade", qtd); try (MdcScope ignored = MdcScope.with(dados)) { log.info("Operação do lote de aves concluída."); } }
 }

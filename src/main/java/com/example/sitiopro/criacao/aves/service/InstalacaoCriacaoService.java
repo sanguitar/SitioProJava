@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -93,6 +94,16 @@ public class InstalacaoCriacaoService {
     public InstalacaoCriacao buscarAtiva(Long id) {
         return repository.findById(id).filter(InstalacaoCriacao::isAtivo)
                 .orElseThrow(() -> new AvesOperacaoException("INSTALACAO_INVALIDA", "Instalação não encontrada ou inativa."));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public InstalacaoCriacao reservarCapacidade(Long id, int quantidade, Long loteIgnorado) {
+        InstalacaoCriacao instalacao = repository.buscarParaAtualizacao(id)
+                .filter(InstalacaoCriacao::isAtivo)
+                .orElseThrow(() -> new AvesOperacaoException(
+                        "INSTALACAO_INVALIDA", "Instalação não encontrada ou inativa."));
+        validarCapacidade(instalacao, quantidade, loteIgnorado);
+        return instalacao;
     }
 
     public void validarCapacidade(InstalacaoCriacao instalacao, int quantidade, Long loteIgnorado) {

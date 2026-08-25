@@ -5,6 +5,7 @@ import com.example.sitiopro.compras.dto.ComprasDashboardResumo;
 import com.example.sitiopro.compras.entity.StatusCompra;
 import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.dashboard.dto.EstadoClimaDashboard;
+import com.example.sitiopro.dashboard.dto.DashboardTendenciasResumo;
 import com.example.sitiopro.dashboard.dto.NivelAtencao;
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
@@ -67,13 +68,16 @@ class DashboardServiceTests {
     @Mock
     private IntegracaoPainelService integracaoService;
 
+    @Mock
+    private DashboardTendenciasService tendenciasService;
+
     private DashboardService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneId.of("America/Manaus"));
         service = new DashboardService(resumoOperacionalService, estoqueService, compraService,
-                climaService, integracaoService, clock);
+                climaService, integracaoService, tendenciasService, clock);
 
         when(resumoOperacionalService.resumoPainel(5)).thenReturn(operacaoVazia());
         when(estoqueService.listarItensComSaldo()).thenReturn(List.of());
@@ -83,6 +87,7 @@ class DashboardServiceTests {
                 new ComprasDashboardResumo(0, BigDecimal.ZERO, 0, 0, null, List.of()));
         when(climaService.resumo()).thenReturn(ClimaResumo.naoSincronizado());
         when(integracaoService.resumo()).thenReturn(new IntegracaoPainelResumo(0, 0, 0, 0, Map.of()));
+        when(tendenciasService.montar()).thenReturn(tendenciasVazias());
     }
 
     @Test
@@ -108,12 +113,13 @@ class DashboardServiceTests {
                 AGORA.minusMinutes(30),
                 AGORA.minusMinutes(30), null);
         when(resumoOperacionalService.resumoPainel(5)).thenReturn(new TarefasAlertasPainelResumo(
-                new TarefasAlertasPainelResumo.Tarefas(0, 1, 1, 0, List.of(tarefa)),
+                new TarefasAlertasPainelResumo.Tarefas(1, 0, 1, 1, 0, List.of(tarefa)),
                 new TarefasAlertasPainelResumo.Alertas(1, 1, 0, List.of(alerta))));
 
         var resumo = service.montarResumo();
 
         assertThat(resumo.nivelAtencao()).isEqualTo(NivelAtencao.CRITICA);
+        assertThat(resumo.tarefas().abertas()).isEqualTo(1);
         assertThat(resumo.tarefas().proximas()).singleElement()
                 .satisfies(item -> {
                     assertThat(item.id()).isEqualTo(10L);
@@ -207,8 +213,15 @@ class DashboardServiceTests {
 
     private TarefasAlertasPainelResumo operacaoVazia() {
         return new TarefasAlertasPainelResumo(
-                new TarefasAlertasPainelResumo.Tarefas(0, 0, 0, 0, List.of()),
+                new TarefasAlertasPainelResumo.Tarefas(0, 0, 0, 0, 0, List.of()),
                 new TarefasAlertasPainelResumo.Alertas(0, 0, 0, List.of()));
+    }
+
+    private DashboardTendenciasResumo tendenciasVazias() {
+        return new DashboardTendenciasResumo(
+                new DashboardTendenciasResumo.PosturaSerie(0, false, List.of()),
+                List.of(),
+                new DashboardTendenciasResumo.ComprasSerie(BigDecimal.ZERO, false, List.of()));
     }
 
     private PrevisaoClimaticaResponse previsao(Integer probabilidade) {

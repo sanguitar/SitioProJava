@@ -87,6 +87,11 @@ public class AlertaService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public long contarAbertos(ModuloOrigem modulo) {
+        return alertaRepository.countByModuloOrigemAndStatusIn(modulo, STATUS_ABERTOS);
+    }
+
     @Transactional
     public AlertaDetalhe reconhecer(Long id, UsuarioAtor ator) {
         Alerta alerta = buscarParaAtualizacao(id);

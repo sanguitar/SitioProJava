@@ -41,6 +41,7 @@ public class DashboardService {
     private final CompraService compraService;
     private final ClimaConsultaService climaService;
     private final IntegracaoPainelService integracaoService;
+    private final DashboardTendenciasService tendenciasService;
     private final Clock clock;
 
     public DashboardService(ResumoOperacionalService tarefasAlertasService,
@@ -48,12 +49,14 @@ public class DashboardService {
             CompraService compraService,
             ClimaConsultaService climaService,
             IntegracaoPainelService integracaoService,
+            DashboardTendenciasService tendenciasService,
             Clock clock) {
         this.tarefasAlertasService = tarefasAlertasService;
         this.estoqueService = estoqueService;
         this.compraService = compraService;
         this.climaService = climaService;
         this.integracaoService = integracaoService;
+        this.tendenciasService = tendenciasService;
         this.clock = clock;
     }
 
@@ -67,10 +70,12 @@ public class DashboardService {
         DashboardOperacionalResumo.ComprasResumo compras = compras(compraService.montarResumo());
         DashboardOperacionalResumo.ClimaResumo clima = clima();
         DashboardOperacionalResumo.IntegracoesResumo integracoes = integracoes();
+        var tendencias = tendenciasService.montar();
         NivelAtencao nivel = nivelAtencao(tarefas, alertas, estoque, integracoes);
 
         DashboardOperacionalResumo resumo = new DashboardOperacionalResumo(
                 nivel, mensagemAtencao(nivel), tarefas, alertas, estoque, compras, clima, integracoes,
+                tendencias,
                 LocalDateTime.now(clock));
         try (MdcScope ignored = MdcScope.with(Map.of(
                 "event.action", "dashboard.loaded",
@@ -92,7 +97,8 @@ public class DashboardService {
                         item.responsavelNome(), item.vencida()))
                 .toList();
         return new DashboardOperacionalResumo.TarefasResumo(
-                origem.pendentesHoje(), origem.vencidas(), origem.criticas(), origem.emAndamento(), itens);
+                origem.abertas(), origem.pendentesHoje(), origem.vencidas(), origem.criticas(),
+                origem.emAndamento(), itens);
     }
 
     private DashboardOperacionalResumo.AlertasResumo alertas(TarefasAlertasPainelResumo.Alertas origem) {

@@ -66,8 +66,8 @@ services:
 
         wait_for_database() {
           for attempt in {1..60}; do
-            if "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
-              IF DB_ID(N'$$DB_NAME') IS NULL
+            if "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -d master -Q "
+              IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'$$DB_NAME')
                   SELECT 1;
               ELSE IF EXISTS (SELECT 1 FROM sys.databases WHERE name = N'$$DB_NAME' AND state_desc = N'ONLINE')
                   SELECT 1;
@@ -86,8 +86,8 @@ services:
 
         wait_for_database
 
-        "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
-          IF DB_ID(N'$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME];
+        "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -d master -Q "
+          IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'$$DB_NAME') CREATE DATABASE [$$DB_NAME];
 
           IF SUSER_ID(N'$$DB_USERNAME') IS NULL
               CREATE LOGIN [$$DB_USERNAME] WITH PASSWORD = N'$$DB_PASSWORD', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
@@ -104,16 +104,29 @@ services:
 
         wait_for_database
 
-        "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "
-          USE [$$DB_NAME];
+        users_ready=false
+        for attempt in {1..60}; do
+          if "$$SQLCMD" -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -d master -Q "
+            USE [$$DB_NAME];
 
-          IF USER_ID(N'$$DB_USERNAME') IS NULL CREATE USER [$$DB_USERNAME] FOR LOGIN [$$DB_USERNAME];
-          IF IS_ROLEMEMBER(N'db_datareader', N'$$DB_USERNAME') = 0 ALTER ROLE db_datareader ADD MEMBER [$$DB_USERNAME];
-          IF IS_ROLEMEMBER(N'db_datawriter', N'$$DB_USERNAME') = 0 ALTER ROLE db_datawriter ADD MEMBER [$$DB_USERNAME];
+            IF USER_ID(N'$$DB_USERNAME') IS NULL CREATE USER [$$DB_USERNAME] FOR LOGIN [$$DB_USERNAME];
+            IF IS_ROLEMEMBER(N'db_datareader', N'$$DB_USERNAME') = 0 ALTER ROLE db_datareader ADD MEMBER [$$DB_USERNAME];
+            IF IS_ROLEMEMBER(N'db_datawriter', N'$$DB_USERNAME') = 0 ALTER ROLE db_datawriter ADD MEMBER [$$DB_USERNAME];
 
-          IF USER_ID(N'$$FLYWAY_USERNAME') IS NULL CREATE USER [$$FLYWAY_USERNAME] FOR LOGIN [$$FLYWAY_USERNAME];
-          IF IS_ROLEMEMBER(N'db_owner', N'$$FLYWAY_USERNAME') = 0 ALTER ROLE db_owner ADD MEMBER [$$FLYWAY_USERNAME];
-          "
+            IF USER_ID(N'$$FLYWAY_USERNAME') IS NULL CREATE USER [$$FLYWAY_USERNAME] FOR LOGIN [$$FLYWAY_USERNAME];
+            IF IS_ROLEMEMBER(N'db_owner', N'$$FLYWAY_USERNAME') = 0 ALTER ROLE db_owner ADD MEMBER [$$FLYWAY_USERNAME];
+            "; then
+            users_ready=true
+            break
+          fi
+
+          sleep 5
+        done
+
+        if [ "$$users_ready" != "true" ]; then
+          echo "Database users could not be configured in time."
+          exit 1
+        fi
     restart: "no"
     networks:
       - backend
@@ -160,12 +173,12 @@ services:
       DB_HOST: sqlserver
       DB_PORT: 1433
       DB_NAME: ${DB_NAME:-sitio_db}
-      DB_USERNAME: ${DB_USERNAME:-sa}
+      DB_USERNAME: ${DB_USERNAME:-sitiopro_app}
       DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
       DB_ENCRYPT: "false"
       DB_TRUST_SERVER_CERTIFICATE: "true"
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
-      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-true}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
       FLYWAY_ENABLED: ${FLYWAY_ENABLED:-true}
       FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-true}
       FLYWAY_USERNAME: ${FLYWAY_USERNAME:-sitiopro_migration}

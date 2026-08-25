@@ -3,6 +3,8 @@ package com.example.sitiopro.frota.service;
 import com.example.sitiopro.frota.model.Veiculo;
 import com.example.sitiopro.frota.repository.VeiculoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -35,6 +37,12 @@ public class VeiculoService {
 
     public Veiculo buscarPorId(Long id) {
         return veiculoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Veículo não encontrado: " + id));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Veiculo buscarParaAtualizacao(Long id) {
+        return veiculoRepository.buscarParaAtualizacao(id)
                 .orElseThrow(() -> new IllegalArgumentException("Veículo não encontrado: " + id));
     }
 

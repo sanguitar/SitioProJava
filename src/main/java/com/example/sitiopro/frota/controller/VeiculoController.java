@@ -5,7 +5,9 @@ import com.example.sitiopro.frota.service.VeiculoService;
 import com.example.sitiopro.planejamento.PlanejamentoCatalogo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,13 @@ public class VeiculoController {
 
     public VeiculoController(VeiculoService veiculoService) {
         this.veiculoService = veiculoService;
+    }
+
+    @InitBinder("veiculo")
+    void restringirCamposVeiculo(WebDataBinder binder) {
+        binder.setAllowedFields(
+                "nome", "placa", "tipo", "marcaFipe", "modeloFipe", "anoModelo", "kmAtual",
+                "valorFipe", "ultimaConsultaFipe");
     }
 
     @GetMapping

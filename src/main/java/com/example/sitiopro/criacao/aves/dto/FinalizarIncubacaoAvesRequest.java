@@ -12,7 +12,6 @@ public class FinalizarIncubacaoAvesRequest {
     @NotNull @Min(0) private Integer ovosPerdidos;
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) private LocalDate dataEclosao;
     private boolean criarLote;
-    @Size(max = 80) private String codigoLote;
     @Size(max = 120) private String nomeLote;
     private Long instalacaoDestinoId;
     private FinalidadeLoteAves finalidadeLote = FinalidadeLoteAves.MISTA;
@@ -22,7 +21,6 @@ public class FinalizarIncubacaoAvesRequest {
     public Integer getOvosPerdidos() { return ovosPerdidos; } public void setOvosPerdidos(Integer v) { ovosPerdidos = v; }
     public LocalDate getDataEclosao() { return dataEclosao; } public void setDataEclosao(LocalDate v) { dataEclosao = v; }
     public boolean isCriarLote() { return criarLote; } public void setCriarLote(boolean v) { criarLote = v; }
-    public String getCodigoLote() { return codigoLote; } public void setCodigoLote(String v) { codigoLote = v; }
     public String getNomeLote() { return nomeLote; } public void setNomeLote(String v) { nomeLote = v; }
     public Long getInstalacaoDestinoId() { return instalacaoDestinoId; } public void setInstalacaoDestinoId(Long v) { instalacaoDestinoId = v; }
     public FinalidadeLoteAves getFinalidadeLote() { return finalidadeLote; } public void setFinalidadeLote(FinalidadeLoteAves v) { finalidadeLote = v; }

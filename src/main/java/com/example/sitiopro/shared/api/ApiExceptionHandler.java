@@ -12,10 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -27,13 +30,16 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.compras.api",
         "com.example.sitiopro.integracao.api",
         "com.example.sitiopro.tarefas.api",
-        "com.example.sitiopro.criacao.aves.api"
+        "com.example.sitiopro.criacao.aves.api",
+        "com.example.sitiopro.dashboard.api"
 })
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
     private static final Pattern SENSITIVE_VALUE_PATTERN = Pattern.compile(
             "(?i)(senha|password|passwd|pwd|secret|token|authorization|cookie|connection\\s*string|connectionString)\\s*[:=]\\s*\\S+");
+    private static final Pattern SENSITIVE_URI_PATTERN = Pattern.compile(
+            "(?i)(jdbc:[^\\s]+|rediss?://[^\\s]+|https?://[^\\s/@:]+:[^\\s/@]+@[^\\s]+)");
 
     @ExceptionHandler(EstoqueOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> estoque(EstoqueOperacaoException ex, HttpServletRequest request) {
@@ -98,6 +104,15 @@ public class ApiExceptionHandler {
                         message, request.getRequestURI(), requestId));
     }
 
+    @ExceptionHandler({
+            MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class,
+            BindException.class
+    })
+    public ResponseEntity<ApiErrorResponse> requestInvalido(Exception ex, HttpServletRequest request) {
+        return erroDeRequest("REQUISICAO_INVALIDA", "Parâmetros ou conteúdo da requisição são inválidos.", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> inesperado(Exception ex, HttpServletRequest request) {
         String requestId = RequestCorrelation.currentRequestId();
@@ -140,7 +155,24 @@ public class ApiExceptionHandler {
         if (path.startsWith("/api/v1/criacoes")) {
             return "criacoes";
         }
+        if (path.startsWith("/api/v1/painel")) {
+            return "dashboard";
+        }
         return "api";
+    }
+
+    private ResponseEntity<ApiErrorResponse> erroDeRequest(String code, String message,
+            HttpServletRequest request) {
+        String requestId = RequestCorrelation.currentRequestId();
+        try (MdcScope ignored = MdcScope.with(Map.of(
+                "event.action", "api_invalid_request",
+                "module", moduleForPath(request.getRequestURI()),
+                "http.response.status_code", HttpStatus.BAD_REQUEST.value()))) {
+            log.warn("Request malformado recusado na API: {}", request.getRequestURI());
+        }
+        return ResponseEntity.badRequest()
+                .body(new ApiErrorResponse(Instant.now(), HttpStatus.BAD_REQUEST.value(), code, message,
+                        request.getRequestURI(), requestId));
     }
 
     private String sanitizedStackTrace(Throwable throwable) {
@@ -174,6 +206,7 @@ public class ApiExceptionHandler {
         if (value == null || value.isBlank()) {
             return "mensagem indisponível";
         }
-        return SENSITIVE_VALUE_PATTERN.matcher(value).replaceAll("$1=<redacted>");
+        String sanitized = SENSITIVE_VALUE_PATTERN.matcher(value).replaceAll("$1=<redacted>");
+        return SENSITIVE_URI_PATTERN.matcher(sanitized).replaceAll("<redacted-uri>");
     }
 }

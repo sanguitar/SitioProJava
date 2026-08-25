@@ -22,6 +22,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -134,5 +140,71 @@ class EstoqueSqlServerIntegrationTests {
                 VALUES (?, 'ENTRADA', 0, ?, SYSUTCDATETIME())
                 """, itemId, local.getId()))
                 .hasMessageContaining("ck_estoque_movimentos_quantidade");
+    }
+
+    @Test
+    void consumosConcorrentesNaoPermitemSaldoNegativo() throws Exception {
+        CategoriaEstoque categoria = categoriaRepository.findByAtivaTrueOrderByNomeAsc().getFirst();
+        UnidadeMedida unidade = unidadeRepository.findByAtivaTrueOrderByNomeAsc().getFirst();
+        LocalEstoque local = localRepository.findByAtivoTrueOrderByNomeAsc().getFirst();
+
+        ItemEstoqueRequest itemRequest = new ItemEstoqueRequest();
+        itemRequest.setNome("Ração concorrência " + System.nanoTime());
+        itemRequest.setCategoriaId(categoria.getId());
+        itemRequest.setUnidadeMedidaId(unidade.getId());
+        Long itemId = catalogoService.criarItem(itemRequest).getId();
+
+        movimentoService.registrarMovimento(movimento(
+                itemId, local.getId(), TipoMovimentoEstoque.ENTRADA, new BigDecimal("10")), false);
+
+        List<Boolean> resultados = executarEmParalelo(2, () -> {
+            try {
+                movimentoService.registrarMovimento(movimento(
+                        itemId, local.getId(), TipoMovimentoEstoque.CONSUMO, new BigDecimal("8")), false);
+                return true;
+            } catch (RuntimeException ex) {
+                return false;
+            }
+        });
+
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+        assertThat(movimentoService.saldoItemTotal(itemId)).isEqualByComparingTo("2");
+    }
+
+    private MovimentoEstoqueRequest movimento(Long itemId, Long localId,
+            TipoMovimentoEstoque tipo, BigDecimal quantidade) {
+        MovimentoEstoqueRequest request = new MovimentoEstoqueRequest();
+        request.setItemId(itemId);
+        request.setTipo(tipo);
+        request.setQuantidade(quantidade);
+        if (tipo == TipoMovimentoEstoque.ENTRADA) {
+            request.setLocalDestinoId(localId);
+        } else {
+            request.setLocalOrigemId(localId);
+        }
+        return request;
+    }
+
+    private <T> List<T> executarEmParalelo(int quantidade, java.util.concurrent.Callable<T> operacao)
+            throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(quantidade);
+        CountDownLatch inicio = new CountDownLatch(1);
+        try {
+            List<Future<T>> futuros = new ArrayList<>();
+            for (int indice = 0; indice < quantidade; indice++) {
+                futuros.add(executor.submit(() -> {
+                    inicio.await();
+                    return operacao.call();
+                }));
+            }
+            inicio.countDown();
+            List<T> resultados = new ArrayList<>();
+            for (Future<T> futuro : futuros) {
+                resultados.add(futuro.get());
+            }
+            return resultados;
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

@@ -334,7 +334,9 @@ class SitioProRoutesTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nivelAtencao").value("NORMAL"))
                 .andExpect(jsonPath("$.tarefas.vencidas").value(0))
-                .andExpect(jsonPath("$.clima.estado").value("SEM_DADOS"));
+                .andExpect(jsonPath("$.clima.estado").value("SEM_DADOS"))
+                .andExpect(jsonPath("$.tendencias.postura7Dias.temDados").value(false))
+                .andExpect(jsonPath("$.tendencias.compras6Meses.temDados").value(false));
     }
 
     @Test
@@ -344,7 +346,29 @@ class SitioProRoutesTests {
         mockMvc.perform(get("/sitio/painel"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("/sitio/alertas/20")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("/sitio/tarefas/10")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/sitio/tarefas/10")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("1 tarefa aberta")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Sem alertas ativos"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("0 em andamento"))));
+    }
+
+    @Test
+    void formulariosDeCriacaoExibemCodigoSomenteComoGeradoPeloBackend() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/aves/lotes/novo"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "Gerado automaticamente ao cadastrar")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"codigo\""))));
+
+        mockMvc.perform(get("/sitio/criacoes/aves/incubacoes/nova"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "Gerado automaticamente ao iniciar")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"codigo\""))));
     }
 
     @ParameterizedTest

@@ -20,6 +20,8 @@ import java.util.Optional;
 public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
 
     interface PainelContadores {
+        Long getAbertas();
+
         Long getPendentesHoje();
 
         Long getVencidas();
@@ -79,6 +81,7 @@ public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
 
     @Query("""
             select
+              coalesce(sum(case when t.status in :abertas then 1 else 0 end), 0) as abertas,
               coalesce(sum(case when t.status in :abertas
                 and t.dataVencimento >= :inicioHoje and t.dataVencimento < :fimHoje then 1 else 0 end), 0)
                 as pendentesHoje,

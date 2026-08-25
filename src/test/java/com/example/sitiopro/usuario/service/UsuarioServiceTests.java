@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -110,7 +111,7 @@ class UsuarioServiceTests {
     void naoPermiteDesativarUltimoAdminAtivo() {
         Usuario admin = usuario(1L, PerfilUsuario.ADMIN, true);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
-        when(usuarioRepository.countByPerfilAndAtivoTrue(PerfilUsuario.ADMIN)).thenReturn(1L);
+        when(usuarioRepository.buscarAtivosParaAtualizacao(PerfilUsuario.ADMIN)).thenReturn(List.of(admin));
 
         assertThatThrownBy(() -> usuarioService.desativar(1L))
                 .isInstanceOf(UsuarioOperacaoException.class)
@@ -126,7 +127,7 @@ class UsuarioServiceTests {
         request.setAtivo(true);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(admin));
-        when(usuarioRepository.countByPerfilAndAtivoTrue(PerfilUsuario.ADMIN)).thenReturn(1L);
+        when(usuarioRepository.buscarAtivosParaAtualizacao(PerfilUsuario.ADMIN)).thenReturn(List.of(admin));
 
         assertThatThrownBy(() -> usuarioService.editar(1L, request))
                 .isInstanceOf(UsuarioOperacaoException.class)

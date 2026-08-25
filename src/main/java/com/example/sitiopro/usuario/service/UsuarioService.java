@@ -139,7 +139,7 @@ public class UsuarioService {
         boolean eraAdminAtivo = usuario.getPerfil() == PerfilUsuario.ADMIN && usuario.isAtivo();
         boolean continuaAdminAtivo = novoPerfil == PerfilUsuario.ADMIN && novoAtivo;
         if (eraAdminAtivo && !continuaAdminAtivo
-                && usuarioRepository.countByPerfilAndAtivoTrue(PerfilUsuario.ADMIN) <= 1) {
+                && usuarioRepository.buscarAtivosParaAtualizacao(PerfilUsuario.ADMIN).size() <= 1) {
             throw new UsuarioOperacaoException("Não é permitido deixar o sistema sem ADMIN ativo.");
         }
     }

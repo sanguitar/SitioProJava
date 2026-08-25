@@ -152,10 +152,11 @@ class ManejoAvesServiceTests {
     void transferenciaValidaCapacidadeEAtualizaInstalacao() {
         InstalacaoCriacao destino = instalacao(11L, "Piquete", true);
         TransferirLoteAvesRequest request = new TransferirLoteAvesRequest(); request.setChaveIdempotencia("t-1"); request.setInstalacaoDestinoId(11L);
-        when(transferenciaRepository.findByChaveIdempotencia("t-1")).thenReturn(Optional.empty()); when(instalacaoService.buscarAtiva(11L)).thenReturn(destino);
+        when(transferenciaRepository.findByChaveIdempotencia("t-1")).thenReturn(Optional.empty());
+        when(instalacaoService.reservarCapacidade(11L, 100, 1L)).thenReturn(destino);
         service.transferir(1L, request, operador);
         assertThat(lote.getInstalacaoAtual()).isSameAs(destino);
-        verify(instalacaoService).validarCapacidade(destino, 100, 1L);
+        verify(instalacaoService).reservarCapacidade(11L, 100, 1L);
         verify(transferenciaRepository).save(any());
     }
 

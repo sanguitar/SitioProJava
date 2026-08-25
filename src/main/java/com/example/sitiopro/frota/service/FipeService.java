@@ -6,10 +6,13 @@ import com.example.sitiopro.frota.model.FipeCache;
 import com.example.sitiopro.frota.repository.FipeCacheRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientException;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,11 +23,16 @@ public class FipeService {
 
     private final FipeCacheRepository cacheRepository;
     private final ObjectMapper objectMapper;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public FipeService(FipeCacheRepository cacheRepository, ObjectMapper objectMapper) {
+    public FipeService(FipeCacheRepository cacheRepository, ObjectMapper objectMapper,
+            RestTemplateBuilder restTemplateBuilder) {
         this.cacheRepository = cacheRepository;
         this.objectMapper = objectMapper;
+        this.restTemplate = restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(8))
+                .build();
     }
 
     public List<MarcaDTO> buscarMarcas(Integer tipo) {
@@ -46,12 +54,23 @@ public class FipeService {
         return Arrays.asList(response != null ? response : new Object[0]);
     }
 
-    @Transactional
     public FipeCache buscarDetalhes(Integer id) {
-        return cacheRepository.findById(id).orElseGet(() -> consultarApiESalvarCache(id));
+        FipeCache cache = cacheRepository.findById(id).orElse(null);
+        if (cache != null) {
+            return cache;
+        }
+        FipeCache consultado = consultarApi(id);
+        if (consultado == null) {
+            return null;
+        }
+        try {
+            return cacheRepository.save(consultado);
+        } catch (DataIntegrityViolationException ex) {
+            return cacheRepository.findById(id).orElseThrow(() -> ex);
+        }
     }
 
-    private FipeCache consultarApiESalvarCache(Integer id) {
+    private FipeCache consultarApi(Integer id) {
         try {
             VeiculoFipeDTO dto = restTemplate.getForObject(BASE_URL + "/veiculos/" + id, VeiculoFipeDTO.class);
             if (dto == null) {
@@ -63,8 +82,8 @@ public class FipeService {
             novo.setAnoModelo(dto.getAno_modelo());
             novo.setValor(parseValor(dto.getValor()));
             novo.setHistoricoJson(toJson(dto.getHistorico()));
-            return cacheRepository.save(novo);
-        } catch (RuntimeException | JsonProcessingException e) {
+            return novo;
+        } catch (RestClientException | JsonProcessingException | NumberFormatException e) {
             return null;
         }
     }

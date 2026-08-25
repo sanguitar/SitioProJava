@@ -21,7 +21,9 @@ import com.example.sitiopro.criacao.aves.service.LoteAvesService;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
 import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoResumo;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
+import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.dashboard.service.DashboardService;
+import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
@@ -98,6 +100,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static com.example.sitiopro.DashboardTestFixture.vazio;
 import static org.mockito.Mockito.verify;
@@ -137,6 +140,9 @@ class SitioProSecurityTests {
 
     @MockBean
     private DashboardService dashboardService;
+
+    @MockBean
+    private DashboardTendenciasService dashboardTendenciasService;
 
     @MockBean
     private ProducaoService producaoService;
@@ -239,6 +245,9 @@ class SitioProSecurityTests {
 
     @MockBean
     private SqlServerApplicationLock sqlServerApplicationLock;
+
+    @MockBean
+    private CodigoCriacaoService codigoCriacaoService;
 
     @MockBean private AvesResumoService avesResumoService;
     @MockBean private InstalacaoCriacaoService instalacaoCriacaoService;
@@ -374,6 +383,29 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/sitio/admin/usuarios")
                         .with(user("operador").roles("OPERADOR")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void formulariosLegadosNaoAceitamIdNemCamposInternosPorMassAssignment() throws Exception {
+        mockMvc.perform(post("/sitio/configuracoes/categoria/salvar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("id", "999")
+                        .param("nome", "Ferramentas"))
+                .andExpect(status().is3xxRedirection());
+        verify(categoriaService).salvar(argThat(categoria -> categoria.getId() == null));
+
+        mockMvc.perform(post("/sitio/frota/salvar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf())
+                        .param("id", "999")
+                        .param("nome", "Trator")
+                        .param("tipo", "3")
+                        .param("situacao", "CAMPO_FORCADO")
+                        .param("icone", "CAMPO_FORCADO"))
+                .andExpect(status().is3xxRedirection());
+        verify(veiculoService).salvar(argThat(veiculo -> veiculo.getId() == null
+                && "DISPONIVEL".equals(veiculo.getSituacao()) && veiculo.getIcone() == null));
     }
 
     @Test
@@ -914,6 +946,44 @@ class SitioProSecurityTests {
                         .content("{\"titulo\":\"\",\"prioridade\":\"NORMAL\",\"recorrencia\":\"NENHUMA\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void apiTarefasRecusaFiltroComEnumInvalidoComoErroDeValidacao() throws Exception {
+        mockMvc.perform(get("/api/v1/tarefas")
+                        .param("status", "STATUS_INEXISTENTE")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.path").value("/api/v1/tarefas"));
+    }
+
+    @Test
+    void apiTarefasRecusaJsonMalformadoDeFormaPadronizada() throws Exception {
+        mockMvc.perform(post("/api/v1/tarefas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REQUISICAO_INVALIDA"))
+                .andExpect(jsonPath("$.path").value("/api/v1/tarefas"));
+    }
+
+    @Test
+    void apiPainelUsaRespostaSeguraParaFalhaInesperada(CapturedOutput output) throws Exception {
+        when(dashboardService.montarResumo())
+                .thenThrow(new IllegalStateException("jdbc:sqlserver://db:1433;password=nao-expor"));
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .with(user("operador").roles("OPERADOR"))
+                        .header("X-Request-ID", "req-painel-9999"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("ERRO_INTERNO"))
+                .andExpect(jsonPath("$.requestId").value("req-painel-9999"));
+
+        assertThat(output).doesNotContain("nao-expor")
+                .doesNotContain("jdbc:sqlserver://db:1433");
     }
 
     @Test

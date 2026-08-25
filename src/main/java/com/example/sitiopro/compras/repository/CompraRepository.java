@@ -15,6 +15,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CompraRepository extends JpaRepository<Compra, Long> {
+    interface CompraMensal {
+        LocalDate getMes();
+        BigDecimal getValor();
+    }
 
     @EntityGraph(attributePaths = {"fornecedor"})
     @Query("""
@@ -53,6 +57,18 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
               and c.dataCompra between :inicio and :fim
             """)
     long contarConfirmadasEntre(@Param("inicio") LocalDate inicio, @Param("fim") LocalDate fim);
+
+    @Query(value = """
+            SELECT DATEFROMPARTS(YEAR(c.data_compra), MONTH(c.data_compra), 1) AS mes,
+                   SUM(c.total) AS valor
+            FROM dbo.compras c
+            WHERE c.status = 'CONFIRMADA'
+              AND c.data_compra BETWEEN :inicio AND :fim
+            GROUP BY YEAR(c.data_compra), MONTH(c.data_compra)
+            ORDER BY mes
+            """, nativeQuery = true)
+    List<CompraMensal> agregarConfirmadasPorMes(@Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim);
 
     @Override
     @EntityGraph(attributePaths = {

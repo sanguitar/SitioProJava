@@ -98,7 +98,7 @@ public class EstoqueMovimentoService {
                     "Ajustes administrativos de estoque exigem perfil ADMIN.", HttpStatus.FORBIDDEN);
         }
 
-        ItemEstoque item = buscarItem(request.getItemId());
+        ItemEstoque item = buscarItemParaMovimentacao(request.getItemId());
         if (!item.isAtivo()) {
             throw new EstoqueOperacaoException("ITEM_INATIVO",
                     "Item inativo não aceita movimentação de estoque.");
@@ -143,11 +143,12 @@ public class EstoqueMovimentoService {
 
     @Transactional(readOnly = true)
     public List<ItemEstoqueResumo> listarItensComSaldo() {
-        Map<Long, List<MovimentoEstoque>> movimentosPorItem = movimentoRepository
-                .findAllByOrderByDataMovimentoDescIdDesc().stream()
-                .collect(Collectors.groupingBy(movimento -> movimento.getItem().getId()));
+        Map<Long, MovimentoEstoqueRepository.ItemMovimentoAgregado> agregados = movimentoRepository
+                .agregarPorItem().stream()
+                .collect(Collectors.toMap(MovimentoEstoqueRepository.ItemMovimentoAgregado::getItemId,
+                        agregado -> agregado));
         return itemRepository.findAllByOrderByNomeAsc().stream()
-                .map(item -> paraResumoItem(item, movimentosPorItem.getOrDefault(item.getId(), List.of())))
+                .map(item -> paraResumoItem(item, agregados.get(item.getId())))
                 .toList();
     }
 
@@ -266,6 +267,28 @@ public class EstoqueMovimentoService {
 
     private ItemEstoqueResumo paraResumoItem(ItemEstoque item) {
         return paraResumoItem(item, movimentoRepository.findByItemIdOrderByDataMovimentoDescIdDesc(item.getId()));
+    }
+
+    private ItemEstoqueResumo paraResumoItem(ItemEstoque item,
+            MovimentoEstoqueRepository.ItemMovimentoAgregado agregado) {
+        BigDecimal saldo = agregado == null || agregado.getSaldo() == null
+                ? BigDecimal.ZERO : agregado.getSaldo();
+        BigDecimal quantidadeComCusto = agregado == null || agregado.getQuantidadeEntradasComCusto() == null
+                ? BigDecimal.ZERO : agregado.getQuantidadeEntradasComCusto();
+        BigDecimal custoTotal = agregado == null || agregado.getCustoTotalEntradas() == null
+                ? BigDecimal.ZERO : agregado.getCustoTotalEntradas();
+        BigDecimal custoMedio = quantidadeComCusto.signum() == 0
+                ? null
+                : custoTotal.divide(quantidadeComCusto, ESCALA, RoundingMode.HALF_UP);
+        BigDecimal minimo = item.getEstoqueMinimo();
+        boolean baixo = item.isAtivo()
+                && minimo != null
+                && minimo.compareTo(BigDecimal.ZERO) > 0
+                && saldo.compareTo(minimo) < 0;
+        return new ItemEstoqueResumo(
+                item.getId(), item.getNome(), item.getCategoria().getNome(), item.getUnidadeMedida().getSigla(),
+                saldo, minimo, item.isAtivo(), baixo,
+                agregado == null ? null : agregado.getUltimoPreco(), custoMedio);
     }
 
     private ItemEstoqueResumo paraResumoItem(ItemEstoque item, List<MovimentoEstoque> movimentos) {
@@ -571,6 +594,12 @@ public class EstoqueMovimentoService {
 
     private ItemEstoque buscarItem(Long id) {
         return itemRepository.findById(id)
+                .orElseThrow(() -> new EstoqueOperacaoException("ITEM_NAO_ENCONTRADO",
+                        "Item de estoque não encontrado.", HttpStatus.NOT_FOUND));
+    }
+
+    private ItemEstoque buscarItemParaMovimentacao(Long id) {
+        return itemRepository.buscarParaMovimentacao(id)
                 .orElseThrow(() -> new EstoqueOperacaoException("ITEM_NAO_ENCONTRADO",
                         "Item de estoque não encontrado.", HttpStatus.NOT_FOUND));
     }

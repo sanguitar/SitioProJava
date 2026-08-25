@@ -1,6 +1,7 @@
 package com.example.sitiopro;
 
 import com.example.sitiopro.dashboard.dto.DashboardOperacionalResumo;
+import com.example.sitiopro.dashboard.dto.DashboardTendenciasResumo;
 import com.example.sitiopro.dashboard.dto.EstadoClimaDashboard;
 import com.example.sitiopro.dashboard.dto.NivelAtencao;
 import com.example.sitiopro.tarefas.entity.ModuloOrigem;
@@ -22,7 +23,7 @@ public final class DashboardTestFixture {
         return new DashboardOperacionalResumo(
                 NivelAtencao.NORMAL,
                 "Operação sem pendências prioritárias neste momento.",
-                new DashboardOperacionalResumo.TarefasResumo(0, 0, 0, 0, List.of()),
+                new DashboardOperacionalResumo.TarefasResumo(0, 0, 0, 0, 0, List.of()),
                 new DashboardOperacionalResumo.AlertasResumo(0, 0, 0, List.of()),
                 new DashboardOperacionalResumo.EstoqueResumo(0, 0, 0, List.of()),
                 new DashboardOperacionalResumo.ComprasResumo(0, 0, BigDecimal.ZERO, null, List.of()),
@@ -30,6 +31,7 @@ public final class DashboardTestFixture {
                         EstadoClimaDashboard.SEM_DADOS, null, "Previsão ainda não sincronizada",
                         null, null, null, null),
                 new DashboardOperacionalResumo.IntegracoesResumo(0, 0, 0, 0, 0, List.of()),
+                tendenciasVazias(),
                 LocalDateTime.of(2026, 8, 24, 8, 0));
     }
 
@@ -38,7 +40,7 @@ public final class DashboardTestFixture {
         return new DashboardOperacionalResumo(
                 NivelAtencao.CRITICA,
                 "Existem ocorrências críticas que precisam de atenção imediata.",
-                new DashboardOperacionalResumo.TarefasResumo(1, 1, 1, 0, List.of(
+                new DashboardOperacionalResumo.TarefasResumo(1, 1, 1, 1, 0, List.of(
                         new DashboardOperacionalResumo.TarefaItem(
                                 10L, "Verificar irrigação", StatusTarefa.PENDENTE,
                                 PrioridadeTarefa.CRITICA, agora.minusHours(1), "Operador", true))),
@@ -52,6 +54,14 @@ public final class DashboardTestFixture {
                         EstadoClimaDashboard.SEM_DADOS, null, "Previsão ainda não sincronizada",
                         null, null, null, null),
                 new DashboardOperacionalResumo.IntegracoesResumo(0, 0, 0, 0, 0, List.of()),
+                tendenciasVazias(),
                 agora);
+    }
+
+    private static DashboardTendenciasResumo tendenciasVazias() {
+        return new DashboardTendenciasResumo(
+                new DashboardTendenciasResumo.PosturaSerie(0, false, List.of()),
+                List.of(),
+                new DashboardTendenciasResumo.ComprasSerie(BigDecimal.ZERO, false, List.of()));
     }
 }

@@ -10,8 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class CriarLoteAvesRequest {
-    @NotBlank(message = "Código é obrigatório") @Size(max = 80)
-    private String codigo;
     @Size(max = 120) private String nome;
     @NotNull(message = "Espécie é obrigatória") private EspecieAves especie = EspecieAves.GALINHA;
     @NotNull(message = "Finalidade é obrigatória") private FinalidadeLoteAves finalidade;
@@ -28,7 +26,6 @@ public class CriarLoteAvesRequest {
     @DecimalMin(value = "0.0000", message = "Custo inicial não pode ser negativo") private BigDecimal custoInicial;
     @NotBlank(message = "Chave de idempotência é obrigatória") @Size(max = 100) private String chaveIdempotencia;
 
-    public String getCodigo() { return codigo; } public void setCodigo(String v) { codigo = v; }
     public String getNome() { return nome; } public void setNome(String v) { nome = v; }
     public EspecieAves getEspecie() { return especie; } public void setEspecie(EspecieAves v) { especie = v; }
     public FinalidadeLoteAves getFinalidade() { return finalidade; } public void setFinalidade(FinalidadeLoteAves v) { finalidade = v; }

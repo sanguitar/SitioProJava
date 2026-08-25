@@ -22,7 +22,7 @@ public class AbastecimentoService {
 
     @Transactional
     public Abastecimento registrarAbastecimento(Abastecimento abastecimento) {
-        Veiculo veiculo = veiculoService.buscarPorId(abastecimento.getVeiculo().getId());
+        Veiculo veiculo = veiculoService.buscarParaAtualizacao(abastecimento.getVeiculo().getId());
         Double kmAtual = veiculo.getKmAtual() == null ? 0D : veiculo.getKmAtual();
 
         if (abastecimento.getKmNoAto() != null && abastecimento.getKmNoAto() > kmAtual) {

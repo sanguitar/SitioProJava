@@ -49,6 +49,26 @@
     gap: 8px;
 }
 
+.aves-generated-code {
+    align-items: center;
+    background: var(--aves-green-soft);
+    border: 1px dashed var(--aves-green);
+    border-radius: var(--radius-sm);
+    color: var(--aves-green);
+    display: flex;
+    font-size: 0.84rem;
+    font-weight: 700;
+    gap: 9px;
+    min-height: 38px;
+    padding: 7px 11px;
+}
+
+.aves-generated-code-fixed {
+    background: var(--surface-panel-soft);
+    border-color: var(--aves-line);
+    color: var(--aves-ink);
+}
+
 .aves-tabs {
     display: flex;
     gap: 2px;

@@ -6,7 +6,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 
 public class CriarIncubacaoAvesRequest {
-    @NotBlank @Size(max = 80) private String codigo;
     @NotNull private Long instalacaoId;
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) private LocalDate dataInicio;
     @NotNull @Min(1) private Integer quantidadeOvos;
@@ -15,7 +14,6 @@ public class CriarIncubacaoAvesRequest {
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) private LocalDate dataPrevistaEclosao;
     @Size(max = 1000) private String observacao;
     @NotBlank @Size(max = 100) private String chaveIdempotencia;
-    public String getCodigo() { return codigo; } public void setCodigo(String v) { codigo = v; }
     public Long getInstalacaoId() { return instalacaoId; } public void setInstalacaoId(Long v) { instalacaoId = v; }
     public LocalDate getDataInicio() { return dataInicio; } public void setDataInicio(LocalDate v) { dataInicio = v; }
     public Integer getQuantidadeOvos() { return quantidadeOvos; } public void setQuantidadeOvos(Integer v) { quantidadeOvos = v; }

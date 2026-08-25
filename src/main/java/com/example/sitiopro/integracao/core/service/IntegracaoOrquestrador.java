@@ -27,6 +27,8 @@ public class IntegracaoOrquestrador {
     private static final Logger log = LoggerFactory.getLogger(IntegracaoOrquestrador.class);
     private static final Pattern SENSITIVE_VALUE_PATTERN = Pattern.compile(
             "(?i)(senha|password|passwd|pwd|secret|token|authorization|cookie|api[-_ ]?key)\\s*[:=]\\s*\\S+");
+    private static final Pattern SENSITIVE_URI_PATTERN = Pattern.compile(
+            "(?i)(jdbc:[^\\s]+|rediss?://[^\\s]+|https?://[^\\s/@:]+:[^\\s/@]+@[^\\s]+)");
 
     private final Map<FonteIntegracao, IntegracaoSincronizador> sincronizadores;
     private final IntegracaoExecucaoService execucaoService;
@@ -149,7 +151,8 @@ public class IntegracaoOrquestrador {
         if (mensagem == null || mensagem.isBlank()) {
             return "Falha sem detalhes seguros disponíveis.";
         }
-        return SENSITIVE_VALUE_PATTERN.matcher(mensagem).replaceAll("$1=<redacted>");
+        String sanitizada = SENSITIVE_VALUE_PATTERN.matcher(mensagem).replaceAll("$1=<redacted>");
+        return SENSITIVE_URI_PATTERN.matcher(sanitizada).replaceAll("<redacted-uri>");
     }
 
     private String valorOuPadrao(String valor, String padrao) {

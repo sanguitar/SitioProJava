@@ -163,9 +163,9 @@ public class ManejoAvesService {
         LoteAves lote = loteAtivo(loteId); InstalacaoCriacao origem = lote.getInstalacaoAtual();
         existente = transferenciaRepository.findByChaveIdempotencia(chave).orElse(null);
         if (existente != null) return idempotente(existente.getLote().getId(), loteId);
-        InstalacaoCriacao destino = instalacaoService.buscarAtiva(request.getInstalacaoDestinoId());
+        InstalacaoCriacao destino = instalacaoService.reservarCapacidade(
+                request.getInstalacaoDestinoId(), lote.getQuantidadeAtual(), lote.getId());
         if (Objects.equals(origem.getId(), destino.getId())) throw conflito("TRANSFERENCIA_MESMA_INSTALACAO", "Origem e destino devem ser diferentes.");
-        instalacaoService.validarCapacidade(destino, lote.getQuantidadeAtual(), lote.getId());
         LocalDateTime data = data(request.getDataEvento()); lote.setInstalacaoAtual(destino);
         EventoLoteAves evento = loteService.registrarEvento(lote, TipoEventoLoteAves.TRANSFERENCIA, lote.getQuantidadeAtual(), data, ator.ator(), texto(request.getObservacao()), null, origem, destino);
         TransferenciaLoteAves registro = new TransferenciaLoteAves(); registro.setLote(lote); registro.setInstalacaoOrigem(origem);
