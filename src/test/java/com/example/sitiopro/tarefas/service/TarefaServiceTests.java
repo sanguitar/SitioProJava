@@ -5,8 +5,10 @@ import com.example.sitiopro.tarefas.dto.PrazoTarefa;
 import com.example.sitiopro.tarefas.dto.TarefaDetalhe;
 import com.example.sitiopro.tarefas.dto.TarefaFiltro;
 import com.example.sitiopro.tarefas.dto.TarefaRequest;
+import com.example.sitiopro.tarefas.dto.TarefaAutomaticaRequest;
 import com.example.sitiopro.tarefas.dto.TarefaResumo;
 import com.example.sitiopro.tarefas.entity.OrigemTarefa;
+import com.example.sitiopro.tarefas.entity.ModuloOrigem;
 import com.example.sitiopro.tarefas.entity.PrioridadeTarefa;
 import com.example.sitiopro.tarefas.entity.StatusTarefa;
 import com.example.sitiopro.tarefas.entity.Tarefa;
@@ -32,6 +34,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,6 +47,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class TarefaServiceTests {
@@ -181,6 +185,36 @@ class TarefaServiceTests {
                     assertThat(ex.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
                 });
         verify(usuarioRepository, never()).findById(operador.getId());
+    }
+
+    @Test
+    void sincronizaMarcoAutomaticoSemDuplicarEmRetryOuReinicio() {
+        UsuarioAtor ator = new UsuarioAtor(operador.getId(), "operador", false);
+        TarefaAutomaticaRequest request = new TarefaAutomaticaRequest(
+                "CRIACAO:AVES:INCUBACAO:1:OVOSCOPIA",
+                "Realizar ovoscopia de INC-2026-0001",
+                "Registrar o resultado.", PrioridadeTarefa.NORMAL,
+                AGORA.plusDays(7), ModuloOrigem.CRIACOES, "INCUBACAO:1");
+        AtomicReference<Tarefa> persistida = new AtomicReference<>();
+        when(usuarioRepository.findById(operador.getId())).thenReturn(Optional.of(operador));
+        when(tarefaRepository.buscarPorChaveAutomacaoParaAtualizacao(request.chaveAutomacao()))
+                .thenAnswer(invocation -> Optional.ofNullable(persistida.get()));
+        when(tarefaRepository.save(any())).thenAnswer(invocation -> {
+            Tarefa tarefa = tarefaComId(invocation.getArgument(0), 80L);
+            persistida.set(tarefa);
+            return tarefa;
+        });
+
+        TarefaResumo primeira = service.sincronizarAutomatica(request, ator);
+        TarefaResumo repetida = service.sincronizarAutomatica(request, ator);
+
+        assertThat(primeira.id()).isEqualTo(80L);
+        assertThat(repetida.id()).isEqualTo(80L);
+        assertThat(persistida.get().getOrigem()).isEqualTo(OrigemTarefa.AUTOMATICA);
+        assertThat(persistida.get().getModuloOrigem()).isEqualTo(ModuloOrigem.CRIACOES);
+        assertThat(persistida.get().getReferenciaOrigem()).isEqualTo("INCUBACAO:1");
+        assertThat(persistida.get().getChaveAutomacao()).isEqualTo(request.chaveAutomacao());
+        verify(tarefaRepository, times(1)).save(any());
     }
 
     private TarefaRequest request(String titulo) {

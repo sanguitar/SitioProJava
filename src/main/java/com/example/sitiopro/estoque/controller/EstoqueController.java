@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
@@ -98,9 +99,11 @@ public class EstoqueController {
     }
 
     @GetMapping("/movimentacoes")
-    public String movimentacoes(Model model) {
+    public String movimentacoes(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
         model.addAttribute("active", "estoque");
-        model.addAttribute("movimentacoes", movimentoService.listarMovimentos());
+        model.addAttribute("pagina", movimentoService.listarMovimentos(page, size));
         return "estoque/movimentacoes";
     }
 

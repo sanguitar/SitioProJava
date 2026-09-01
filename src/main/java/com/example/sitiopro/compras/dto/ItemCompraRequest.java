@@ -1,5 +1,6 @@
 package com.example.sitiopro.compras.dto;
 
+import com.example.sitiopro.compras.entity.TipoEmbalagem;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,13 +13,25 @@ public class ItemCompraRequest {
     @NotNull(message = "Item de estoque é obrigatório")
     private Long itemEstoqueId;
 
-    @NotNull(message = "Quantidade é obrigatória")
     @DecimalMin(value = "0.0001", message = "Quantidade deve ser maior que zero")
     private BigDecimal quantidade;
 
-    @NotNull(message = "Custo unitário é obrigatório")
     @DecimalMin(value = "0.0000", message = "Custo unitário não pode ser negativo")
     private BigDecimal custoUnitario;
+
+    @DecimalMin(value = "0.0001", message = "Quantidade de volumes deve ser maior que zero")
+    private BigDecimal quantidadeVolumes;
+
+    private TipoEmbalagem tipoEmbalagem;
+
+    @DecimalMin(value = "0.0001", message = "Conteúdo por volume deve ser maior que zero")
+    private BigDecimal conteudoPorVolume;
+
+    @DecimalMin(value = "0.0000", message = "Preço por volume não pode ser negativo")
+    private BigDecimal precoPorVolume;
+
+    @Size(max = 20, message = "Unidade-base deve ter no máximo 20 caracteres")
+    private String unidadeBase;
 
     @NotNull(message = "Local de destino é obrigatório")
     private Long localDestinoId;
@@ -50,6 +63,46 @@ public class ItemCompraRequest {
 
     public void setCustoUnitario(BigDecimal custoUnitario) {
         this.custoUnitario = custoUnitario;
+    }
+
+    public BigDecimal getQuantidadeVolumes() {
+        return quantidadeVolumes;
+    }
+
+    public void setQuantidadeVolumes(BigDecimal quantidadeVolumes) {
+        this.quantidadeVolumes = quantidadeVolumes;
+    }
+
+    public TipoEmbalagem getTipoEmbalagem() {
+        return tipoEmbalagem;
+    }
+
+    public void setTipoEmbalagem(TipoEmbalagem tipoEmbalagem) {
+        this.tipoEmbalagem = tipoEmbalagem;
+    }
+
+    public BigDecimal getConteudoPorVolume() {
+        return conteudoPorVolume;
+    }
+
+    public void setConteudoPorVolume(BigDecimal conteudoPorVolume) {
+        this.conteudoPorVolume = conteudoPorVolume;
+    }
+
+    public BigDecimal getPrecoPorVolume() {
+        return precoPorVolume;
+    }
+
+    public void setPrecoPorVolume(BigDecimal precoPorVolume) {
+        this.precoPorVolume = precoPorVolume;
+    }
+
+    public String getUnidadeBase() {
+        return unidadeBase;
+    }
+
+    public void setUnidadeBase(String unidadeBase) {
+        this.unidadeBase = unidadeBase;
     }
 
     public Long getLocalDestinoId() {

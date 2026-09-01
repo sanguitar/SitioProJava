@@ -6,6 +6,7 @@ import com.example.sitiopro.tarefas.dto.PrazoTarefa;
 import com.example.sitiopro.tarefas.dto.TarefaDetalhe;
 import com.example.sitiopro.tarefas.dto.TarefaFiltro;
 import com.example.sitiopro.tarefas.dto.TarefaRequest;
+import com.example.sitiopro.tarefas.dto.TarefaAutomaticaRequest;
 import com.example.sitiopro.tarefas.dto.TarefaResumo;
 import com.example.sitiopro.tarefas.dto.UsuarioOpcao;
 import com.example.sitiopro.tarefas.entity.Alerta;
@@ -136,6 +137,40 @@ public class TarefaService {
         LocalDateTime agora = LocalDateTime.now(clock);
         return tarefaRepository.findByModuloOrigemAndReferenciaOrigemOrderByCriadoEmDesc(modulo, referencia)
                 .stream().map(tarefa -> resumo(tarefa, agora)).toList();
+    }
+
+    @Transactional
+    public TarefaResumo sincronizarAutomatica(TarefaAutomaticaRequest request, UsuarioAtor ator) {
+        String chave = normalizarObrigatorio(request.chaveAutomacao(), "Chave da automação");
+        if (chave.length() > 160) {
+            throw new TarefaAlertaOperacaoException("CHAVE_AUTOMACAO_INVALIDA",
+                    "A chave da automação deve ter no máximo 160 caracteres.");
+        }
+        if (request.moduloOrigem() == null) {
+            throw new TarefaAlertaOperacaoException("MODULO_AUTOMACAO_OBRIGATORIO",
+                    "O módulo da tarefa automática é obrigatório.");
+        }
+        Usuario usuario = buscarAtor(ator);
+        Tarefa tarefa = tarefaRepository.buscarPorChaveAutomacaoParaAtualizacao(chave).orElse(null);
+        if (tarefa == null) {
+            tarefa = new Tarefa();
+            tarefa.setStatus(StatusTarefa.PENDENTE);
+            tarefa.setResponsavel(usuario);
+            tarefa.setCriadoPorUsuario(usuario);
+            tarefa.setOrigem(OrigemTarefa.AUTOMATICA);
+            tarefa.setModuloOrigem(request.moduloOrigem());
+            tarefa.setReferenciaOrigem(normalizarObrigatorio(request.referenciaOrigem(), "Referência da automação"));
+            tarefa.setChaveAutomacao(chave);
+            tarefa.setAtivo(true);
+            aplicarAutomacao(tarefa, request);
+            tarefa = tarefaRepository.save(tarefa);
+            historicoService.registrarTarefa(tarefa, TipoEventoOperacional.TAREFA_CRIADA,
+                    usuario, ator.ator(), "Marco automático criado.");
+            registrarLog("tarefa.created", tarefa);
+        } else if (!tarefa.getStatus().finalizado()) {
+            aplicarAutomacao(tarefa, request);
+        }
+        return resumo(tarefa, LocalDateTime.now(clock));
     }
 
     @Transactional
@@ -280,6 +315,14 @@ public class TarefaService {
         tarefa.setCriadoPorUsuario(criador);
         tarefa.setAtivo(true);
         return tarefa;
+    }
+
+    private void aplicarAutomacao(Tarefa tarefa, TarefaAutomaticaRequest request) {
+        tarefa.setTitulo(normalizarObrigatorio(request.titulo(), "Título"));
+        tarefa.setDescricao(normalizarOpcional(request.descricao()));
+        tarefa.setPrioridade(request.prioridade() == null
+                ? com.example.sitiopro.tarefas.entity.PrioridadeTarefa.NORMAL : request.prioridade());
+        tarefa.setDataVencimento(request.dataVencimento());
     }
 
     private TarefaRecorrencia configurarRecorrencia(Tarefa tarefa, TarefaRequest request,

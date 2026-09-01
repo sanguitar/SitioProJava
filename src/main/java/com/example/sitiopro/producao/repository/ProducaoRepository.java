@@ -15,7 +15,7 @@ public interface ProducaoRepository extends JpaRepository<Producao, Long> {
     @NonNull
     Page<Producao> findAll(@NonNull Pageable pageable);
 
-    Page<Producao> findByCategoriaId(Long id, Pageable pageable);
+    Page<Producao> findByCategoriaEstoqueId(Long id, Pageable pageable);
 
     long countByCategoria(Categoria categoria);
 }

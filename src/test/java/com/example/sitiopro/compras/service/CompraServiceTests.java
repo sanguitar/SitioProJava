@@ -8,6 +8,7 @@ import com.example.sitiopro.compras.entity.Compra;
 import com.example.sitiopro.compras.entity.Fornecedor;
 import com.example.sitiopro.compras.entity.ItemCompra;
 import com.example.sitiopro.compras.entity.StatusCompra;
+import com.example.sitiopro.compras.entity.TipoEmbalagem;
 import com.example.sitiopro.compras.repository.CompraRepository;
 import com.example.sitiopro.estoque.dto.MovimentoEstoqueRequest;
 import com.example.sitiopro.estoque.entity.CategoriaEstoque;
@@ -22,6 +23,8 @@ import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -119,6 +122,91 @@ class CompraServiceTests {
         assertThat(detalhe.total()).isEqualByComparingTo("14.0000");
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "KG,SACO,1,40,100,40,100",
+            "KG,SACO,2,60,135,120,270",
+            "KG,PACOTE,1,1,7.50,1,7.50",
+            "UN,UNIDADE,10,1,2.25,10,22.50"
+    })
+    void apresentacaoComercialCalculaQuantidadeEstoqueEValorTotalComBigDecimal(String unidade,
+            TipoEmbalagem tipo, String volumes, String conteudo, String preco,
+            String quantidadeEsperada, String totalEsperado) {
+        ItemEstoque item = item(30L, "Item comercial", true, false, false, unidade);
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+        when(estoqueCatalogoService.buscarItem(30L)).thenReturn(item);
+
+        ItemCompraRequest request = apresentacaoRequest(30L, tipo, volumes, conteudo, preco, 20L);
+        request.setQuantidade(new BigDecimal("9999"));
+        request.setCustoUnitario(new BigDecimal("9999"));
+
+        CompraDetalhe detalhe = service.adicionarItem(100L, request);
+
+        assertThat(detalhe.itens()).singleElement().satisfies(resumo -> {
+            assertThat(resumo.quantidadeEstoque()).isEqualByComparingTo(quantidadeEsperada);
+            assertThat(resumo.valorTotal()).isEqualByComparingTo(totalEsperado);
+            assertThat(resumo.unidadeBase()).isEqualTo(unidade);
+            assertThat(resumo.tipoEmbalagem()).isEqualTo(tipo);
+            assertThat(resumo.apresentacaoComercial()).isTrue();
+        });
+        assertThat(detalhe.subtotal()).isEqualByComparingTo(totalEsperado);
+    }
+
+    @Test
+    void unidadeBaseManipuladaERejeitada() {
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+        ItemCompraRequest request = apresentacaoRequest(10L, TipoEmbalagem.SACO, "1", "40", "100", 20L);
+        request.setUnidadeBase("L");
+
+        assertThatThrownBy(() -> service.adicionarItem(100L, request))
+                .isInstanceOf(ComprasOperacaoException.class)
+                .extracting("code")
+                .isEqualTo("UNIDADE_BASE_INCOMPATIVEL");
+    }
+
+    @Test
+    void apresentacaoComercialIncompletaERejeitada() {
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+        ItemCompraRequest request = apresentacaoRequest(10L, TipoEmbalagem.SACO, "1", "40", "100", 20L);
+        request.setPrecoPorVolume(null);
+
+        assertThatThrownBy(() -> service.adicionarItem(100L, request))
+                .isInstanceOf(ComprasOperacaoException.class)
+                .extracting("code")
+                .isEqualTo("APRESENTACAO_INCOMPLETA");
+    }
+
+    @Test
+    void valoresInvalidosDaApresentacaoSaoRejeitadosNoBackend() {
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+
+        assertThatThrownBy(() -> service.adicionarItem(100L,
+                apresentacaoRequest(10L, TipoEmbalagem.SACO, "0", "40", "100", 20L)))
+                .extracting("code").isEqualTo("VOLUMES_INVALIDOS");
+        assertThatThrownBy(() -> service.adicionarItem(100L,
+                apresentacaoRequest(10L, TipoEmbalagem.SACO, "1", "0", "100", 20L)))
+                .extracting("code").isEqualTo("CONTEUDO_VOLUME_INVALIDO");
+        assertThatThrownBy(() -> service.adicionarItem(100L,
+                apresentacaoRequest(10L, TipoEmbalagem.SACO, "1", "40", "-1", 20L)))
+                .extracting("code").isEqualTo("PRECO_VOLUME_INVALIDO");
+    }
+
+    @Test
+    void itemInativoNaoPodeSerIncluidoEmNovaCompra() {
+        ItemEstoque inativo = item(30L, "Item inativo", false, false, false);
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+        when(estoqueCatalogoService.buscarItem(30L)).thenReturn(inativo);
+
+        assertThatThrownBy(() -> service.adicionarItem(100L,
+                apresentacaoRequest(30L, TipoEmbalagem.SACO, "1", "40", "100", 20L)))
+                .extracting("code").isEqualTo("ITEM_ESTOQUE_INATIVO");
+    }
+
     @Test
     void atualizarItemDeRascunhoRecalculaValoresNoServidor() {
         Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
@@ -134,6 +222,20 @@ class CompraServiceTests {
         assertThat(detalhe.itens().getFirst().custoUnitario()).isEqualByComparingTo("5.0000");
         assertThat(detalhe.subtotal()).isEqualByComparingTo("15.0000");
         assertThat(detalhe.total()).isEqualByComparingTo("19.0000");
+    }
+
+    @Test
+    void atualizarApresentacaoDeItemEmRascunhoRecalculaValores() {
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        compra.adicionarItem(itemCompra(501L, racao, deposito, "2", "4.00", null, null));
+        when(compraRepository.findById(100L)).thenReturn(Optional.of(compra));
+
+        CompraDetalhe detalhe = service.atualizarItem(100L, 501L,
+                apresentacaoRequest(10L, TipoEmbalagem.SACO, "2", "60", "135", 20L));
+
+        assertThat(detalhe.itens().getFirst().quantidadeEstoque()).isEqualByComparingTo("120");
+        assertThat(detalhe.itens().getFirst().valorTotal()).isEqualByComparingTo("270");
+        assertThat(detalhe.total()).isEqualByComparingTo("270");
     }
 
     @Test
@@ -208,6 +310,29 @@ class CompraServiceTests {
         assertThat(captor.getAllValues().getFirst().getCustoTotal()).isEqualByComparingTo("6.5000");
         assertThat(captor.getAllValues().get(1).getLoteCodigo()).isEqualTo("L-001");
         assertThat(captor.getAllValues().get(1).getValidade()).isEqualTo(LocalDate.of(2026, 9, 30));
+    }
+
+    @Test
+    void confirmarCompraComEmbalagemEnviaQuantidadeEfetivaAoEstoque() {
+        Compra compra = compra(100L, StatusCompra.RASCUNHO, fornecedor);
+        ItemCompra item = itemCompra(501L, racao, deposito, "120", "2.25", null, null);
+        item.setQuantidadeVolumes(new BigDecimal("2"));
+        item.setTipoEmbalagem(TipoEmbalagem.SACO);
+        item.setConteudoPorVolume(new BigDecimal("60"));
+        item.setPrecoPorVolume(new BigDecimal("135"));
+        item.setUnidadeBase("KG");
+        item.setSubtotal(new BigDecimal("270"));
+        compra.adicionarItem(item);
+        when(compraRepository.buscarParaConfirmacao(100L)).thenReturn(Optional.of(compra));
+        when(estoqueMovimentoService.registrarEntradaCompra(any(), eq(100L))).thenReturn(movimento(900L));
+
+        service.confirmarCompra(100L);
+
+        ArgumentCaptor<MovimentoEstoqueRequest> captor = ArgumentCaptor.forClass(MovimentoEstoqueRequest.class);
+        verify(estoqueMovimentoService).registrarEntradaCompra(captor.capture(), eq(100L));
+        assertThat(captor.getValue().getQuantidade()).isEqualByComparingTo("120");
+        assertThat(captor.getValue().getCustoUnitario()).isEqualByComparingTo("2.25");
+        assertThat(captor.getValue().getCustoTotal()).isEqualByComparingTo("270");
     }
 
     @Test
@@ -307,6 +432,18 @@ class CompraServiceTests {
         return request;
     }
 
+    private ItemCompraRequest apresentacaoRequest(Long itemId, TipoEmbalagem tipo, String volumes,
+            String conteudo, String preco, Long localId) {
+        ItemCompraRequest request = new ItemCompraRequest();
+        request.setItemEstoqueId(itemId);
+        request.setTipoEmbalagem(tipo);
+        request.setQuantidadeVolumes(new BigDecimal(volumes));
+        request.setConteudoPorVolume(new BigDecimal(conteudo));
+        request.setPrecoPorVolume(new BigDecimal(preco));
+        request.setLocalDestinoId(localId);
+        return request;
+    }
+
     private Compra compraComItem(StatusCompra status, ItemEstoque item, LocalEstoque local) {
         Compra compra = compra(100L, status, fornecedor);
         compra.adicionarItem(itemCompra(501L, item, local, "2", "3.25", null, null));
@@ -355,13 +492,18 @@ class CompraServiceTests {
     }
 
     private ItemEstoque item(Long id, String nome, boolean ativo, boolean controlaLote, boolean controlaValidade) {
+        return item(id, nome, ativo, controlaLote, controlaValidade, "KG");
+    }
+
+    private ItemEstoque item(Long id, String nome, boolean ativo, boolean controlaLote, boolean controlaValidade,
+            String unidadeSigla) {
         CategoriaEstoque categoria = new CategoriaEstoque();
         ReflectionTestUtils.setField(categoria, "id", 1L);
         categoria.setNome("Geral");
         UnidadeMedida unidade = new UnidadeMedida();
         ReflectionTestUtils.setField(unidade, "id", 1L);
         unidade.setNome("Quilograma");
-        unidade.setSigla("KG");
+        unidade.setSigla(unidadeSigla);
         ItemEstoque item = new ItemEstoque();
         ReflectionTestUtils.setField(item, "id", id);
         item.setNome(nome);

@@ -3,120 +3,124 @@ package com.example.sitiopro.integracao.clima.openmeteo;
 import com.example.sitiopro.integracao.core.IntegracaoHttpException;
 import com.example.sitiopro.integracao.core.IntegrationResilienceExecutor;
 import com.example.sitiopro.integracao.core.config.IntegracaoCoreProperties;
-import com.example.sitiopro.integracao.core.config.IntegracaoHttpConfig;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class OpenMeteoClientTests {
 
-    private HttpServer server;
-    private ExecutorService executor;
-
-    @AfterEach
-    void encerrarServidor() {
-        if (server != null) {
-            server.stop(0);
-        }
-        if (executor != null) {
-            executor.shutdownNow();
-        }
-    }
-
     @Test
-    void lePayloadValidoSemExporDetalhesHttpAoDominio() throws IOException {
-        iniciarServidor(exchange -> responder(exchange, 200, payloadValido(), null));
+    void lePayloadValidoSemExporDetalhesHttpAoDominio() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        fixture.server().expect(requestTo(containsString("/v1/forecast")))
+                .andRespond(withSuccess(payloadValido(), MediaType.APPLICATION_JSON));
 
-        OpenMeteoResponse response = cliente(Duration.ofSeconds(1)).buscarPrevisao();
+        OpenMeteoResponse response = fixture.client().buscarPrevisao();
 
         assertThat(response.hourly().time()).hasSize(1);
         assertThat(response.hourly().temperature2m().getFirst()).isEqualByComparingTo("28.4");
+        fixture.server().verify();
     }
 
     @Test
-    void payloadInvalidoFalhaSemRetry() throws IOException {
-        AtomicInteger chamadas = new AtomicInteger();
-        iniciarServidor(exchange -> {
-            chamadas.incrementAndGet();
-            responder(exchange, 200, "{\"timezone\":\"UTC\",\"hourly\":{\"time\":[]}}", null);
-        });
+    void payloadInvalidoFalhaSemRetry() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        fixture.server().expect(ExpectedCount.once(), requestTo(containsString("/v1/forecast")))
+                .andRespond(withSuccess("{\"timezone\":\"UTC\",\"hourly\":{\"time\":[]}}",
+                        MediaType.APPLICATION_JSON));
 
-        assertThatThrownBy(() -> cliente(Duration.ofSeconds(1)).buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
                 .isEqualTo("OPEN_METEO_PAYLOAD_INVALIDO");
-        assertThat(chamadas).hasValue(1);
+        fixture.server().verify();
     }
 
     @Test
-    void timeoutRecebeRetryLimitado() throws IOException {
+    void timeoutRecebeRetryLimitado() {
         AtomicInteger chamadas = new AtomicInteger();
-        iniciarServidor(exchange -> {
-            chamadas.incrementAndGet();
-            try {
-                Thread.sleep(150);
-                responder(exchange, 200, payloadValido(), null);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            } catch (IOException ignored) {
-                exchange.close();
-            }
-        });
+        Fixture fixture = cliente(Duration.ofMillis(30));
+        fixture.server().expect(ExpectedCount.manyTimes(), requestTo(containsString("/v1/forecast")))
+                .andRespond(request -> {
+                    chamadas.incrementAndGet();
+                    throw new SocketTimeoutException("timeout simulado");
+                });
 
-        assertThatThrownBy(() -> cliente(Duration.ofMillis(30)).buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
-                .isIn("API_TIMEOUT", "API_CONEXAO");
+                .isEqualTo("API_TIMEOUT");
         assertThat(chamadas.get()).isBetween(1, 3);
+        fixture.server().verify();
     }
 
     @Test
-    void rateLimitRespeitaRetryAfterSemLoopAutomatico() throws IOException {
-        AtomicInteger chamadas = new AtomicInteger();
-        iniciarServidor(exchange -> {
-            chamadas.incrementAndGet();
-            responder(exchange, 429, "{}", "120");
-        });
+    void rateLimitRespeitaRetryAfterSemLoopAutomatico() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        fixture.server().expect(ExpectedCount.once(), requestTo(containsString("/v1/forecast")))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                        .header(HttpHeaders.RETRY_AFTER, "120")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{}"));
 
-        assertThatThrownBy(() -> cliente(Duration.ofSeconds(1)).buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
                 .isInstanceOfSatisfying(IntegracaoHttpException.class, ex -> {
                     assertThat(ex.getCode()).isEqualTo("API_RATE_LIMIT");
                     assertThat(ex.getRetryAfterSeconds()).isEqualTo(120);
                 });
-        assertThat(chamadas).hasValue(1);
+        fixture.server().verify();
     }
 
     @Test
-    void erro500RecebeTresTentativas() throws IOException {
-        AtomicInteger chamadas = new AtomicInteger();
-        iniciarServidor(exchange -> {
-            chamadas.incrementAndGet();
-            responder(exchange, 500, "{}", null);
-        });
+    void erro400FalhaSemRetry() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        fixture.server().expect(ExpectedCount.once(), requestTo(containsString("/v1/forecast")))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{}"));
 
-        assertThatThrownBy(() -> cliente(Duration.ofSeconds(1)).buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+                .isInstanceOfSatisfying(IntegracaoHttpException.class, ex -> {
+                    assertThat(ex.getCode()).isEqualTo("API_REQUISICAO_INVALIDA");
+                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                });
+        fixture.server().verify();
+    }
+
+    @Test
+    void erro500RecebeTresTentativas() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        fixture.server().expect(ExpectedCount.times(3), requestTo(containsString("/v1/forecast")))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{}"));
+
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
                 .isEqualTo("API_HTTP_5XX");
-        assertThat(chamadas).hasValue(3);
+        fixture.server().verify();
     }
 
-    private OpenMeteoClient cliente(Duration readTimeout) {
+    private Fixture cliente(Duration readTimeout) {
         OpenMeteoProperties properties = new OpenMeteoProperties();
         properties.setEnabled(true);
-        properties.setBaseUrl("http://127.0.0.1:" + server.getAddress().getPort());
+        properties.setBaseUrl("https://open-meteo.test");
         properties.setLatitude("-3.0");
         properties.setLongitude("-60.0");
         properties.setTimezone("UTC");
@@ -124,29 +128,10 @@ class OpenMeteoClientTests {
         properties.setConnectTimeout(Duration.ofSeconds(1));
         IntegracaoCoreProperties coreProperties = new IntegracaoCoreProperties();
         coreProperties.setOpenMeteoLimitPerMinute(20);
-        return new OpenMeteoClient(
-                new IntegracaoHttpConfig().openMeteoRestClient(properties),
-                properties,
-                new IntegrationResilienceExecutor(coreProperties));
-    }
-
-    private void iniciarServidor(Manipulador manipulador) throws IOException {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        executor = Executors.newCachedThreadPool();
-        server.setExecutor(executor);
-        server.createContext("/v1/forecast", exchange -> manipulador.tratar(exchange));
-        server.start();
-    }
-
-    private void responder(HttpExchange exchange, int status, String body, String retryAfter) throws IOException {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        if (retryAfter != null) {
-            exchange.getResponseHeaders().set("Retry-After", retryAfter);
-        }
-        exchange.sendResponseHeaders(status, bytes.length);
-        exchange.getResponseBody().write(bytes);
-        exchange.close();
+        RestClient.Builder builder = RestClient.builder().baseUrl(properties.getBaseUrl());
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        return new Fixture(new OpenMeteoClient(builder.build(), properties,
+                new IntegrationResilienceExecutor(coreProperties)), server);
     }
 
     private String payloadValido() {
@@ -169,8 +154,6 @@ class OpenMeteoClientTests {
                 """;
     }
 
-    @FunctionalInterface
-    private interface Manipulador {
-        void tratar(HttpExchange exchange) throws IOException;
+    private record Fixture(OpenMeteoClient client, MockRestServiceServer server) {
     }
 }

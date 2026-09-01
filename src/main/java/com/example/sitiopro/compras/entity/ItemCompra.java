@@ -6,6 +6,8 @@ import com.example.sitiopro.estoque.entity.MovimentoEstoque;
 import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -50,6 +52,22 @@ public class ItemCompra extends AuditableEntity {
 
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal subtotal;
+
+    @Column(name = "quantidade_volumes", precision = 19, scale = 4)
+    private BigDecimal quantidadeVolumes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_embalagem", length = 20)
+    private TipoEmbalagem tipoEmbalagem;
+
+    @Column(name = "conteudo_por_volume", precision = 19, scale = 4)
+    private BigDecimal conteudoPorVolume;
+
+    @Column(name = "preco_por_volume", precision = 19, scale = 4)
+    private BigDecimal precoPorVolume;
+
+    @Column(name = "unidade_base", length = 20)
+    private String unidadeBase;
 
     @Column(name = "lote_codigo", length = 80)
     private String loteCodigo;
@@ -114,6 +132,54 @@ public class ItemCompra extends AuditableEntity {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public BigDecimal getQuantidadeVolumes() {
+        return quantidadeVolumes;
+    }
+
+    public void setQuantidadeVolumes(BigDecimal quantidadeVolumes) {
+        this.quantidadeVolumes = quantidadeVolumes;
+    }
+
+    public TipoEmbalagem getTipoEmbalagem() {
+        return tipoEmbalagem;
+    }
+
+    public void setTipoEmbalagem(TipoEmbalagem tipoEmbalagem) {
+        this.tipoEmbalagem = tipoEmbalagem;
+    }
+
+    public BigDecimal getConteudoPorVolume() {
+        return conteudoPorVolume;
+    }
+
+    public void setConteudoPorVolume(BigDecimal conteudoPorVolume) {
+        this.conteudoPorVolume = conteudoPorVolume;
+    }
+
+    public BigDecimal getPrecoPorVolume() {
+        return precoPorVolume;
+    }
+
+    public void setPrecoPorVolume(BigDecimal precoPorVolume) {
+        this.precoPorVolume = precoPorVolume;
+    }
+
+    public String getUnidadeBase() {
+        return unidadeBase;
+    }
+
+    public void setUnidadeBase(String unidadeBase) {
+        this.unidadeBase = unidadeBase;
+    }
+
+    public boolean possuiApresentacaoComercial() {
+        return quantidadeVolumes != null
+                && tipoEmbalagem != null
+                && conteudoPorVolume != null
+                && precoPorVolume != null
+                && unidadeBase != null;
     }
 
     public String getLoteCodigo() {

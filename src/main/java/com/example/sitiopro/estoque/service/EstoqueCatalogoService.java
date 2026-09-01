@@ -54,6 +54,17 @@ public class EstoqueCatalogoService {
     }
 
     @Transactional(readOnly = true)
+    public CategoriaEstoque buscarCategoriaAtiva(Long id) {
+        if (id == null) {
+            throw new EstoqueOperacaoException("CATEGORIA_OBRIGATORIA", "Selecione uma categoria.");
+        }
+        return categoriaRepository.findById(id)
+                .filter(CategoriaEstoque::isAtiva)
+                .orElseThrow(() -> new EstoqueOperacaoException("CATEGORIA_INVALIDA",
+                        "Categoria de estoque não encontrada ou inativa."));
+    }
+
+    @Transactional(readOnly = true)
     public List<UnidadeMedida> listarUnidadesAtivas() {
         return unidadeMedidaRepository.findByAtivaTrueOrderByNomeAsc();
     }

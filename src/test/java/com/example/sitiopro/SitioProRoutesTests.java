@@ -9,6 +9,7 @@ import com.example.sitiopro.compras.controller.ComprasController;
 import com.example.sitiopro.criacao.aves.dto.AvesResumo;
 import com.example.sitiopro.criacao.aves.service.AvesResumoService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.IncubacaoAcompanhamentoService;
 import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
 import com.example.sitiopro.criacao.aves.service.LoteAvesService;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
@@ -34,14 +35,19 @@ import com.example.sitiopro.integracao.core.dto.IntegracaoFonteResumo;
 import com.example.sitiopro.integracao.core.dto.IntegracaoPainelResumo;
 import com.example.sitiopro.integracao.core.service.IntegracaoOrquestrador;
 import com.example.sitiopro.integracao.core.service.IntegracaoPainelService;
+import com.example.sitiopro.estoque.api.EstoqueApiController;
 import com.example.sitiopro.estoque.controller.EstoqueController;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
 import com.example.sitiopro.estoque.dto.ItemEstoqueDetalhe;
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
 import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
+import com.example.sitiopro.estoque.entity.CategoriaEstoque;
+import com.example.sitiopro.estoque.entity.ItemEstoque;
 import com.example.sitiopro.estoque.entity.TipoMovimentoEstoque;
+import com.example.sitiopro.estoque.entity.UnidadeMedida;
 import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
+import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.frota.controller.VeiculoController;
 import com.example.sitiopro.frota.service.VeiculoService;
 import com.example.sitiopro.observability.controller.SistemaSaudeController;
@@ -55,7 +61,7 @@ import com.example.sitiopro.planejamento.controller.PlanejamentoRedirectControll
 import com.example.sitiopro.planejamento.controller.PropriedadePlanejamentoController;
 import com.example.sitiopro.planejamento.controller.VeiculosPlanejamentoController;
 import com.example.sitiopro.producao.controller.ProducaoController;
-import com.example.sitiopro.producao.model.Producao;
+import com.example.sitiopro.producao.dto.ProducaoForm;
 import com.example.sitiopro.producao.service.ProducaoService;
 import com.example.sitiopro.tarefas.controller.AlertaController;
 import com.example.sitiopro.tarefas.controller.TarefaController;
@@ -85,6 +91,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -100,14 +107,22 @@ import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static com.example.sitiopro.DashboardTestFixture.vazio;
 import static com.example.sitiopro.DashboardTestFixture.comDestaques;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @WebMvcTest(controllers = {
         DashboardController.class,
@@ -117,6 +132,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         VeiculoController.class,
         AbastecimentoController.class,
         EstoqueController.class,
+        EstoqueApiController.class,
         ComprasController.class,
         TarefaController.class,
         AlertaController.class,
@@ -194,6 +210,7 @@ class SitioProRoutesTests {
     @MockBean private LoteAvesService loteAvesService;
     @MockBean private ManejoAvesService manejoAvesService;
     @MockBean private IncubacaoAvesService incubacaoAvesService;
+    @MockBean private IncubacaoAcompanhamentoService incubacaoAcompanhamentoService;
     @MockBean private Clock clock;
 
     @BeforeEach
@@ -203,13 +220,14 @@ class SitioProRoutesTests {
         when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
-        when(producaoService.novo()).thenReturn(new Producao());
+        when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
         when(usuarioService.listarTodos()).thenReturn(List.of());
         when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
                 0, 0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of()));
         when(estoqueMovimentoService.listarItensComSaldo()).thenReturn(List.of());
-        when(estoqueMovimentoService.listarMovimentos()).thenReturn(List.of());
+        when(estoqueMovimentoService.listarMovimentos(anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
         when(estoqueMovimentoService.buscarMovimento(1L)).thenReturn(new MovimentoEstoqueResponse(
                 1L, 1L, "Ração postura", TipoMovimentoEstoque.ENTRADA, "Entrada",
                 BigDecimal.TEN, "KG", null, "Depósito", null, null, null,
@@ -317,6 +335,159 @@ class SitioProRoutesTests {
     void rotasFuncionaisExistentesContinuamRespondendo(String rota) throws Exception {
         mockMvc.perform(get(rota))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void detalheCompraExibeApresentacaoComercialSemCamposDerivadosManipulaveis() throws Exception {
+        ItemEstoque racao = itemEstoque(10L, "Ração postura", "KG", true);
+        when(estoqueCatalogoService.listarItensAtivos()).thenReturn(List.of(racao));
+
+        mockMvc.perform(get("/sitio/compras/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Somente itens ativos aparecem nesta lista.")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"quantidadeVolumes\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"tipoEmbalagem\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"conteudoPorVolume\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"precoPorVolume\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-unidade=\"KG\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"unidadeBase\""))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"quantidade\""))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"custoUnitario\""))));
+    }
+
+    @Test
+    void cadastroRuralCarregaCategoriasAtivasNoModelENoSelect() throws Exception {
+        CategoriaEstoque geral = categoriaEstoque(1L, "Geral", true);
+        CategoriaEstoque graos = categoriaEstoque(2L, "Grãos", true);
+        when(estoqueCatalogoService.listarCategoriasAtivas()).thenReturn(List.of(geral, graos));
+
+        mockMvc.perform(get("/sitio/cadastro"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("producao/cadastro"))
+                .andExpect(model().attribute("categorias", List.of(geral, graos)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<option value=\"1\">Geral</option>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<option value=\"2\">Grãos</option>")));
+    }
+
+    @Test
+    void cadastroRuralValidoEnviaSomenteDtoComCategoriaId() throws Exception {
+        mockMvc.perform(post("/sitio/salvar")
+                        .with(csrf())
+                        .param("categoriaId", "2")
+                        .param("item", "Milho em grão")
+                        .param("quantidade", "30")
+                        .param("unidade", "saca")
+                        .param("status", "Estoque"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/painel"));
+
+        verify(producaoService).salvar(argThat(form -> form.getId() == null
+                && Long.valueOf(2L).equals(form.getCategoriaId())
+                && "Milho em grão".equals(form.getItem())));
+    }
+
+    @Test
+    void cadastroRuralSemCategoriaReexibeFormularioComOpcoes() throws Exception {
+        CategoriaEstoque geral = categoriaEstoque(1L, "Geral", true);
+        when(estoqueCatalogoService.listarCategoriasAtivas()).thenReturn(List.of(geral));
+
+        mockMvc.perform(post("/sitio/salvar")
+                        .with(csrf())
+                        .param("categoria", "1")
+                        .param("categoria.id", "1")
+                        .param("estoqueCategoria", "1")
+                        .param("estoqueCategoria.id", "1")
+                        .param("item", "Milho em grão")
+                        .param("quantidade", "30")
+                        .param("unidade", "saca")
+                        .param("status", "Estoque"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("producao/cadastro"))
+                .andExpect(model().attributeHasFieldErrors("producaoForm", "categoriaId"))
+                .andExpect(model().attribute("categorias", List.of(geral)))
+                .andExpect(model().attribute("producaoForm", org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.hasProperty("item", org.hamcrest.Matchers.is("Milho em grão")),
+                        org.hamcrest.Matchers.hasProperty("quantidade", org.hamcrest.Matchers.is(30)))))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<option value=\"1\">Geral</option>")));
+
+        verify(producaoService, never()).salvar(any(ProducaoForm.class));
+    }
+
+    @Test
+    void cadastroRuralRejeitaCategoriaManipuladaEMantemOpcoes() throws Exception {
+        CategoriaEstoque geral = categoriaEstoque(1L, "Geral", true);
+        when(estoqueCatalogoService.listarCategoriasAtivas()).thenReturn(List.of(geral));
+        when(producaoService.salvar(any(ProducaoForm.class))).thenThrow(new EstoqueOperacaoException(
+                "CATEGORIA_INVALIDA", "Categoria de estoque não encontrada ou inativa."));
+
+        mockMvc.perform(post("/sitio/salvar")
+                        .with(csrf())
+                        .param("categoriaId", "99999")
+                        .param("item", "Milho em grão")
+                        .param("quantidade", "30")
+                        .param("unidade", "saca")
+                        .param("status", "Estoque"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("producaoForm", "categoriaId"))
+                .andExpect(model().attribute("categorias", List.of(geral)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "Categoria de estoque não encontrada ou inativa.")));
+    }
+
+    @Test
+    void edicaoDoCadastroRuralMantemCategoriaAtualSelecionada() throws Exception {
+        CategoriaEstoque geral = categoriaEstoque(1L, "Geral", true);
+        CategoriaEstoque graos = categoriaEstoque(2L, "Grãos", true);
+        ProducaoForm form = new ProducaoForm();
+        form.setId(7L);
+        form.setCategoriaId(2L);
+        form.setItem("Milho");
+        form.setQuantidade(10);
+        form.setUnidade("saca");
+        form.setStatus("Estoque");
+        when(producaoService.formularioEdicao(7L)).thenReturn(form);
+        when(estoqueCatalogoService.listarCategoriasAtivas()).thenReturn(List.of(geral, graos));
+
+        mockMvc.perform(get("/sitio/editar/7"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<option value=\"2\" selected=\"selected\">Grãos</option>")));
+    }
+
+    @Test
+    void historicoEstoqueRenderizaNavegacaoEPreservaTamanho() throws Exception {
+        when(estoqueMovimentoService.listarMovimentos(1, 20))
+                .thenReturn(new PaginaResponse<>(List.of(movimentoEstoque()), 1, 20, 45, 3));
+
+        mockMvc.perform(get("/sitio/estoque/movimentacoes")
+                        .param("page", "1")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Página 2 de 3")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "href=\"/sitio/estoque/movimentacoes?page=0&amp;size=20\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "href=\"/sitio/estoque/movimentacoes?page=2&amp;size=20\"")));
+    }
+
+    @Test
+    void apiEstoqueRetornaPaginaComTamanhoPadraoEMetadados() throws Exception {
+        when(estoqueMovimentoService.listarMovimentos(0, 20))
+                .thenReturn(new PaginaResponse<>(List.of(movimentoEstoque()), 0, 20, 41, 3));
+
+        mockMvc.perform(get("/api/v1/estoque/movimentos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.conteudo[0].id").value(1))
+                .andExpect(jsonPath("$.pagina").value(0))
+                .andExpect(jsonPath("$.tamanho").value(20))
+                .andExpect(jsonPath("$.totalElementos").value(41))
+                .andExpect(jsonPath("$.totalPaginas").value(3));
     }
 
     @Test
@@ -457,11 +628,41 @@ class SitioProRoutesTests {
                 TipoRecorrencia.NENHUMA, null, null, false, true, 0, false, List.of());
     }
 
+    private MovimentoEstoqueResponse movimentoEstoque() {
+        return new MovimentoEstoqueResponse(
+                1L, 1L, "Ração postura", TipoMovimentoEstoque.ENTRADA, "Entrada",
+                BigDecimal.TEN, "KG", null, "Depósito", null, null, null,
+                null, LocalDateTime.of(2026, 8, 25, 12, 0), "operador", null, null, null);
+    }
+
     private AlertaDetalhe alertaDetalhe() {
         LocalDateTime agora = LocalDateTime.of(2026, 8, 24, 10, 0);
         return new AlertaDetalhe(1L, "Ração abaixo do mínimo", "Saldo abaixo do mínimo.",
                 SeveridadeAlerta.ALTA, StatusAlerta.ATIVO, ModuloOrigem.ESTOQUE,
                 TipoAlerta.ESTOQUE_ABAIXO_MINIMO, "ITEM:1", "ESTOQUE:ITEM:1:ABAIXO_MINIMO",
                 agora, agora, null, null, null, Map.of("saldo", 1), null, 0, List.of());
+    }
+
+    private CategoriaEstoque categoriaEstoque(Long id, String nome, boolean ativa) {
+        CategoriaEstoque categoria = new CategoriaEstoque();
+        ReflectionTestUtils.setField(categoria, "id", id);
+        categoria.setNome(nome);
+        categoria.setAtiva(ativa);
+        return categoria;
+    }
+
+    private ItemEstoque itemEstoque(Long id, String nome, String unidadeSigla, boolean ativo) {
+        UnidadeMedida unidade = new UnidadeMedida();
+        ReflectionTestUtils.setField(unidade, "id", id);
+        unidade.setNome(unidadeSigla);
+        unidade.setSigla(unidadeSigla);
+        unidade.setAtiva(true);
+        ItemEstoque item = new ItemEstoque();
+        ReflectionTestUtils.setField(item, "id", id);
+        item.setNome(nome);
+        item.setUnidadeMedida(unidade);
+        item.setCategoria(categoriaEstoque(id, "Geral", true));
+        item.setAtivo(ativo);
+        return item;
     }
 }

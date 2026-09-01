@@ -1,5 +1,7 @@
 package com.example.sitiopro.compras.dto;
 
+import com.example.sitiopro.compras.entity.TipoEmbalagem;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -11,6 +13,15 @@ public record ItemCompraResumo(
         BigDecimal quantidade,
         BigDecimal custoUnitario,
         BigDecimal subtotal,
+        BigDecimal quantidadeVolumes,
+        TipoEmbalagem tipoEmbalagem,
+        String tipoEmbalagemRotulo,
+        BigDecimal conteudoPorVolume,
+        BigDecimal precoPorVolume,
+        String unidadeBase,
+        BigDecimal quantidadeEstoque,
+        BigDecimal valorTotal,
+        boolean apresentacaoComercial,
         Long localDestinoId,
         String localDestinoNome,
         String loteCodigo,

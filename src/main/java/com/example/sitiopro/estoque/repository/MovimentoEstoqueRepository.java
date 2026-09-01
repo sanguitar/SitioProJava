@@ -1,6 +1,8 @@
 package com.example.sitiopro.estoque.repository;
 
 import com.example.sitiopro.estoque.entity.MovimentoEstoque;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,7 +40,7 @@ public interface MovimentoEstoqueRepository extends JpaRepository<MovimentoEstoq
     List<MovimentoEstoque> findTop10ByOrderByDataMovimentoDescIdDesc();
 
     @EntityGraph(attributePaths = {"item", "item.unidadeMedida", "localOrigem", "localDestino", "lote"})
-    List<MovimentoEstoque> findAllByOrderByDataMovimentoDescIdDesc();
+    Page<MovimentoEstoque> findAllByOrderByDataMovimentoDescIdDesc(Pageable pageable);
 
     @EntityGraph(attributePaths = {"item", "item.unidadeMedida", "localOrigem", "localDestino", "lote"})
     List<MovimentoEstoque> findByItemIdOrderByDataMovimentoDescIdDesc(Long itemId);

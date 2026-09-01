@@ -79,6 +79,13 @@ sitiopro:
       mortalidade-alerta-percentual: ${CRIACAO_AVES_MORTALIDADE_ALERTA_PERCENTUAL:5.0}
       mortalidade-periodo-dias: ${CRIACAO_AVES_MORTALIDADE_PERIODO_DIAS:7}
       eclosao-proxima-dias: ${CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS:2}
+      periodos-incubacao-dias:
+        GALINHA: ${CRIACAO_AVES_GALINHA_INCUBACAO_DIAS:21}
+      tarefas-automaticas-enabled: ${CRIACAO_AVES_TAREFAS_AUTOMATICAS_ENABLED:true}
+      tarefa-verificacao-dias: ${CRIACAO_AVES_TAREFA_VERIFICACAO_DIAS:1}
+      tarefa-ovoscopia-dias: ${CRIACAO_AVES_TAREFA_OVOSCOPIA_DIAS:7}
+      tarefa-preparacao-antecedencia-dias: ${CRIACAO_AVES_TAREFA_PREPARACAO_ANTECEDENCIA_DIAS:3}
+      pintinhos-recentes-dias: ${CRIACAO_AVES_PINTINHOS_RECENTES_DIAS:30}
   tarefas:
     scheduler-enabled: ${SITIOPRO_TASKS_SCHEDULER_ENABLED:true}
     alertas-intervalo: ${SITIOPRO_ALERTS_INTERVAL:PT5M}

@@ -72,6 +72,11 @@ public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
     @Query("select t from Tarefa t where t.id = :id")
     Optional<Tarefa> buscarParaAtualizacao(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario"})
+    @Query("select t from Tarefa t where t.chaveAutomacao = :chave")
+    Optional<Tarefa> buscarPorChaveAutomacaoParaAtualizacao(@Param("chave") String chave);
+
     long countByStatusInAndDataVencimentoGreaterThanEqualAndDataVencimentoLessThan(
             Collection<StatusTarefa> statuses, LocalDateTime inicio, LocalDateTime fim);
 

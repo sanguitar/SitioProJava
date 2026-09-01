@@ -135,14 +135,7 @@ public class CompraService {
         LocalEstoque localDestino = estoqueCatalogoService.buscarLocalAtivo(request.getLocalDestinoId());
 
         ItemCompra item = new ItemCompra();
-        item.setItemEstoque(itemEstoque);
-        item.setLocalDestino(localDestino);
-        item.setQuantidade(quantidadePositiva(request.getQuantidade()));
-        item.setCustoUnitario(valorNaoNegativo(request.getCustoUnitario(), "CUSTO_INVALIDO",
-                "Custo unitário não pode ser negativo."));
-        item.setLoteCodigo(normalizarTextoOpcional(request.getLoteCodigo()));
-        item.setValidade(request.getValidade());
-        item.setSubtotal(calcularSubtotalItem(item));
+        aplicarDadosItem(item, itemEstoque, localDestino, request);
         compra.adicionarItem(item);
         recalcularTotais(compra);
 
@@ -184,14 +177,7 @@ public class CompraService {
         validarLoteCompra(itemEstoque, request);
         LocalEstoque localDestino = estoqueCatalogoService.buscarLocalAtivo(request.getLocalDestinoId());
 
-        item.setItemEstoque(itemEstoque);
-        item.setLocalDestino(localDestino);
-        item.setQuantidade(quantidadePositiva(request.getQuantidade()));
-        item.setCustoUnitario(valorNaoNegativo(request.getCustoUnitario(), "CUSTO_INVALIDO",
-                "Custo unitário não pode ser negativo."));
-        item.setLoteCodigo(normalizarTextoOpcional(request.getLoteCodigo()));
-        item.setValidade(request.getValidade());
-        item.setSubtotal(calcularSubtotalItem(item));
+        aplicarDadosItem(item, itemEstoque, localDestino, request);
         recalcularTotais(compra);
 
         Compra salva = compraRepository.save(compra);
@@ -220,6 +206,7 @@ public class CompraService {
                 MovimentoEstoque movimento = estoqueMovimentoService.registrarEntradaCompra(movimentoRequest(compra, item),
                         compra.getId());
                 item.setMovimentoEstoque(movimento);
+                registrarConfirmacaoItem(compra, item);
             }
 
             compra.setStatus(StatusCompra.CONFIRMADA);
@@ -310,6 +297,92 @@ public class CompraService {
                         "Local de destino não encontrado ou inativo.");
             }
             validarLoteCompra(item.getItemEstoque(), item.getLoteCodigo(), item.getValidade());
+            validarApresentacaoPersistida(item);
+        }
+    }
+
+    private void aplicarDadosItem(ItemCompra item, ItemEstoque itemEstoque, LocalEstoque localDestino,
+            ItemCompraRequest request) {
+        item.setItemEstoque(itemEstoque);
+        item.setLocalDestino(localDestino);
+        item.setLoteCodigo(normalizarTextoOpcional(request.getLoteCodigo()));
+        item.setValidade(request.getValidade());
+
+        if (informouApresentacaoComercial(request)) {
+            aplicarApresentacaoComercial(item, itemEstoque, request);
+        } else {
+            aplicarValoresLegados(item, request);
+        }
+        item.setSubtotal(calcularSubtotalItem(item));
+    }
+
+    private boolean informouApresentacaoComercial(ItemCompraRequest request) {
+        return request.getQuantidadeVolumes() != null
+                || request.getTipoEmbalagem() != null
+                || request.getConteudoPorVolume() != null
+                || request.getPrecoPorVolume() != null
+                || StringUtils.hasText(request.getUnidadeBase());
+    }
+
+    private void aplicarApresentacaoComercial(ItemCompra item, ItemEstoque itemEstoque, ItemCompraRequest request) {
+        if (request.getQuantidadeVolumes() == null
+                || request.getTipoEmbalagem() == null
+                || request.getConteudoPorVolume() == null
+                || request.getPrecoPorVolume() == null) {
+            throw new ComprasOperacaoException("APRESENTACAO_INCOMPLETA",
+                    "Informe apresentação, volumes, conteúdo e preço por volume.");
+        }
+
+        String unidadeOficial = itemEstoque.getUnidadeMedida().getSigla();
+        if (StringUtils.hasText(request.getUnidadeBase())
+                && !unidadeOficial.equalsIgnoreCase(request.getUnidadeBase().trim())) {
+            throw new ComprasOperacaoException("UNIDADE_BASE_INCOMPATIVEL",
+                    "A unidade-base informada não corresponde à unidade oficial do item.");
+        }
+
+        BigDecimal volumes = quantidadePositiva(request.getQuantidadeVolumes(), "VOLUMES_INVALIDOS",
+                "Quantidade de volumes deve ser maior que zero.");
+        BigDecimal conteudo = quantidadePositiva(request.getConteudoPorVolume(), "CONTEUDO_VOLUME_INVALIDO",
+                "Conteúdo por volume deve ser maior que zero.");
+        BigDecimal precoVolume = valorNaoNegativo(request.getPrecoPorVolume(), "PRECO_VOLUME_INVALIDO",
+                "Preço por volume não pode ser negativo.");
+        BigDecimal quantidadeEstoque = escala(volumes.multiply(conteudo));
+        BigDecimal valorTotal = escala(volumes.multiply(precoVolume));
+
+        item.setQuantidadeVolumes(volumes);
+        item.setTipoEmbalagem(request.getTipoEmbalagem());
+        item.setConteudoPorVolume(conteudo);
+        item.setPrecoPorVolume(precoVolume);
+        item.setUnidadeBase(unidadeOficial);
+        item.setQuantidade(quantidadeEstoque);
+        item.setCustoUnitario(valorTotal.divide(quantidadeEstoque, ESCALA, RoundingMode.HALF_UP));
+        item.setSubtotal(valorTotal);
+    }
+
+    private void aplicarValoresLegados(ItemCompra item, ItemCompraRequest request) {
+        item.setQuantidade(quantidadePositiva(request.getQuantidade()));
+        item.setCustoUnitario(valorNaoNegativoObrigatorio(request.getCustoUnitario(), "CUSTO_INVALIDO",
+                "Custo unitário é obrigatório e não pode ser negativo."));
+        item.setQuantidadeVolumes(null);
+        item.setTipoEmbalagem(null);
+        item.setConteudoPorVolume(null);
+        item.setPrecoPorVolume(null);
+        item.setUnidadeBase(null);
+    }
+
+    private void validarApresentacaoPersistida(ItemCompra item) {
+        if (!item.possuiApresentacaoComercial()) {
+            return;
+        }
+        String unidadeOficial = item.getItemEstoque().getUnidadeMedida().getSigla();
+        if (!unidadeOficial.equalsIgnoreCase(item.getUnidadeBase())) {
+            throw new ComprasOperacaoException("UNIDADE_BASE_INCOMPATIVEL",
+                    "A unidade-base da apresentação não corresponde mais à unidade oficial do item.");
+        }
+        BigDecimal quantidadeCalculada = escala(item.getQuantidadeVolumes().multiply(item.getConteudoPorVolume()));
+        if (quantidadeCalculada.compareTo(item.getQuantidade()) != 0) {
+            throw new ComprasOperacaoException("QUANTIDADE_ESTOQUE_INCONSISTENTE",
+                    "A quantidade efetiva do item está inconsistente com sua apresentação comercial.");
         }
     }
 
@@ -379,14 +452,28 @@ public class CompraService {
     }
 
     private BigDecimal calcularSubtotalItem(ItemCompra item) {
+        if (item.possuiApresentacaoComercial()) {
+            return escala(item.getQuantidadeVolumes().multiply(item.getPrecoPorVolume()));
+        }
         return escala(item.getQuantidade().multiply(item.getCustoUnitario()));
     }
 
     private BigDecimal quantidadePositiva(BigDecimal valor) {
+        return quantidadePositiva(valor, "QUANTIDADE_INVALIDA", "Quantidade deve ser maior que zero.");
+    }
+
+    private BigDecimal quantidadePositiva(BigDecimal valor, String code, String message) {
         if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ComprasOperacaoException("QUANTIDADE_INVALIDA", "Quantidade deve ser maior que zero.");
+            throw new ComprasOperacaoException(code, message);
         }
         return escala(valor);
+    }
+
+    private BigDecimal valorNaoNegativoObrigatorio(BigDecimal valor, String code, String message) {
+        if (valor == null) {
+            throw new ComprasOperacaoException(code, message);
+        }
+        return valorNaoNegativo(valor, code, message);
     }
 
     private BigDecimal valorNaoNegativo(BigDecimal valor, String code, String message) {
@@ -450,11 +537,48 @@ public class CompraService {
                 item.getQuantidade(),
                 item.getCustoUnitario(),
                 item.getSubtotal(),
+                item.getQuantidadeVolumes(),
+                item.getTipoEmbalagem(),
+                rotuloEmbalagem(item),
+                item.getConteudoPorVolume(),
+                item.getPrecoPorVolume(),
+                item.possuiApresentacaoComercial() ? item.getUnidadeBase()
+                        : item.getItemEstoque().getUnidadeMedida().getSigla(),
+                item.getQuantidade(),
+                item.getSubtotal(),
+                item.possuiApresentacaoComercial(),
                 item.getLocalDestino().getId(),
                 item.getLocalDestino().getNome(),
                 item.getLoteCodigo(),
                 item.getValidade(),
                 movimento == null ? null : movimento.getId());
+    }
+
+    private String rotuloEmbalagem(ItemCompra item) {
+        if (!item.possuiApresentacaoComercial()) {
+            return null;
+        }
+        return item.getQuantidadeVolumes().compareTo(BigDecimal.ONE) == 0
+                ? item.getTipoEmbalagem().getRotulo().toLowerCase()
+                : item.getTipoEmbalagem().getRotuloPlural();
+    }
+
+    private void registrarConfirmacaoItem(Compra compra, ItemCompra item) {
+        try (MdcScope ignored = MdcScope.with(Map.of(
+                "event.action", "compra_item_entrada_confirmada",
+                "module", "compras",
+                "compras.compra.id", safeId(compra.getId()),
+                "compras.item.id", safeId(item.getId()),
+                "compras.quantidade.volumes", decimalSeguro(item.getQuantidadeVolumes()),
+                "estoque.quantidade", decimalSeguro(item.getQuantidade()),
+                "estoque.unidade", item.getItemEstoque().getUnidadeMedida().getSigla(),
+                "compras.item.valor_total", decimalSeguro(item.getSubtotal())))) {
+            log.info("Item de compra convertido e registrado no estoque.");
+        }
+    }
+
+    private String decimalSeguro(BigDecimal valor) {
+        return valor == null ? "legacy" : valor.toPlainString();
     }
 
     private String usuarioAtual() {

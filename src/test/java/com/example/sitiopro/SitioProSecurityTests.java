@@ -13,9 +13,12 @@ import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.compras.service.FornecedorService;
 import com.example.sitiopro.criacao.aves.dto.AvesResumo;
+import com.example.sitiopro.criacao.aves.dto.AcompanhamentoIncubacaoAvesResumo;
+import com.example.sitiopro.criacao.aves.entity.TipoAcompanhamentoIncubacaoAves;
 import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
 import com.example.sitiopro.criacao.aves.service.AvesResumoService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.IncubacaoAcompanhamentoService;
 import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
 import com.example.sitiopro.criacao.aves.service.LoteAvesService;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
@@ -27,6 +30,9 @@ import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
+import com.example.sitiopro.integracao.core.dto.IntegracaoPainelResumo;
+import com.example.sitiopro.integracao.core.service.IntegracaoOrquestrador;
+import com.example.sitiopro.integracao.core.service.IntegracaoPainelService;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
 import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
@@ -44,7 +50,7 @@ import com.example.sitiopro.frota.repository.VeiculoRepository;
 import com.example.sitiopro.frota.service.VeiculoService;
 import com.example.sitiopro.observability.dto.SistemaSaudeResumo;
 import com.example.sitiopro.observability.service.SistemaSaudeService;
-import com.example.sitiopro.producao.model.Producao;
+import com.example.sitiopro.producao.dto.ProducaoForm;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.producao.service.ProducaoService;
 import com.example.sitiopro.tarefas.repository.AlertaRepository;
@@ -89,12 +95,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -173,6 +181,18 @@ class SitioProSecurityTests {
 
     @MockBean
     private FornecedorService fornecedorService;
+
+    @MockBean
+    private IntegracaoPainelService integracaoPainelService;
+
+    @MockBean
+    private IntegracaoOrquestrador integracaoOrquestrador;
+
+    @MockBean(name = "openMeteoRestClient")
+    private RestClient openMeteoRestClient;
+
+    @MockBean(name = "agrofitRestClient")
+    private RestClient agrofitRestClient;
 
     @MockBean
     private TarefaService tarefaService;
@@ -254,6 +274,7 @@ class SitioProSecurityTests {
     @MockBean private LoteAvesService loteAvesService;
     @MockBean private ManejoAvesService manejoAvesService;
     @MockBean private IncubacaoAvesService incubacaoAvesService;
+    @MockBean private IncubacaoAcompanhamentoService incubacaoAcompanhamentoService;
     @MockBean private AvesAlertasService avesAlertasService;
 
     @MockBean
@@ -264,7 +285,7 @@ class SitioProSecurityTests {
         when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
-        when(producaoService.novo()).thenReturn(new Producao());
+        when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
         when(usuarioService.listarTodos()).thenReturn(List.of());
         when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
@@ -273,9 +294,13 @@ class SitioProSecurityTests {
                 1L, 1L, "Ração postura", TipoMovimentoEstoque.ENTRADA, "Entrada",
                 BigDecimal.TEN, "KG", null, "Depósito", null, null, null,
                 null, LocalDateTime.now(), "operador", null, null, null));
+        when(estoqueMovimentoService.listarMovimentos(anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
         when(sistemaSaudeService.resumo()).thenReturn(new SistemaSaudeResumo(
                 "UP", "UP", Duration.ofMinutes(5), "0.0.1-SNAPSHOT", "test",
                 "DESABILITADA", "test-request"));
+        when(integracaoPainelService.resumo()).thenReturn(
+                new IntegracaoPainelResumo(0, 0, 0, 0, Map.of()));
         FornecedorResumo fornecedor = new FornecedorResumo(1L, "Agro Vale", null, null, null, true);
         FornecedorRequest fornecedorRequest = new FornecedorRequest();
         fornecedorRequest.setNome("Agro Vale");
@@ -591,6 +616,17 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void operadorConsultaHistoricoPaginadoDoEstoque() throws Exception {
+        mockMvc.perform(get("/api/v1/estoque/movimentos")
+                        .with(user("operador").roles("OPERADOR"))
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagina").value(0))
+                .andExpect(jsonPath("$.tamanho").value(20));
+    }
+
+    @Test
     void operadorPodeCriarFornecedorCompraAdicionarItemEConfirmarPelaApiComCsrf() throws Exception {
         mockMvc.perform(post("/api/v1/fornecedores")
                         .with(user("operador").roles("OPERADOR"))
@@ -626,12 +662,24 @@ class SitioProSecurityTests {
                         .content("""
                                 {
                                   "itemEstoqueId": 1,
-                                  "quantidade": 2,
-                                  "custoUnitario": 3.5,
+                                  "quantidadeVolumes": 2,
+                                  "tipoEmbalagem": "SACO",
+                                  "conteudoPorVolume": 60,
+                                  "precoPorVolume": 135,
+                                  "unidadeBase": "KG",
+                                  "quantidade": 9999,
+                                  "custoUnitario": 9999,
                                   "localDestinoId": 1
                                 }
                                 """))
                 .andExpect(status().isOk());
+
+        verify(compraService).adicionarItem(eq(1L), argThat(request ->
+                request.getQuantidadeVolumes().compareTo(new BigDecimal("2")) == 0
+                        && request.getConteudoPorVolume().compareTo(new BigDecimal("60")) == 0
+                        && request.getPrecoPorVolume().compareTo(new BigDecimal("135")) == 0
+                        && "KG".equals(request.getUnidadeBase())
+                        && request.getQuantidade().compareTo(new BigDecimal("9999")) == 0));
 
         mockMvc.perform(post("/api/v1/compras/1/confirmar")
                         .with(user("operador").roles("OPERADOR"))
@@ -646,8 +694,10 @@ class SitioProSecurityTests {
                         .with(user("operador").roles("OPERADOR"))
                         .with(csrf())
                         .param("itemEstoqueId", "1")
-                        .param("quantidade", "3")
-                        .param("custoUnitario", "5.00")
+                        .param("quantidadeVolumes", "2")
+                        .param("tipoEmbalagem", "SACO")
+                        .param("conteudoPorVolume", "60")
+                        .param("precoPorVolume", "135.00")
                         .param("localDestinoId", "1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/sitio/compras/1"));
@@ -724,6 +774,25 @@ class SitioProSecurityTests {
     }
 
     @Test
+    void itemDeCompraSemCsrfERecusado() throws Exception {
+        mockMvc.perform(post("/api/v1/compras/1/itens")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "itemEstoqueId": 1,
+                                  "quantidadeVolumes": 1,
+                                  "tipoEmbalagem": "PACOTE",
+                                  "conteudoPorVolume": 1,
+                                  "precoPorVolume": 7.5,
+                                  "localDestinoId": 1
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+    }
+
+    @Test
     void criacoesAvesExigeAutenticacaoEPermiteConsultaAoOperador() throws Exception {
         mockMvc.perform(get("/api/v1/criacoes/aves/resumo"))
                 .andExpect(status().is3xxRedirection());
@@ -772,6 +841,63 @@ class SitioProSecurityTests {
         mockMvc.perform(post("/api/v1/criacoes/aves/lotes/1/mortalidades")
                         .with(user("operador").roles("OPERADOR")).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operadorRegistraAcompanhamentoDeIncubacaoComCsrf() throws Exception {
+        AcompanhamentoIncubacaoAvesResumo acompanhamento = new AcompanhamentoIncubacaoAvesResumo(
+                10L, LocalDateTime.of(2026, 9, 5, 8, 0),
+                TipoAcompanhamentoIncubacaoAves.VERIFICACAO_GERAL,
+                null, null, null, null, null, null, "Tudo normal", null, "operador");
+        when(incubacaoAcompanhamentoService.registrar(eq(1L), any())).thenReturn(acompanhamento);
+        when(incubacaoAcompanhamentoService.detalhar(1L, 10L)).thenReturn(acompanhamento);
+        String json = """
+                {
+                  "tipo":"VERIFICACAO_GERAL",
+                  "dataHora":"2026-09-05T08:00:00",
+                  "observacao":"Tudo normal",
+                  "chaveIdempotencia":"acomp-security-1"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/acompanhamentos")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/acompanhamentos")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tipo").value("VERIFICACAO_GERAL"));
+
+        mockMvc.perform(get("/api/v1/criacoes/aves/incubacoes/1/acompanhamentos/10")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.observacao").value("Tudo normal"));
+    }
+
+    @Test
+    void ajusteDePrevisaoECancelamentoDeIncubacaoSaoRestritosAoAdmin() throws Exception {
+        String ajuste = """
+                {"dataPrevistaEclosao":"2026-09-23","motivo":"Desenvolvimento mais lento"}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/ajustar-previsao")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(ajuste))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/cancelar")
+                        .with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/ajustar-previsao")
+                        .with(user("admin").roles("ADMIN")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(ajuste))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/criacoes/aves/incubacoes/1/cancelar")
+                        .with(user("admin").roles("ADMIN")).with(csrf()))
                 .andExpect(status().isOk());
     }
 

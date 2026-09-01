@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
 @Service
 public class AvesResumoService {
     private final LoteAvesRepository loteRepository;
@@ -37,6 +39,9 @@ public class AvesResumoService {
     @Transactional(readOnly = true)
     public AvesResumo resumo() {
         LocalDate hoje = LocalDate.now(clock);
+        var proxima = incubacaoRepository
+                .findFirstByStatusOrderByDataPrevistaEclosaoAscIdAsc(StatusIncubacaoAves.EM_INCUBACAO)
+                .orElse(null);
         return new AvesResumo(loteRepository.countByStatus(StatusLoteAves.ATIVO),
                 loteRepository.somarQuantidadePorStatus(StatusLoteAves.ATIVO),
                 incubacaoRepository.countByStatus(StatusIncubacaoAves.EM_INCUBACAO),
@@ -45,6 +50,12 @@ public class AvesResumoService {
                 alertaService.contarAbertos(ModuloOrigem.CRIACOES),
                 posturaRepository.somarInteirosNaData(hoje),
                 mortalidadeRepository.somarTotalDesde(LocalDateTime.now(clock).minusDays(properties.getMortalidadePeriodoDias())),
-                LocalDateTime.now(clock));
+                LocalDateTime.now(clock),
+                incubacaoRepository.somarOvosPorStatus(StatusIncubacaoAves.EM_INCUBACAO),
+                proxima == null ? null : proxima.getCodigo(),
+                proxima == null ? null : proxima.getDataPrevistaEclosao(),
+                proxima == null ? null : ChronoUnit.DAYS.between(hoje, proxima.getDataPrevistaEclosao()),
+                incubacaoRepository.somarPintinhosDesde(StatusIncubacaoAves.FINALIZADA,
+                        hoje.minusDays(properties.getPintinhosRecentesDias())));
     }
 }

@@ -3,13 +3,16 @@ package com.example.sitiopro.integracao.integration;
 import com.example.sitiopro.integracao.clima.entity.PrevisaoClimatica;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
 import com.example.sitiopro.integracao.core.FonteIntegracao;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers(disabledWithoutDocker = true)
+@MockBean(name = "openMeteoRestClient", classes = RestClient.class)
+@MockBean(name = "agrofitRestClient", classes = RestClient.class)
+@MockBean(classes = SistemaSaudeService.class)
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
         "spring.jpa.hibernate.ddl-auto=validate",

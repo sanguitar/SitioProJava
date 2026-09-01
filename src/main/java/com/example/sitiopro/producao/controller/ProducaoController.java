@@ -1,8 +1,11 @@
 package com.example.sitiopro.producao.controller;
 
-import com.example.sitiopro.categoria.service.CategoriaService;
-import com.example.sitiopro.producao.model.Producao;
+import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
+import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
+import com.example.sitiopro.producao.dto.ProducaoForm;
 import com.example.sitiopro.producao.service.ProducaoService;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -18,35 +21,45 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class ProducaoController {
 
     private final ProducaoService producaoService;
-    private final CategoriaService categoriaService;
+    private final EstoqueCatalogoService estoqueCatalogoService;
 
-    public ProducaoController(ProducaoService producaoService, CategoriaService categoriaService) {
+    public ProducaoController(ProducaoService producaoService, EstoqueCatalogoService estoqueCatalogoService) {
         this.producaoService = producaoService;
-        this.categoriaService = categoriaService;
+        this.estoqueCatalogoService = estoqueCatalogoService;
     }
 
-    @InitBinder("producao")
+    @InitBinder("producaoForm")
     void restringirCamposProducao(WebDataBinder binder) {
-        binder.setAllowedFields("id", "categoria.id", "item", "quantidade", "unidade", "status");
+        binder.setAllowedFields("id", "categoriaId", "item", "quantidade", "unidade", "status");
     }
 
     @GetMapping("/cadastro")
     public String mostrarFormulario(Model model) {
-        model.addAttribute("categorias", categoriaService.listarTodas());
-        model.addAttribute("producao", producaoService.novo());
-        return "producao/cadastro";
+        model.addAttribute("producaoForm", producaoService.novoFormulario());
+        return prepararFormulario(model);
     }
 
     @GetMapping("/editar/{id}")
     public String mostrarEditar(@PathVariable("id") Long id, Model model) {
-        model.addAttribute("producao", producaoService.buscarPorId(id));
-        model.addAttribute("categorias", categoriaService.listarTodas());
-        return "producao/cadastro";
+        model.addAttribute("producaoForm", producaoService.formularioEdicao(id));
+        return prepararFormulario(model);
     }
 
     @PostMapping("/salvar")
-    public String salvarItem(@ModelAttribute Producao producao) {
-        producaoService.salvar(producao);
+    public String salvarItem(@Valid @ModelAttribute("producaoForm") ProducaoForm form,
+            BindingResult bindingResult, Model model) {
+        if (bindingResult.hasErrors()) {
+            return prepararFormulario(model);
+        }
+        try {
+            producaoService.salvar(form);
+        } catch (EstoqueOperacaoException ex) {
+            bindingResult.rejectValue("categoriaId", ex.getCode(), ex.getMessage());
+            return prepararFormulario(model);
+        } catch (IllegalArgumentException ex) {
+            bindingResult.reject("cadastroRural.invalido", ex.getMessage());
+            return prepararFormulario(model);
+        }
         return "redirect:/sitio/painel";
     }
 
@@ -54,5 +67,10 @@ public class ProducaoController {
     public String excluirItem(@PathVariable("id") Long id) {
         producaoService.excluir(id);
         return "redirect:/sitio/painel";
+    }
+
+    private String prepararFormulario(Model model) {
+        model.addAttribute("categorias", estoqueCatalogoService.listarCategoriasAtivas());
+        return "producao/cadastro";
     }
 }

@@ -4,6 +4,7 @@ import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.compras.repository.CompraRepository;
 import com.example.sitiopro.compras.repository.FornecedorRepository;
+import com.example.sitiopro.criacao.aves.repository.AcompanhamentoIncubacaoAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.AlimentacaoAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.EventoLoteAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
@@ -26,6 +27,7 @@ import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaReposit
 import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.tarefas.repository.AlertaRepository;
 import com.example.sitiopro.tarefas.repository.EventoTarefaAlertaRepository;
@@ -40,7 +42,11 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.web.client.RestClient;
 
+@MockBean(name = "openMeteoRestClient", classes = RestClient.class)
+@MockBean(name = "agrofitRestClient", classes = RestClient.class)
+@MockBean(classes = SistemaSaudeService.class)
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
         "sitiopro.tarefas.scheduler-enabled=false",
@@ -122,6 +128,9 @@ class SitioProApplicationTests {
 
     @MockBean
     private IncubacaoAvesRepository incubacaoAvesRepository;
+
+    @MockBean
+    private AcompanhamentoIncubacaoAvesRepository acompanhamentoIncubacaoAvesRepository;
 
     @MockBean
     private IntegracaoEstadoRepository integracaoEstadoRepository;

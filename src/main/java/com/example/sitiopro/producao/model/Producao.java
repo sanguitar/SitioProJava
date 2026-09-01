@@ -1,6 +1,7 @@
 package com.example.sitiopro.producao.model;
 
 import com.example.sitiopro.categoria.model.Categoria;
+import com.example.sitiopro.estoque.entity.CategoriaEstoque;
 import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,6 +22,10 @@ public class Producao extends AuditableEntity {
     @ManyToOne
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
+
+    @ManyToOne
+    @JoinColumn(name = "estoque_categoria_id")
+    private CategoriaEstoque categoriaEstoque;
 
     private String item;
     private Integer quantidade;
@@ -53,6 +58,14 @@ public class Producao extends AuditableEntity {
 
     public void setCategoria(Categoria categoria) {
         this.categoria = categoria;
+    }
+
+    public CategoriaEstoque getCategoriaEstoque() {
+        return categoriaEstoque;
+    }
+
+    public void setCategoriaEstoque(CategoriaEstoque categoriaEstoque) {
+        this.categoriaEstoque = categoriaEstoque;
     }
 
     public String getItem() {

@@ -1,5 +1,231 @@
-<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"><head><th:block th:replace="~{fragments/head :: commonHead('Aves - Incubação')}"></th:block><link rel="stylesheet" th:href="@{/css/aves.css}"></head><body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside><main class="main-content main-content-wide domain-aves aves-page"><div th:replace="~{fragments/ui :: topbar('Incubação', 'Criações / Aves')}"></div>
-<header class="aves-page-heading"><div><small class="module-group" th:text="${incubacao.instalacaoNome}">Incubadora</small><h1 th:text="${incubacao.codigo}">I-1</h1></div><div class="aves-heading-actions"><div th:replace="~{criacoes/aves/fragments :: status(${incubacao.status})}"></div><a th:href="@{/sitio/criacoes/aves/incubacoes}" class="btn btn-outline-dark"><i class="fa-solid fa-arrow-left"></i></a></div></header><div th:replace="~{criacoes/aves/fragments :: messages}"></div>
-<section class="aves-detail-summary"><article><span>Ovos incubados</span><strong th:text="${incubacao.quantidadeOvos}">0</strong></article><article><span>Início</span><strong th:text="${#temporals.format(incubacao.dataInicio,'dd/MM/yyyy')}">-</strong></article><article><span>Previsão</span><strong th:text="${#temporals.format(incubacao.dataPrevistaEclosao,'dd/MM/yyyy')}">-</strong></article><article><span>Eclodidos</span><strong th:text="${incubacao.pintinhosEclodidos ?: '-'}">-</strong></article><article><span>Taxa de eclosão</span><strong th:text="${incubacao.taxaEclosao == null ? '-' : #numbers.formatDecimal(incubacao.taxaEclosao,1,'POINT',1,'COMMA') + '%'}">-</strong></article><article><span>Taxa de perdas</span><strong th:text="${incubacao.taxaPerdas == null ? '-' : #numbers.formatDecimal(incubacao.taxaPerdas,1,'POINT',1,'COMMA') + '%'}">-</strong></article></section>
-<section class="aves-two-column"><div class="aves-panel"><div class="panel-heading"><h2>Dados do ciclo</h2></div><dl class="aves-kv"><div><dt>Origem dos ovos</dt><dd th:text="${incubacao.origemOvos ?: '-'}">-</dd></div><div><dt>Lote reprodutor</dt><dd><a th:if="${incubacao.loteReprodutorId}" th:href="@{/sitio/criacoes/aves/lotes/{id}(id=${incubacao.loteReprodutorId})}" th:text="${incubacao.loteReprodutorCodigo}">Lote</a><span th:unless="${incubacao.loteReprodutorId}">-</span></dd></div><div><dt>Data real de eclosão</dt><dd th:text="${incubacao.dataEclosao == null ? '-' : #temporals.format(incubacao.dataEclosao,'dd/MM/yyyy')}">-</dd></div><div><dt>Observação</dt><dd th:text="${incubacao.observacao ?: '-'}">-</dd></div><div><dt>Lote resultante</dt><dd><a th:if="${incubacao.loteResultanteId}" th:href="@{/sitio/criacoes/aves/lotes/{id}(id=${incubacao.loteResultanteId})}" th:text="${incubacao.loteResultanteCodigo}">Lote</a><span th:unless="${incubacao.loteResultanteId}">-</span></dd></div></dl></div>
-<div class="aves-panel" th:if="${incubacao.status.name() == 'EM_INCUBACAO'}"><div class="panel-heading"><h2>Finalizar incubação</h2><span>Operação atômica</span></div><form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/finalizar(id=${incubacao.id})}" th:object="${finalizacaoForm}" method="post" class="row g-3"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" th:field="*{chaveIdempotenciaLote}"><div class="col-md-4"><label class="form-label" for="pintinhosEclodidos">Eclodidos</label><input id="pintinhosEclodidos" type="number" min="0" class="form-control" th:field="*{pintinhosEclodidos}" required></div><div class="col-md-4"><label class="form-label" for="ovosPerdidos">Perdas</label><input id="ovosPerdidos" type="number" min="0" class="form-control" th:field="*{ovosPerdidos}" required></div><div class="col-md-4"><label class="form-label" for="dataEclosao">Data</label><input id="dataEclosao" type="date" class="form-control" th:field="*{dataEclosao}" required></div><div class="col-12 form-check-switch"><input id="criarLote" type="checkbox" class="form-check-input" th:field="*{criarLote}"><label for="criarLote">Criar lote de pintinhos</label></div><div class="col-md-6"><span class="form-label">Código do lote</span><div class="aves-generated-code"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>Gerado automaticamente ao finalizar</span></div></div><div class="col-md-6"><label class="form-label" for="nomeLote">Nome do lote</label><input id="nomeLote" class="form-control" th:field="*{nomeLote}"></div><div class="col-md-6"><label class="form-label" for="instalacaoDestinoId">Alojamento dos pintinhos</label><select id="instalacaoDestinoId" class="form-select" th:field="*{instalacaoDestinoId}"><option value="">Selecione</option><option th:each="i:${instalacoes}" th:value="${i.id}" th:text="${i.nome}"></option></select></div><div class="col-md-3"><label class="form-label" for="finalidadeLote">Finalidade</label><select id="finalidadeLote" class="form-select" th:field="*{finalidadeLote}"><option th:each="f:${finalidades}" th:value="${f}" th:text="${f.rotulo}"></option></select></div><div class="col-md-3"><label class="form-label" for="sexoLote">Classificação</label><select id="sexoLote" class="form-select" th:field="*{sexoLote}"><option th:each="s:${sexos}" th:value="${s}" th:text="${s.rotulo}"></option></select></div><div class="col-12 d-flex gap-2 justify-content-end"><button class="btn btn-success"><i class="fa-solid fa-circle-check me-2"></i>Finalizar</button></div></form><form sec:authorize="hasRole('ADMIN')" th:action="@{/sitio/criacoes/aves/incubacoes/{id}/cancelar(id=${incubacao.id})}" method="post" class="mt-3 text-end"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="btn btn-outline-danger"><i class="fa-solid fa-ban me-2"></i>Cancelar incubação</button></form></div></section><div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Aves - Incubação')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/aves.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-aves aves-page">
+    <div th:replace="~{fragments/ui :: topbar('Incubação', 'Criações / Aves')}"></div>
+
+    <header class="aves-page-heading incubation-detail-heading">
+        <div>
+            <small class="module-group" th:text="${incubacao.instalacaoNome}">Chocadeira 1</small>
+            <h1 th:text="${incubacao.codigo}">INC-2026-0001</h1>
+            <p>
+                <span th:text="${incubacao.metodo.rotulo}">Chocadeira</span>
+                <span aria-hidden="true"> · </span>
+                <span th:text="${incubacao.especie.rotulo}">Galinha</span>
+            </p>
+        </div>
+        <div class="aves-heading-actions">
+            <div th:replace="~{criacoes/aves/fragments :: status(${incubacao.status})}"></div>
+            <a th:href="@{/sitio/criacoes/aves/incubacoes}" class="btn btn-outline-dark" title="Voltar">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+        </div>
+    </header>
+    <div th:replace="~{criacoes/aves/fragments :: messages}"></div>
+
+    <section class="incubation-progress-band" aria-label="Progresso aproximado da incubação">
+        <div>
+            <span th:if="${incubacao.diaAtual == 0}">Aguardando início</span>
+            <span th:unless="${incubacao.diaAtual == 0}"
+                  th:text="${'Dia ' + incubacao.diaAtual + ' de ' + incubacao.periodoPrevistoDias}">Dia 5 de 21</span>
+            <strong th:if="${incubacao.status.name() == 'EM_INCUBACAO' and incubacao.diasRestantes >= 0}"
+                    th:text="${incubacao.diasRestantes == 0 ? 'Eclosão prevista hoje' : incubacao.diasRestantes + ' dias restantes'}">16 dias restantes</strong>
+            <strong th:if="${incubacao.status.name() == 'EM_INCUBACAO' and incubacao.diasRestantes < 0}"
+                    class="text-danger" th:text="${-incubacao.diasRestantes + ' dias após a previsão'}">Atrasada</strong>
+        </div>
+        <div class="incubation-progress-track" role="progressbar" th:attr="aria-valuenow=${incubacao.progressoPercentual}">
+            <span th:style="${'width: ' + incubacao.progressoPercentual + '%'}"></span>
+        </div>
+    </section>
+
+    <section class="aves-detail-summary incubation-summary">
+        <article><span>Ovos incubados</span><strong th:text="${incubacao.quantidadeOvos}">20</strong></article>
+        <article><span>Início</span><strong th:text="${#temporals.format(incubacao.dataInicio, 'dd/MM/yyyy')}">01/09/2026</strong></article>
+        <article><span>Eclosão prevista</span><strong th:text="${#temporals.format(incubacao.dataPrevistaEclosao, 'dd/MM/yyyy')}">22/09/2026</strong></article>
+        <article><span>Dias decorridos</span><strong th:text="${incubacao.diasDecorridos}">5</strong></article>
+        <article th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}"><span>Última temperatura</span><strong th:text="${incubacao.ultimaTemperatura == null ? '-' : #numbers.formatDecimal(incubacao.ultimaTemperatura, 1, 'POINT', 1, 'COMMA') + ' °C'}">37,5 °C</strong></article>
+        <article th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}"><span>Última umidade</span><strong th:text="${incubacao.ultimaUmidade == null ? '-' : #numbers.formatDecimal(incubacao.ultimaUmidade, 1, 'POINT', 1, 'COMMA') + '%'}">55%</strong></article>
+    </section>
+
+    <nav class="incubation-quick-actions" th:if="${incubacao.status.name() == 'EM_INCUBACAO'}" aria-label="Ações rápidas">
+        <a href="#registrar-verificacao" class="btn btn-success"><i class="fa-solid fa-clipboard-check"></i> Registrar verificação</a>
+        <a href="#registrar-ovoscopia" class="btn btn-outline-dark"><i class="fa-solid fa-magnifying-glass"></i> Registrar ovoscopia</a>
+        <a th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}" href="#registrar-medicao" class="btn btn-outline-dark"><i class="fa-solid fa-temperature-half"></i> Temperatura / umidade</a>
+        <a href="#finalizar-incubacao" class="btn btn-outline-success"><i class="fa-solid fa-flag-checkered"></i> Finalizar</a>
+    </nav>
+
+    <section class="incubation-result-band" th:if="${incubacao.status.name() == 'FINALIZADA'}">
+        <div><span>Resultado</span><strong th:text="${incubacao.pintinhosEclodidos + ' pintinhos'}">16 pintinhos</strong></div>
+        <div><span>Não eclodidos / perdas</span><strong th:text="${incubacao.ovosPerdidos}">4</strong></div>
+        <div><span>Taxa de eclosão</span><strong th:text="${#numbers.formatDecimal(incubacao.taxaEclosao, 1, 'POINT', 1, 'COMMA') + '%'}">80%</strong></div>
+        <div><span>Taxa de perdas</span><strong th:text="${#numbers.formatDecimal(incubacao.taxaPerdas, 1, 'POINT', 1, 'COMMA') + '%'}">20%</strong></div>
+    </section>
+
+    <div class="incubation-workspace">
+        <div class="incubation-main-column">
+            <section class="aves-panel">
+                <div class="panel-heading"><h2>Dados do ciclo</h2><span>Quantidade inicial preservada</span></div>
+                <dl class="aves-kv aves-kv-grid">
+                    <div><dt>Método</dt><dd th:text="${incubacao.metodo.rotulo}">Chocadeira</dd></div>
+                    <div><dt>Espécie</dt><dd th:text="${incubacao.especie.rotulo}">Galinha</dd></div>
+                    <div><dt>Instalação / local</dt><dd th:text="${incubacao.instalacaoNome}">Chocadeira 1</dd></div>
+                    <div><dt>Origem manual</dt><dd th:text="${incubacao.origemOvos ?: '-'}">-</dd></div>
+                    <div><dt>Lote de origem</dt><dd>
+                        <a th:if="${incubacao.loteReprodutorId}" th:href="@{/sitio/criacoes/aves/lotes/{id}(id=${incubacao.loteReprodutorId})}" th:text="${incubacao.loteReprodutorCodigo}">AV-1</a>
+                        <span th:unless="${incubacao.loteReprodutorId}">-</span>
+                    </dd></div>
+                    <div><dt>Postura vinculada</dt><dd th:text="${incubacao.posturaOrigemId == null ? '-' : 'Coleta de ' + #temporals.format(incubacao.posturaOrigemData, 'dd/MM/yyyy')}">-</dd></div>
+                    <div><dt>Observação inicial</dt><dd th:text="${incubacao.observacao ?: '-'}">-</dd></div>
+                    <div><dt>Lote resultante</dt><dd>
+                        <a th:if="${incubacao.loteResultanteId}" th:href="@{/sitio/criacoes/aves/lotes/{id}(id=${incubacao.loteResultanteId})}" th:text="${incubacao.loteResultanteCodigo}">AV-2</a>
+                        <span th:unless="${incubacao.loteResultanteId}">-</span>
+                    </dd></div>
+                    <div th:if="${incubacao.dataEclosao}"><dt>Data real</dt><dd th:text="${#temporals.format(incubacao.dataEclosao, 'dd/MM/yyyy')}">-</dd></div>
+                    <div th:if="${incubacao.observacaoFinalizacao}"><dt>Observação final</dt><dd th:text="${incubacao.observacaoFinalizacao}">-</dd></div>
+                </dl>
+            </section>
+
+            <section class="aves-panel incubation-action-panel" th:if="${incubacao.status.name() == 'EM_INCUBACAO'}">
+                <div class="panel-heading"><h2>Registrar agora</h2><span>Histórico operacional</span></div>
+
+                <details id="registrar-verificacao">
+                    <summary><i class="fa-solid fa-clipboard-check"></i><span>Verificação geral</span><i class="fa-solid fa-chevron-down"></i></summary>
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/acompanhamentos(id=${incubacao.id})}" th:object="${verificacaoForm}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="tipo" th:value="${verificacaoForm.tipo}">
+                        <input type="hidden" name="chaveIdempotencia" th:value="${verificacaoForm.chaveIdempotencia}">
+                        <label><span>Data e hora</span><input class="form-control" type="datetime-local" name="dataHora" th:value="${#temporals.format(verificacaoForm.dataHora, 'yyyy-MM-dd''T''HH:mm')}" required></label>
+                        <label><span>O que foi verificado?</span><textarea class="form-control" name="observacao" rows="2" required></textarea></label>
+                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-check"></i> Registrar verificação</button>
+                    </form>
+                </details>
+
+                <details id="registrar-ovoscopia">
+                    <summary><i class="fa-solid fa-magnifying-glass"></i><span>Ovoscopia</span><i class="fa-solid fa-chevron-down"></i></summary>
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/acompanhamentos(id=${incubacao.id})}" th:object="${ovoscopiaForm}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="tipo" th:value="${ovoscopiaForm.tipo}">
+                        <input type="hidden" name="chaveIdempotencia" th:value="${ovoscopiaForm.chaveIdempotencia}">
+                        <label><span>Data e hora</span><input class="form-control" type="datetime-local" name="dataHora" th:value="${#temporals.format(ovoscopiaForm.dataHora, 'yyyy-MM-dd''T''HH:mm')}" required></label>
+                        <div class="incubation-count-grid">
+                            <label><span>Avaliados</span><input class="form-control" type="number" min="0" name="quantidadeAvaliada"></label>
+                            <label><span>Férteis / viáveis</span><input class="form-control" type="number" min="0" name="ovosFerteis"></label>
+                            <label><span>Sem desenvolvimento</span><input class="form-control" type="number" min="0" name="ovosSemDesenvolvimento"></label>
+                            <label><span>Perdas</span><input class="form-control" type="number" min="0" name="perdas"></label>
+                        </div>
+                        <label><span>Observação</span><textarea class="form-control" name="observacao" rows="2"></textarea></label>
+                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-check"></i> Registrar ovoscopia</button>
+                    </form>
+                </details>
+
+                <details id="registrar-medicao" th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}">
+                    <summary><i class="fa-solid fa-temperature-half"></i><span>Temperatura e umidade</span><i class="fa-solid fa-chevron-down"></i></summary>
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/acompanhamentos(id=${incubacao.id})}" th:object="${medicaoForm}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="tipo" th:value="${medicaoForm.tipo}">
+                        <input type="hidden" name="chaveIdempotencia" th:value="${medicaoForm.chaveIdempotencia}">
+                        <label><span>Data e hora</span><input class="form-control" type="datetime-local" name="dataHora" th:value="${#temporals.format(medicaoForm.dataHora, 'yyyy-MM-dd''T''HH:mm')}" required></label>
+                        <div class="incubation-count-grid two-fields">
+                            <label><span>Temperatura (°C)</span><input class="form-control" type="number" min="0" max="100" step="0.01" inputmode="decimal" name="temperatura" placeholder="37,5"></label>
+                            <label><span>Umidade (%)</span><input class="form-control" type="number" min="0" max="100" step="0.01" inputmode="decimal" name="umidade" placeholder="55"></label>
+                        </div>
+                        <label><span>Observação</span><textarea class="form-control" name="observacao" rows="2"></textarea></label>
+                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-check"></i> Registrar medição</button>
+                    </form>
+                </details>
+
+                <details id="finalizar-incubacao" class="finish-action">
+                    <summary><i class="fa-solid fa-flag-checkered"></i><span>Finalizar incubação</span><i class="fa-solid fa-chevron-down"></i></summary>
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/finalizar(id=${incubacao.id})}" th:object="${finalizacaoForm}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" th:field="*{chaveIdempotenciaLote}">
+                        <div class="incubation-count-grid">
+                            <label><span>Data real</span><input class="form-control" type="date" th:field="*{dataEclosao}" required></label>
+                            <label><span>Pintinhos</span><input class="form-control" type="number" min="0" th:field="*{pintinhosEclodidos}" required></label>
+                            <label><span>Não eclodidos / perdas</span><input class="form-control" type="number" min="0" th:field="*{ovosPerdidos}" required></label>
+                        </div>
+                        <label><span>Observação final</span><textarea class="form-control" rows="2" th:field="*{observacao}"></textarea></label>
+                        <label class="incubation-checkbox"><input type="checkbox" th:field="*{criarLote}"><span>Gerar lote de pintinhos automaticamente</span></label>
+                        <div class="incubation-lot-fields">
+                            <label><span>Alojamento dos pintinhos</span><select class="form-select" th:field="*{instalacaoDestinoId}"><option value="">Selecione</option><option th:each="item : ${instalacoes}" th:value="${item.id}" th:text="${item.nome}"></option></select></label>
+                            <label><span>Nome do lote (opcional)</span><input class="form-control" th:field="*{nomeLote}"></label>
+                            <label><span>Finalidade</span><select class="form-select" th:field="*{finalidadeLote}"><option th:each="item : ${finalidades}" th:value="${item}" th:text="${item.rotulo}"></option></select></label>
+                            <label><span>Classificação</span><select class="form-select" th:field="*{sexoLote}"><option th:each="item : ${sexos}" th:value="${item}" th:text="${item.rotulo}"></option></select></label>
+                        </div>
+                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-circle-check"></i> Finalizar e salvar resultado</button>
+                    </form>
+                </details>
+            </section>
+
+            <section class="aves-panel">
+                <div class="panel-heading"><h2>Histórico de acompanhamento</h2><span th:text="${#lists.size(incubacao.acompanhamentos) + ' registros'}">0 registros</span></div>
+                <div class="incubation-history" th:if="${!#lists.isEmpty(incubacao.acompanhamentos)}">
+                    <article th:each="item : ${incubacao.acompanhamentos}">
+                        <div class="incubation-history-marker"><i class="fa-solid fa-check"></i></div>
+                        <div>
+                            <header><strong th:text="${item.tipo.rotulo}">Verificação</strong><time th:text="${#temporals.format(item.dataHora, 'dd/MM/yyyy HH:mm')}">01/09 08:00</time></header>
+                            <p th:if="${item.observacao}" th:text="${item.observacao}">Tudo normal.</p>
+                            <dl th:if="${item.quantidadeAvaliada != null or item.temperatura != null or item.umidade != null}">
+                                <div th:if="${item.quantidadeAvaliada != null}"><dt>Avaliados</dt><dd th:text="${item.quantidadeAvaliada}">20</dd></div>
+                                <div th:if="${item.ovosFerteis != null}"><dt>Férteis</dt><dd th:text="${item.ovosFerteis}">16</dd></div>
+                                <div th:if="${item.ovosSemDesenvolvimento != null}"><dt>Sem desenvolvimento</dt><dd th:text="${item.ovosSemDesenvolvimento}">2</dd></div>
+                                <div th:if="${item.perdas != null}"><dt>Perdas</dt><dd th:text="${item.perdas}">2</dd></div>
+                                <div th:if="${item.temperatura != null}"><dt>Temperatura</dt><dd th:text="${item.temperatura + ' °C'}">37.5 °C</dd></div>
+                                <div th:if="${item.umidade != null}"><dt>Umidade</dt><dd th:text="${item.umidade + '%'}">55%</dd></div>
+                            </dl>
+                        </div>
+                    </article>
+                </div>
+                <div class="empty-state-card compact" th:if="${#lists.isEmpty(incubacao.acompanhamentos)}">
+                    <i class="fa-solid fa-clipboard-check"></i><div><strong>Nenhuma verificação registrada</strong><p>Use uma ação rápida para iniciar o histórico.</p></div>
+                </div>
+            </section>
+        </div>
+
+        <aside class="incubation-side-column">
+            <section class="aves-panel">
+                <div class="panel-heading"><h2>Tarefas relacionadas</h2><a th:href="@{/sitio/tarefas}">Ver tarefas</a></div>
+                <a class="incubation-related-row" th:each="tarefa : ${incubacao.tarefas}" th:href="@{/sitio/tarefas/{id}(id=${tarefa.id})}">
+                    <i class="fa-regular fa-square-check"></i><span><strong th:text="${tarefa.titulo}">Verificar incubação</strong><small th:text="${tarefa.dataVencimento == null ? 'Sem prazo' : #temporals.format(tarefa.dataVencimento, 'dd/MM HH:mm')}">Prazo</small></span>
+                </a>
+                <div class="empty-state-card compact" th:if="${#lists.isEmpty(incubacao.tarefas)}"><i class="fa-solid fa-list-check"></i><div><strong>Sem tarefas</strong><p>Nenhum marco automático ativo.</p></div></div>
+            </section>
+
+            <section class="aves-panel">
+                <div class="panel-heading"><h2>Alertas</h2><a th:href="@{/sitio/alertas}">Ver alertas</a></div>
+                <a class="incubation-related-row related-alert" th:each="alerta : ${incubacao.alertas}" th:href="@{/sitio/alertas/{id}(id=${alerta.id})}">
+                    <i class="fa-solid fa-triangle-exclamation"></i><span><strong th:text="${alerta.titulo}">Eclosão próxima</strong><small th:text="${alerta.severidade.rotulo}">Atenção</small></span>
+                </a>
+                <div class="empty-state-card compact" th:if="${#lists.isEmpty(incubacao.alertas)}"><i class="fa-solid fa-shield-halved"></i><div><strong>Sem alertas ativos</strong><p>O ciclo não exige atenção agora.</p></div></div>
+            </section>
+
+            <section class="aves-panel admin-incubation-actions" sec:authorize="hasRole('ADMIN')" th:if="${incubacao.status.name() == 'EM_INCUBACAO'}">
+                <div class="panel-heading"><h2>Administração</h2><span>Ações sensíveis</span></div>
+                <details>
+                    <summary>Ajustar previsão</summary>
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/ajustar-previsao(id=${incubacao.id})}" th:object="${ajusteForm}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <label><span>Nova previsão</span><input class="form-control" type="date" th:field="*{dataPrevistaEclosao}" required></label>
+                        <label><span>Motivo</span><textarea class="form-control" rows="2" th:field="*{motivo}" required></textarea></label>
+                        <button class="btn btn-outline-dark" type="submit">Salvar ajuste</button>
+                    </form>
+                </details>
+                <p th:if="${incubacao.motivoAjustePrevisao}" class="incubation-adjustment-note"><strong>Último ajuste:</strong> <span th:text="${incubacao.motivoAjustePrevisao}">Motivo</span></p>
+                <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/cancelar(id=${incubacao.id})}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-ban"></i> Cancelar incubação</button>
+                </form>
+            </section>
+        </aside>
+    </div>
+
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

@@ -1,3 +1,47 @@
-<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><head><th:block th:replace="~{fragments/head :: commonHead('Aves - Incubações')}"></th:block><link rel="stylesheet" th:href="@{/css/aves.css}"></head><body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside><main class="main-content main-content-wide domain-aves aves-page"><div th:replace="~{fragments/ui :: topbar('Incubações', 'Criações / Aves')}"></div>
-<header class="aves-page-heading"><div><small class="module-group">Incubadora</small><h1>Ciclos de incubação</h1><p>Previsão, eclosão e lotes de pintinhos.</p></div><a th:href="@{/sitio/criacoes/aves/incubacoes/nova}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Nova incubação</a></header><div th:replace="~{criacoes/aves/fragments :: tabs('incubacoes')}"></div><div th:replace="~{criacoes/aves/fragments :: messages}"></div>
-<section class="table-container"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Código</th><th>Incubadora</th><th>Início</th><th>Ovos</th><th>Previsão</th><th>Resultado</th><th>Status</th><th></th></tr></thead><tbody><tr th:each="i:${pagina.conteudo}"><td><strong th:text="${i.codigo}">I-1</strong></td><td th:text="${i.instalacaoNome}">Incubadora</td><td th:text="${#temporals.format(i.dataInicio,'dd/MM/yyyy')}">-</td><td th:text="${i.quantidadeOvos}">0</td><td th:text="${#temporals.format(i.dataPrevistaEclosao,'dd/MM/yyyy')}">-</td><td th:text="${i.pintinhosEclodidos == null ? '-' : i.pintinhosEclodidos + ' pintinhos'}">-</td><td><div th:replace="~{criacoes/aves/fragments :: status(${i.status})}"></div></td><td class="text-end"><a th:href="@{/sitio/criacoes/aves/incubacoes/{id}(id=${i.id})}" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-arrow-right"></i></a></td></tr><tr th:if="${#lists.isEmpty(pagina.conteudo)}"><td colspan="8"><div class="empty-state-card"><i class="fa-solid fa-egg"></i><div><strong>Nenhuma incubação</strong><p>Inicie um ciclo na incubadora cadastrada.</p></div></div></td></tr></tbody></table></div></section><div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Aves - Incubações')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/aves.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-aves aves-page">
+    <div th:replace="~{fragments/ui :: topbar('Incubações', 'Criações / Aves')}"></div>
+    <header class="aves-page-heading">
+        <div><small class="module-group">Aves</small><h1>Ciclos de incubação</h1><p>Acompanhamento de chocadeiras e galinhas chocas.</p></div>
+        <a th:href="@{/sitio/criacoes/aves/incubacoes/nova}" class="btn btn-success"><i class="fa-solid fa-plus"></i> Nova incubação</a>
+    </header>
+    <div th:replace="~{criacoes/aves/fragments :: tabs('incubacoes')}"></div>
+    <div th:replace="~{criacoes/aves/fragments :: messages}"></div>
+
+    <section class="table-container">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Código</th><th>Método</th><th>Local</th><th>Ovos</th><th>Previsão</th><th>Progresso</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="item : ${pagina.conteudo}">
+                    <td><strong th:text="${item.codigo}">INC-1</strong><small class="d-block text-muted" th:text="${item.especie.rotulo}">Galinha</small></td>
+                    <td th:text="${item.metodo.rotulo}">Chocadeira</td>
+                    <td th:text="${item.instalacaoNome}">Chocadeira 1</td>
+                    <td th:text="${item.quantidadeOvos}">20</td>
+                    <td><span th:text="${#temporals.format(item.dataPrevistaEclosao, 'dd/MM/yyyy')}">22/09/2026</span><small class="d-block text-muted" th:if="${item.status.name() == 'EM_INCUBACAO'}" th:text="${item.diasRestantes >= 0 ? item.diasRestantes + ' dias' : -item.diasRestantes + ' dias após previsão'}">12 dias</small></td>
+                    <td><div class="incubation-mini-progress"><span th:style="${'width: ' + item.progressoPercentual + '%'}"></span></div><small th:text="${item.progressoPercentual + '%'}">25%</small></td>
+                    <td><div th:replace="~{criacoes/aves/fragments :: status(${item.status})}"></div></td>
+                    <td class="text-end"><a th:href="@{/sitio/criacoes/aves/incubacoes/{id}(id=${item.id})}" class="btn btn-sm btn-outline-dark" title="Abrir"><i class="fa-solid fa-arrow-right"></i></a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(pagina.conteudo)}"><td colspan="8"><div class="empty-state-card"><i class="fa-solid fa-egg"></i><div><strong>Nenhuma incubação</strong><p>Inicie um ciclo para acompanhar ovos e eclosões.</p></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <nav class="aves-pagination" th:if="${pagina.totalPaginas > 1}">
+            <a class="btn btn-sm btn-outline-dark" th:classappend="${pagina.pagina == 0} ? ' disabled'" th:href="@{/sitio/criacoes/aves/incubacoes(pagina=${pagina.pagina - 1})}"><i class="fa-solid fa-chevron-left"></i></a>
+            <span th:text="${'Página ' + (pagina.pagina + 1) + ' de ' + pagina.totalPaginas}">Página 1</span>
+            <a class="btn btn-sm btn-outline-dark" th:classappend="${pagina.pagina + 1 >= pagina.totalPaginas} ? ' disabled'" th:href="@{/sitio/criacoes/aves/incubacoes(pagina=${pagina.pagina + 1})}"><i class="fa-solid fa-chevron-right"></i></a>
+        </nav>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

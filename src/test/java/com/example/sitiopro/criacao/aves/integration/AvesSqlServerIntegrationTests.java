@@ -3,13 +3,16 @@ package com.example.sitiopro.criacao.aves.integration;
 import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
 import com.example.sitiopro.criacao.aves.dto.TransferirLoteAvesRequest;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.tarefas.service.UsuarioAtor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -27,6 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers(disabledWithoutDocker = true)
+@MockBean(name = "openMeteoRestClient", classes = RestClient.class)
+@MockBean(name = "agrofitRestClient", classes = RestClient.class)
+@MockBean(classes = SistemaSaudeService.class)
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
         "spring.jpa.hibernate.ddl-auto=validate",
@@ -57,15 +63,15 @@ class AvesSqlServerIntegrationTests {
                 SELECT COUNT(*) FROM sys.tables WHERE name IN (
                   'criacao_instalacoes', 'aves_lotes', 'aves_eventos', 'aves_mortalidades',
                   'aves_alimentacoes', 'aves_pesagens', 'aves_posturas', 'aves_transferencias',
-                  'aves_incubacoes', 'criacao_codigo_sequencias')
+                  'aves_incubacoes', 'aves_incubacao_acompanhamentos', 'criacao_codigo_sequencias')
                 """, Integer.class);
         Integer migration = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*) FROM dbo.flyway_schema_history
-                WHERE version IN ('10', '11') AND success = 1
+                WHERE version IN ('10', '11', '14') AND success = 1
                 """, Integer.class);
 
-        assertThat(tabelas).isEqualTo(10);
-        assertThat(migration).isEqualTo(2);
+        assertThat(tabelas).isEqualTo(11);
+        assertThat(migration).isEqualTo(3);
     }
 
     @Test
@@ -105,12 +111,42 @@ class AvesSqlServerIntegrationTests {
 
         assertThatThrownBy(() -> jdbcTemplate.update("""
                 INSERT INTO dbo.aves_incubacoes
-                (codigo, instalacao_id, data_inicio, quantidade_ovos, data_prevista_eclosao, status,
+                (codigo, instalacao_id, metodo, especie, data_inicio, quantidade_ovos, data_prevista_eclosao, status,
                  pintinhos_eclodidos, ovos_perdidos, data_eclosao, chave_idempotencia)
-                VALUES (?, ?, '2026-08-01', 10, '2026-08-22', 'FINALIZADA', 9, 2,
+                VALUES (?, ?, 'CHOCADEIRA', 'GALINHA', '2026-08-01', 10, '2026-08-22', 'FINALIZADA', 9, 2,
                         '2026-08-22', ?)
                 """, "SQL-INC-" + System.nanoTime(), instalacaoId, "sql-inc-key-" + System.nanoTime()))
                 .hasStackTraceContaining("ck_aves_incubacoes_ovos");
+    }
+
+    @Test
+    void v14CriaAcompanhamentosComConstraintsEChaveAutomaticaDeTarefa() {
+        Integer colunas = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM sys.columns
+                WHERE object_id = OBJECT_ID('dbo.aves_incubacoes')
+                  AND name IN ('metodo', 'especie', 'postura_origem_id',
+                               'observacao_finalizacao', 'motivo_ajuste_previsao')
+                """, Integer.class);
+        Integer chaveTarefa = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM sys.columns
+                WHERE object_id = OBJECT_ID('dbo.tarefas') AND name = 'chave_automacao'
+                """, Integer.class);
+        Integer checks = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM sys.check_constraints
+                WHERE name IN ('ck_aves_incubacoes_metodo', 'ck_aves_incubacoes_especie',
+                               'ck_aves_inc_acomp_tipo', 'ck_aves_inc_acomp_quantidades',
+                               'ck_aves_inc_acomp_medicoes')
+                """, Integer.class);
+        Integer indices = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM sys.indexes
+                WHERE name IN ('ix_aves_inc_acomp_incubacao_data', 'ux_tarefas_chave_automacao')
+                """, Integer.class);
+
+        assertThat(colunas).isEqualTo(5);
+        assertThat(chaveTarefa).isEqualTo(1);
+        assertThat(checks).isEqualTo(5);
+        assertThat(indices).isEqualTo(2);
     }
 
     @Test

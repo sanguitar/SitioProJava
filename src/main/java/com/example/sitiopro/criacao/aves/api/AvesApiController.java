@@ -26,11 +26,14 @@ public class AvesApiController {
     private final LoteAvesService loteService;
     private final ManejoAvesService manejoService;
     private final IncubacaoAvesService incubacaoService;
+    private final IncubacaoAcompanhamentoService acompanhamentoService;
 
     public AvesApiController(AvesResumoService resumoService, InstalacaoCriacaoService instalacaoService,
-            LoteAvesService loteService, ManejoAvesService manejoService, IncubacaoAvesService incubacaoService) {
+            LoteAvesService loteService, ManejoAvesService manejoService, IncubacaoAvesService incubacaoService,
+            IncubacaoAcompanhamentoService acompanhamentoService) {
         this.resumoService = resumoService; this.instalacaoService = instalacaoService;
         this.loteService = loteService; this.manejoService = manejoService; this.incubacaoService = incubacaoService;
+        this.acompanhamentoService = acompanhamentoService;
     }
 
     @GetMapping("/resumo") @Operation(summary = "Resumo operacional de aves")
@@ -104,7 +107,44 @@ public class AvesApiController {
         return incubacaoService.finalizar(id, request, UsuarioAtor.de(authentication));
     }
 
+    @GetMapping("/incubacoes/{id}/acompanhamentos")
+    public java.util.List<AcompanhamentoIncubacaoAvesResumo> acompanhamentos(@PathVariable Long id) {
+        incubacaoService.detalhar(id);
+        return acompanhamentoService.listar(id);
+    }
+
+    @GetMapping("/incubacoes/{id}/acompanhamentos/{acompanhamentoId}")
+    public AcompanhamentoIncubacaoAvesResumo acompanhamento(@PathVariable Long id,
+            @PathVariable Long acompanhamentoId) {
+        return acompanhamentoService.detalhar(id, acompanhamentoId);
+    }
+
+    @PostMapping("/incubacoes/{id}/acompanhamentos")
+    public ResponseEntity<AcompanhamentoIncubacaoAvesResumo> registrarAcompanhamento(@PathVariable Long id,
+            @Valid @RequestBody RegistrarAcompanhamentoIncubacaoAvesRequest request) {
+        AcompanhamentoIncubacaoAvesResumo criado = acompanhamentoService.registrar(id, request);
+        return ResponseEntity.created(location(
+                "/api/v1/criacoes/aves/incubacoes/{id}/acompanhamentos/{acompanhamentoId}", id,
+                criado.id())).body(criado);
+    }
+
+    @PostMapping("/incubacoes/{id}/ajustar-previsao")
+    public IncubacaoAvesDetalhe ajustarPrevisao(@PathVariable Long id,
+            @Valid @RequestBody AjustarPrevisaoIncubacaoAvesRequest request, Authentication authentication) {
+        return incubacaoService.ajustarPrevisao(id, request, UsuarioAtor.de(authentication));
+    }
+
+    @PostMapping("/incubacoes/{id}/cancelar")
+    public IncubacaoAvesDetalhe cancelarIncubacao(@PathVariable Long id, Authentication authentication) {
+        return incubacaoService.cancelar(id, UsuarioAtor.de(authentication));
+    }
+
     private URI location(String path, Long id) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path(path).buildAndExpand(id).toUri();
+    }
+
+    private URI location(String path, Long id, Long nestedId) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path(path)
+                .buildAndExpand(id, nestedId).toUri();
     }
 }

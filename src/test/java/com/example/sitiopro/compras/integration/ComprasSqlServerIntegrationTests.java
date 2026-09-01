@@ -4,6 +4,7 @@ import com.example.sitiopro.compras.dto.CompraRequest;
 import com.example.sitiopro.compras.dto.ItemCompraRequest;
 import com.example.sitiopro.compras.dto.FornecedorRequest;
 import com.example.sitiopro.compras.entity.StatusCompra;
+import com.example.sitiopro.compras.entity.TipoEmbalagem;
 import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.compras.service.FornecedorService;
@@ -16,23 +17,30 @@ import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
 import com.example.sitiopro.estoque.repository.UnidadeMedidaRepository;
 import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers(disabledWithoutDocker = true)
+@MockBean(name = "openMeteoRestClient", classes = RestClient.class)
+@MockBean(name = "agrofitRestClient", classes = RestClient.class)
+@MockBean(classes = SistemaSaudeService.class)
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
         "spring.jpa.hibernate.ddl-auto=validate",
@@ -98,10 +106,66 @@ class ComprasSqlServerIntegrationTests {
                 WHERE name = 'ux_itens_compra_movimento'
                   AND object_id = OBJECT_ID(N'dbo.itens_compra')
                 """, Integer.class);
+        Integer colunasApresentacao = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'dbo.itens_compra')
+                  AND name IN ('quantidade_volumes', 'tipo_embalagem', 'conteudo_por_volume',
+                               'preco_por_volume', 'unidade_base')
+                """, Integer.class);
+        Integer constraintApresentacao = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM sys.check_constraints
+                WHERE parent_object_id = OBJECT_ID(N'dbo.itens_compra')
+                  AND name = 'ck_itens_compra_apresentacao_comercial'
+                """, Integer.class);
 
         assertThat(tabelas).isEqualTo(3);
         assertThat(colunasOrigem).isEqualTo(3);
         assertThat(indiceIdempotencia).isEqualTo(1);
+        assertThat(colunasApresentacao).isEqualTo(5);
+        assertThat(constraintApresentacao).isEqualTo(1);
+    }
+
+    @Test
+    void apresentacaoComercialPersisteEEntraNoEstoqueEmUnidadeBase() {
+        CategoriaEstoque categoria = categoriaRepository.findByAtivaTrueOrderByNomeAsc().getFirst();
+        UnidadeMedida unidadeKg = unidadeRepository.findByAtivaTrueOrderByNomeAsc().stream()
+                .filter(unidade -> "KG".equals(unidade.getSigla()))
+                .findFirst()
+                .orElseThrow();
+        LocalEstoque local = localRepository.findByAtivoTrueOrderByNomeAsc().getFirst();
+
+        Long fornecedorId = criarFornecedor("Fornecedor embalagem ");
+        Long itemId = criarItem("Ração embalagem ", categoria, unidadeKg, false, false);
+        CompraRequest compraRequest = new CompraRequest();
+        compraRequest.setFornecedorId(fornecedorId);
+        compraRequest.setDataCompra(LocalDate.now());
+        Long compraId = compraService.criarCompra(compraRequest).id();
+
+        var rascunho = compraService.adicionarItem(compraId,
+                apresentacaoRequest(itemId, TipoEmbalagem.SACO, "2", "60", "135", local.getId()));
+        var confirmada = compraService.confirmarCompra(compraId);
+
+        assertThat(rascunho.itens().getFirst().quantidadeEstoque()).isEqualByComparingTo("120");
+        assertThat(rascunho.itens().getFirst().valorTotal()).isEqualByComparingTo("270");
+        assertThat(confirmada.total()).isEqualByComparingTo("270");
+        assertThat(movimentoService.saldoItemTotal(itemId)).isEqualByComparingTo("120");
+        assertThat(movimentoService.ultimoPreco(itemId)).isEqualByComparingTo("2.25");
+
+        Map<String, Object> persistido = jdbcTemplate.queryForMap("""
+                SELECT quantidade_volumes, tipo_embalagem, conteudo_por_volume, preco_por_volume,
+                       unidade_base, quantidade, custo_unitario, subtotal
+                FROM dbo.itens_compra
+                WHERE compra_id = ?
+                """, compraId);
+        assertThat(persistido.get("tipo_embalagem")).isEqualTo("SACO");
+        assertThat((BigDecimal) persistido.get("quantidade_volumes")).isEqualByComparingTo("2");
+        assertThat((BigDecimal) persistido.get("conteudo_por_volume")).isEqualByComparingTo("60");
+        assertThat((BigDecimal) persistido.get("preco_por_volume")).isEqualByComparingTo("135");
+        assertThat(persistido.get("unidade_base")).isEqualTo("KG");
+        assertThat((BigDecimal) persistido.get("quantidade")).isEqualByComparingTo("120");
+        assertThat((BigDecimal) persistido.get("subtotal")).isEqualByComparingTo("270");
     }
 
     @Test
@@ -139,7 +203,18 @@ class ComprasSqlServerIntegrationTests {
                 WHERE compra_id = ?
                   AND movimento_estoque_id IS NOT NULL
                 """, Integer.class, compraId);
+        Integer itensLegados = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM dbo.itens_compra
+                WHERE compra_id = ?
+                  AND quantidade_volumes IS NULL
+                  AND tipo_embalagem IS NULL
+                  AND conteudo_por_volume IS NULL
+                  AND preco_por_volume IS NULL
+                  AND unidade_base IS NULL
+                """, Integer.class, compraId);
         assertThat(movimentosVinculados).isEqualTo(2);
+        assertThat(itensLegados).isEqualTo(2);
     }
 
     @Test
@@ -195,6 +270,18 @@ class ComprasSqlServerIntegrationTests {
         request.setLocalDestinoId(localId);
         request.setLoteCodigo(lote);
         request.setValidade(validade);
+        return request;
+    }
+
+    private ItemCompraRequest apresentacaoRequest(Long itemId, TipoEmbalagem tipo, String volumes,
+            String conteudo, String preco, Long localId) {
+        ItemCompraRequest request = new ItemCompraRequest();
+        request.setItemEstoqueId(itemId);
+        request.setTipoEmbalagem(tipo);
+        request.setQuantidadeVolumes(new BigDecimal(volumes));
+        request.setConteudoPorVolume(new BigDecimal(conteudo));
+        request.setPrecoPorVolume(new BigDecimal(preco));
+        request.setLocalDestinoId(localId);
         return request;
     }
 

@@ -67,6 +67,9 @@ public class Tarefa extends AuditableEntity {
     @Column(name = "referencia_origem", length = 160)
     private String referenciaOrigem;
 
+    @Column(name = "chave_automacao", unique = true, length = 160)
+    private String chaveAutomacao;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recorrencia_id")
     private TarefaRecorrencia recorrenciaOrigem;
@@ -179,6 +182,14 @@ public class Tarefa extends AuditableEntity {
 
     public void setReferenciaOrigem(String referenciaOrigem) {
         this.referenciaOrigem = referenciaOrigem;
+    }
+
+    public String getChaveAutomacao() {
+        return chaveAutomacao;
+    }
+
+    public void setChaveAutomacao(String chaveAutomacao) {
+        this.chaveAutomacao = chaveAutomacao;
     }
 
     public TarefaRecorrencia getRecorrenciaOrigem() {

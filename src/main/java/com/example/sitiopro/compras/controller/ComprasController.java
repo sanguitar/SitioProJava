@@ -6,6 +6,7 @@ import com.example.sitiopro.compras.dto.CompraRequest;
 import com.example.sitiopro.compras.dto.FornecedorRequest;
 import com.example.sitiopro.compras.dto.ItemCompraRequest;
 import com.example.sitiopro.compras.entity.StatusCompra;
+import com.example.sitiopro.compras.entity.TipoEmbalagem;
 import com.example.sitiopro.compras.service.CompraService;
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.compras.service.FornecedorService;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/sitio/compras")
@@ -92,7 +95,7 @@ public class ComprasController {
 
     @GetMapping("/{id}")
     public String detalhe(@PathVariable Long id, Model model) {
-        prepararDetalhe(model, compraService.detalhar(id), null, new ItemCompraRequest());
+        prepararDetalhe(model, compraService.detalhar(id), null, novoItemForm());
         return "compras/detalhe";
     }
 
@@ -104,7 +107,7 @@ public class ComprasController {
             RedirectAttributes attributes) {
         CompraDetalhe detalheAtual = compraService.detalhar(id);
         if (bindingResult.hasErrors()) {
-            prepararDetalhe(model, detalheAtual, request, new ItemCompraRequest());
+            prepararDetalhe(model, detalheAtual, request, novoItemForm());
             return "compras/detalhe";
         }
         try {
@@ -269,6 +272,15 @@ public class ComprasController {
         model.addAttribute("fornecedores", fornecedorService.listarAtivos());
         model.addAttribute("itensEstoque", estoqueCatalogoService.listarItensAtivos());
         model.addAttribute("locaisEstoque", estoqueCatalogoService.listarLocaisAtivos());
+        model.addAttribute("tiposEmbalagem", TipoEmbalagem.values());
+    }
+
+    private ItemCompraRequest novoItemForm() {
+        ItemCompraRequest request = new ItemCompraRequest();
+        request.setQuantidadeVolumes(BigDecimal.ONE);
+        request.setTipoEmbalagem(TipoEmbalagem.UNIDADE);
+        request.setConteudoPorVolume(BigDecimal.ONE);
+        return request;
     }
 
     private CompraRequest paraForm(CompraDetalhe detalhe) {

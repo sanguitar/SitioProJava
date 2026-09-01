@@ -2,6 +2,7 @@ package com.example.sitiopro.estoque.integration;
 
 import com.example.sitiopro.estoque.dto.ItemEstoqueRequest;
 import com.example.sitiopro.estoque.dto.MovimentoEstoqueRequest;
+import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
 import com.example.sitiopro.estoque.entity.CategoriaEstoque;
 import com.example.sitiopro.estoque.entity.LocalEstoque;
 import com.example.sitiopro.estoque.entity.TipoMovimentoEstoque;
@@ -11,17 +12,22 @@ import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
 import com.example.sitiopro.estoque.repository.UnidadeMedidaRepository;
 import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
+import com.example.sitiopro.observability.service.SistemaSaudeService;
+import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +39,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers(disabledWithoutDocker = true)
+@MockBean(name = "openMeteoRestClient", classes = RestClient.class)
+@MockBean(name = "agrofitRestClient", classes = RestClient.class)
+@MockBean(classes = SistemaSaudeService.class)
 @SpringBootTest(properties = {
         "spring.profiles.active=test",
         "spring.jpa.hibernate.ddl-auto=validate",
@@ -120,6 +129,44 @@ class EstoqueSqlServerIntegrationTests {
 
         assertThat(movimentoService.saldoItemTotal(itemId)).isEqualByComparingTo("100");
         assertThat(movimentoService.ultimoPreco(itemId)).isEqualByComparingTo("3.5000");
+    }
+
+    @Test
+    void historicoEOrdenadoEPaginadoNoSqlServer() {
+        CategoriaEstoque categoria = categoriaRepository.findByAtivaTrueOrderByNomeAsc().getFirst();
+        UnidadeMedida unidade = unidadeRepository.findByAtivaTrueOrderByNomeAsc().getFirst();
+        LocalEstoque local = localRepository.findByAtivoTrueOrderByNomeAsc().getFirst();
+
+        ItemEstoqueRequest itemRequest = new ItemEstoqueRequest();
+        itemRequest.setNome("Ração paginação " + System.nanoTime());
+        itemRequest.setCategoriaId(categoria.getId());
+        itemRequest.setUnidadeMedidaId(unidade.getId());
+        Long itemId = catalogoService.criarItem(itemRequest).getId();
+        LocalDateTime inicio = LocalDateTime.of(2099, 1, 1, 0, 0);
+
+        for (int indice = 0; indice < 25; indice++) {
+            MovimentoEstoqueRequest request = movimento(
+                    itemId, local.getId(), TipoMovimentoEstoque.ENTRADA, BigDecimal.ONE);
+            request.setDataMovimento(inicio.plusMinutes(indice));
+            movimentoService.registrarMovimento(request, false);
+        }
+
+        PaginaResponse<MovimentoEstoqueResponse> primeira = movimentoService.listarMovimentos(0, 20);
+        PaginaResponse<MovimentoEstoqueResponse> segunda = movimentoService.listarMovimentos(1, 20);
+
+        assertThat(primeira.conteudo()).hasSize(20);
+        assertThat(primeira.conteudo()).extracting(MovimentoEstoqueResponse::dataMovimento)
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(5, 24)
+                        .mapToObj(indice -> inicio.plusMinutes(indice))
+                        .sorted(java.util.Comparator.reverseOrder())
+                        .toList());
+        assertThat(segunda.conteudo().subList(0, 5)).extracting(MovimentoEstoqueResponse::dataMovimento)
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(0, 4)
+                        .mapToObj(indice -> inicio.plusMinutes(indice))
+                        .sorted(java.util.Comparator.reverseOrder())
+                        .toList());
+        assertThat(primeira.totalElementos()).isGreaterThanOrEqualTo(25);
+        assertThat(segunda.pagina()).isEqualTo(1);
     }
 
     @Test

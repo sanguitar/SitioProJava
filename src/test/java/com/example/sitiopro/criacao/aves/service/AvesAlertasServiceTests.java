@@ -87,6 +87,20 @@ class AvesAlertasServiceTests {
                 argThat(c -> c.size() == 1 && c.getFirst().referenciaOrigem().equals("INCUBACAO:12")));
     }
 
+    @Test
+    void semIncubacaoAbertaResolveAlertasDeEclosaoAnteriores() {
+        when(loteRepository.findByStatusOrderByCodigoAsc(StatusLoteAves.ATIVO)).thenReturn(List.of());
+        when(incubacaoRepository.findByStatusOrderByDataPrevistaEclosaoAsc(StatusIncubacaoAves.EM_INCUBACAO))
+                .thenReturn(List.of());
+
+        service.avaliar();
+
+        verify(alertaService).sincronizar(eq(ModuloOrigem.CRIACOES),
+                eq(TipoAlerta.CRIACAO_INCUBACAO_ECLOSAO_PROXIMA), argThat(List::isEmpty));
+        verify(alertaService).sincronizar(eq(ModuloOrigem.CRIACOES),
+                eq(TipoAlerta.CRIACAO_INCUBACAO_ATRASADA), argThat(List::isEmpty));
+    }
+
     private LoteAves lote(Long id, int quantidadeInicial) {
         LoteAves lote = new LoteAves();
         ReflectionTestUtils.setField(lote, "id", id);

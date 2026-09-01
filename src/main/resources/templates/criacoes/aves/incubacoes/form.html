@@ -1,2 +1,152 @@
-<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><head><th:block th:replace="~{fragments/head :: commonHead('Aves - Nova incubação')}"></th:block><link rel="stylesheet" th:href="@{/css/aves.css}"></head><body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside><main class="main-content domain-aves aves-page"><div th:replace="~{fragments/ui :: topbar('Nova incubação', 'Criações / Aves')}"></div><header class="aves-page-heading"><div><small class="module-group">Incubadora</small><h1>Iniciar incubação</h1></div><a th:href="@{/sitio/criacoes/aves/incubacoes}" class="btn btn-outline-dark"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a></header>
-<section class="aves-form-panel"><form th:action="@{/sitio/criacoes/aves/incubacoes}" th:object="${incubacaoForm}" method="post" class="row g-3"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" th:field="*{chaveIdempotencia}"><div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:each="e:${#fields.globalErrors()}" th:text="${e}"></div><div class="col-md-5"><span class="form-label">Código</span><div class="aves-generated-code"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>Gerado automaticamente ao iniciar</span></div></div><div class="col-md-7"><label class="form-label" for="instalacaoId">Incubadora</label><select id="instalacaoId" class="form-select" th:field="*{instalacaoId}" required><option value="">Selecione</option><option th:each="i:${incubadoras}" th:value="${i.id}" th:text="${i.nome}"></option></select></div><div class="col-md-4"><label class="form-label" for="dataInicio">Início</label><input id="dataInicio" type="date" class="form-control" th:field="*{dataInicio}" required></div><div class="col-md-4"><label class="form-label" for="quantidadeOvos">Quantidade de ovos</label><input id="quantidadeOvos" type="number" min="1" class="form-control" th:field="*{quantidadeOvos}" required></div><div class="col-md-4"><label class="form-label" for="dataPrevistaEclosao">Previsão de eclosão</label><input id="dataPrevistaEclosao" type="date" class="form-control" th:field="*{dataPrevistaEclosao}" required></div><div class="col-md-6"><label class="form-label" for="loteReprodutorId">Lote reprodutor</label><select id="loteReprodutorId" class="form-select" th:field="*{loteReprodutorId}"><option value="">Não informado</option><option th:each="l:${lotes}" th:value="${l.id}" th:text="${l.codigo + (l.nome == null ? '' : ' · ' + l.nome)}"></option></select></div><div class="col-md-6"><label class="form-label" for="origemOvos">Origem dos ovos</label><input id="origemOvos" class="form-control" th:field="*{origemOvos}"></div><div class="col-12"><label class="form-label" for="observacao">Observação</label><textarea id="observacao" class="form-control" rows="3" th:field="*{observacao}"></textarea></div><div class="col-12 text-end"><button class="btn btn-success"><i class="fa-solid fa-play me-2"></i>Iniciar incubação</button></div></form></section><div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Aves - Nova incubação')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/aves.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content domain-aves aves-page">
+    <div th:replace="~{fragments/ui :: topbar('Nova incubação', 'Criações / Aves')}"></div>
+
+    <header class="aves-page-heading">
+        <div>
+            <small class="module-group">Incubação</small>
+            <h1>Iniciar novo ciclo</h1>
+            <p>Registre os ovos agora. O acompanhamento pode ser feito depois.</p>
+        </div>
+        <a th:href="@{/sitio/criacoes/aves/incubacoes}" class="btn btn-outline-dark" title="Voltar">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <form th:action="@{/sitio/criacoes/aves/incubacoes}" th:object="${incubacaoForm}"
+          method="post" class="incubation-quick-form" data-incubation-form>
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" th:field="*{chaveIdempotencia}">
+
+        <div class="alert alert-danger" th:if="${#fields.hasErrors()}" role="alert">
+            <strong>Revise os dados informados.</strong>
+            <ul>
+                <li th:each="erro : ${#fields.allErrors()}" th:text="${erro}">Campo inválido</li>
+            </ul>
+        </div>
+
+        <section class="aves-form-panel incubation-primary-fields" aria-labelledby="dados-principais">
+            <div class="panel-heading">
+                <div>
+                    <small>Dados principais</small>
+                    <h2 id="dados-principais">O que vai para incubação?</h2>
+                </div>
+                <div class="aves-generated-code">
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                    <span>Gerado automaticamente ao iniciar</span>
+                </div>
+            </div>
+
+            <fieldset class="incubation-method-fieldset">
+                <legend>Método</legend>
+                <div class="incubation-method-options">
+                    <label th:each="metodo : ${metodos}" th:for="${'metodo-' + metodo.name()}">
+                        <input type="radio" th:field="*{metodo}" th:value="${metodo}"
+                               th:id="${'metodo-' + metodo.name()}">
+                        <span>
+                            <i th:class="${metodo.name() == 'CHOCADEIRA' ? 'fa-solid fa-temperature-half' : 'fa-solid fa-egg'}"
+                               aria-hidden="true"></i>
+                            <b th:text="${metodo.rotulo}">Chocadeira</b>
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <div class="incubation-field-grid">
+                <label>
+                    <span>Instalação ou local</span>
+                    <select id="incubation-location" class="form-select" th:field="*{instalacaoId}" required>
+                        <option value="">Selecione o local</option>
+                        <option th:each="instalacao : ${instalacoes}" th:value="${instalacao.id}"
+                                th:text="${instalacao.nome + ' · ' + instalacao.tipoRotulo}"
+                                th:attr="data-tipo=${instalacao.tipo}">Chocadeira 1</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Data de início</span>
+                    <input id="incubation-start" type="date" class="form-control"
+                           th:field="*{dataInicio}" required>
+                </label>
+                <label>
+                    <span>Quantidade de ovos</span>
+                    <input type="number" min="1" inputmode="numeric" class="form-control"
+                           th:field="*{quantidadeOvos}" placeholder="20" required>
+                </label>
+                <label>
+                    <span>Espécie</span>
+                    <select id="incubation-species" class="form-select" th:field="*{especie}" required>
+                        <option th:each="especie : ${especies}" th:value="${especie}"
+                                th:text="${especie.rotulo}"
+                                th:attr="data-periodo=${periodosIncubacao[especie]}">Galinha</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="incubation-forecast">
+                <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
+                <div>
+                    <span>Eclosão prevista</span>
+                    <strong id="incubation-forecast-display"
+                            th:text="${incubacaoForm.dataPrevistaEclosao == null ? 'Período não configurado' : #temporals.format(incubacaoForm.dataPrevistaEclosao, 'dd/MM/yyyy')}">22/09/2026</strong>
+                    <small>Calculada automaticamente conforme a espécie.</small>
+                </div>
+            </div>
+        </section>
+
+        <details class="aves-form-panel incubation-optional-fields">
+            <summary>
+                <span><i class="fa-solid fa-link" aria-hidden="true"></i> Detalhes opcionais</span>
+                <small>Origem e observações</small>
+            </summary>
+            <div class="incubation-field-grid">
+                <label>
+                    <span>Lote de origem</span>
+                    <select class="form-select" th:field="*{loteReprodutorId}">
+                        <option value="">Não informado</option>
+                        <option th:each="lote : ${lotes}" th:value="${lote.id}"
+                                th:text="${lote.codigo + (lote.nome == null ? '' : ' · ' + lote.nome)}">AV-2026-0001</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Postura registrada</span>
+                    <select class="form-select" th:field="*{posturaOrigemId}">
+                        <option value="">Não vinculada</option>
+                        <option th:each="postura : ${posturas}" th:value="${postura.id}"
+                                th:text="${postura.loteCodigo + ' · ' + #temporals.format(postura.dataColeta, 'dd/MM/yyyy') + ' · ' + postura.ovosInteiros + ' ovos'}">Postura</option>
+                    </select>
+                </label>
+                <label class="full-field">
+                    <span>Origem externa ou manual</span>
+                    <input class="form-control" th:field="*{origemOvos}"
+                           placeholder="Ex.: ovos recebidos do vizinho">
+                </label>
+                <label class="full-field">
+                    <span>Observação</span>
+                    <textarea class="form-control" rows="3" th:field="*{observacao}"
+                              placeholder="Algo importante para acompanhar neste ciclo"></textarea>
+                </label>
+            </div>
+        </details>
+
+        <div class="incubation-submit-bar">
+            <a th:href="@{/sitio/criacoes/aves/incubacoes}" class="btn btn-outline-dark">Cancelar</a>
+            <button class="btn btn-success" type="submit">
+                <i class="fa-solid fa-play" aria-hidden="true"></i>
+                Iniciar incubação
+            </button>
+        </div>
+    </form>
+
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+<script th:src="@{/js/aves.js}"></script>
+</body>
+</html>

@@ -82,6 +82,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/criacoes/aves/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/aves/instalacoes",
                                 "/api/v1/criacoes/aves/lotes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/criacoes/aves/incubacoes/*/cancelar",
+                                "/api/v1/criacoes/aves/incubacoes/*/ajustar-previsao").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/aves/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/integracoes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/compras", "/api/v1/compras/*/itens",
@@ -109,7 +112,8 @@ public class SecurityConfig {
                                 "/sitio/criacoes/aves/lotes",
                                 "/sitio/criacoes/aves/lotes/*",
                                 "/sitio/criacoes/aves/lotes/*/encerrar",
-                                "/sitio/criacoes/aves/incubacoes/*/cancelar").hasRole("ADMIN")
+                                "/sitio/criacoes/aves/incubacoes/*/cancelar",
+                                "/sitio/criacoes/aves/incubacoes/*/ajustar-previsao").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,
                                 "/sitio/criacoes/aves/instalacoes/nova",
                                 "/sitio/criacoes/aves/instalacoes/*/editar",

@@ -8,37 +8,43 @@
     <aside th:replace="~{fragments/sidebar :: sidebar('producao')}"></aside>
 
     <main class="main-content main-content-wide">
-        <div th:replace="~{fragments/ui :: topbar(${producao.id == null ? 'Novo cadastro rural' : 'Atualizar registro'}, 'Gestão')}"></div>
+        <div th:replace="~{fragments/ui :: topbar(${producaoForm.id == null ? 'Novo cadastro rural' : 'Atualizar registro'}, 'Gestão')}"></div>
         <div class="row justify-content-center">
             <div class="col-lg-9">
                 <div class="card card-custom">
                     <div class="header-agro p-4">
                         <h3 class="mb-0 text-center">
-                            <i th:class="${producao.id == null} ? 'fa-solid fa-plus-circle' : 'fa-solid fa-pen-to-square'"></i>
-                            <span th:text="${producao.id == null ? ' Novo Cadastro Rural' : ' Atualizar Registro'}"></span>
+                            <i th:class="${producaoForm.id == null} ? 'fa-solid fa-plus-circle' : 'fa-solid fa-pen-to-square'"></i>
+                            <span th:text="${producaoForm.id == null ? ' Novo Cadastro Rural' : ' Atualizar Registro'}"></span>
                         </h3>
                     </div>
 
                     <div class="card-body p-4 p-lg-5">
-                        <form th:action="@{/sitio/salvar}" th:object="${producao}" method="post">
+                        <form th:action="@{/sitio/salvar}" th:object="${producaoForm}" method="post">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                             <input type="hidden" th:field="*{id}" />
+
+                            <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}"
+                                 th:each="erro : ${#fields.globalErrors()}" th:text="${erro}"></div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label">Categoria do Recurso</label>
-                                    <select th:field="*{categoria}" class="form-select form-select-lg" required>
+                                    <select th:field="*{categoriaId}" class="form-select form-select-lg"
+                                            th:classappend="${#fields.hasErrors('categoriaId')} ? ' is-invalid'" required>
                                         <option value="">-- Selecione a Categoria --</option>
                                         <option th:each="cat : ${categorias}"
                                                 th:value="${cat.id}"
                                                 th:text="${cat.nome}"></option>
                                     </select>
+                                    <div class="invalid-feedback" th:errors="*{categoriaId}"></div>
                                     <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Obrigatório para o gráfico e organização.</small>
                                 </div>
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label">Nome / Descrição do Item</label>
                                     <input type="text" th:field="*{item}" class="form-control form-control-lg" placeholder="Ex: Milho Grão" required>
+                                    <div class="text-danger small" th:errors="*{item}"></div>
                                 </div>
                             </div>
 
@@ -46,10 +52,12 @@
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Quantidade Atual</label>
                                     <input type="number" th:field="*{quantidade}" class="form-control form-control-lg" step="0.01" min="0" required>
+                                    <div class="text-danger small" th:errors="*{quantidade}"></div>
                                 </div>
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Unidade de Medida</label>
                                     <input type="text" th:field="*{unidade}" class="form-control form-control-lg" placeholder="Ex: kg, saca, L" required>
+                                    <div class="text-danger small" th:errors="*{unidade}"></div>
                                 </div>
                                 <div class="col-md-4 mb-4">
                                     <label class="form-label">Status do Ativo</label>

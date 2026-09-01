@@ -9,6 +9,7 @@ import com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse;
 import com.example.sitiopro.estoque.entity.ItemEstoque;
 import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
+import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -71,8 +73,10 @@ public class EstoqueApiController {
 
     @GetMapping("/movimentos")
     @Operation(summary = "Lista o histórico de movimentações")
-    public List<MovimentoEstoqueResponse> movimentos() {
-        return movimentoService.listarMovimentos();
+    public PaginaResponse<MovimentoEstoqueResponse> movimentos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return movimentoService.listarMovimentos(page, size);
     }
 
     @GetMapping("/movimentos/{id}")

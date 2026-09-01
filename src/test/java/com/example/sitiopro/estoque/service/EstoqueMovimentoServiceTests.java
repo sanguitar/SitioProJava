@@ -12,21 +12,28 @@ import com.example.sitiopro.estoque.repository.ItemEstoqueRepository;
 import com.example.sitiopro.estoque.repository.LocalEstoqueRepository;
 import com.example.sitiopro.estoque.repository.LoteEstoqueRepository;
 import com.example.sitiopro.estoque.repository.MovimentoEstoqueRepository;
+import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -195,9 +202,56 @@ class EstoqueMovimentoServiceTests {
         assertThat(itens.get(0).custoMedio()).isEqualByComparingTo("3");
         assertThat(itens.get(1).ultimoPreco()).isEqualByComparingTo("4");
         verify(movimentoRepository).agregarPorItem();
-        verify(movimentoRepository, never()).findAllByOrderByDataMovimentoDescIdDesc();
+        verify(movimentoRepository, never()).findAllByOrderByDataMovimentoDescIdDesc(any(Pageable.class));
         verify(movimentoRepository, never()).findByItemId(any());
         verify(movimentoRepository, never()).findByItemIdOrderByDataMovimentoDescIdDesc(any());
+    }
+
+    @Test
+    void historicoRetornaPrimeiraPaginaOrdenadaPeloRepository() {
+        MovimentoEstoque recente = movimento(TipoMovimentoEstoque.ENTRADA, "20", null, deposito);
+        recente.setDataMovimento(LocalDateTime.of(2026, 8, 25, 12, 0));
+        MovimentoEstoque antigo = movimento(TipoMovimentoEstoque.ENTRADA, "10", null, deposito);
+        antigo.setDataMovimento(LocalDateTime.of(2026, 8, 24, 12, 0));
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc(pageable))
+                .thenReturn(new PageImpl<>(List.of(recente, antigo), pageable, 22));
+
+        PaginaResponse<com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse> pagina =
+                service.listarMovimentos(0, 20);
+
+        assertThat(pagina.pagina()).isZero();
+        assertThat(pagina.tamanho()).isEqualTo(20);
+        assertThat(pagina.totalElementos()).isEqualTo(22);
+        assertThat(pagina.totalPaginas()).isEqualTo(2);
+        assertThat(pagina.conteudo()).extracting(com.example.sitiopro.estoque.dto.MovimentoEstoqueResponse::dataMovimento)
+                .containsExactly(recente.getDataMovimento(), antigo.getDataMovimento());
+    }
+
+    @Test
+    void historicoSolicitaSegundaPagina() {
+        PageRequest pageable = PageRequest.of(1, 20);
+        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc(pageable))
+                .thenReturn(Page.empty(pageable));
+
+        PaginaResponse<?> pagina = service.listarMovimentos(1, 20);
+
+        assertThat(pagina.pagina()).isEqualTo(1);
+        assertThat(pagina.conteudo()).isEmpty();
+        verify(movimentoRepository).findAllByOrderByDataMovimentoDescIdDesc(eq(pageable));
+    }
+
+    @Test
+    void historicoNormalizaPaginaNegativaETamanhoAcimaDoLimite() {
+        PageRequest pageable = PageRequest.of(0, 100);
+        when(movimentoRepository.findAllByOrderByDataMovimentoDescIdDesc(pageable))
+                .thenReturn(Page.empty(pageable));
+
+        PaginaResponse<?> pagina = service.listarMovimentos(-10, 999999);
+
+        assertThat(pagina.pagina()).isZero();
+        assertThat(pagina.tamanho()).isEqualTo(100);
+        verify(movimentoRepository).findAllByOrderByDataMovimentoDescIdDesc(eq(pageable));
     }
 
     @Test
