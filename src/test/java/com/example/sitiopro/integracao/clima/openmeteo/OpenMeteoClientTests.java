@@ -19,18 +19,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class OpenMeteoClientTests {
 
     @Test
+    void semCoordenadasNaoFazRequisicaoExterna() {
+        Fixture fixture = cliente(Duration.ofSeconds(1));
+        var semLocalizacao = new com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura(
+                "Teste", "UTC", null, null, 21, 2, 0, null, null);
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(semLocalizacao))
+                .isInstanceOf(IntegracaoHttpException.class).extracting("code").isEqualTo("OPEN_METEO_NAO_CONFIGURADO");
+        fixture.server().verify();
+    }
+
+    @Test
     void lePayloadValidoSemExporDetalhesHttpAoDominio() {
         Fixture fixture = cliente(Duration.ofSeconds(1));
         fixture.server().expect(requestTo(containsString("/v1/forecast")))
+                .andExpect(queryParam("latitude", "-3"))
+                .andExpect(queryParam("longitude", "-60"))
+                .andExpect(queryParam("timezone", "UTC"))
                 .andRespond(withSuccess(payloadValido(), MediaType.APPLICATION_JSON));
 
-        OpenMeteoResponse response = fixture.client().buscarPrevisao();
+        OpenMeteoResponse response = fixture.client().buscarPrevisao(padrao());
 
         assertThat(response.hourly().time()).hasSize(1);
         assertThat(response.hourly().temperature2m().getFirst()).isEqualByComparingTo("28.4");
@@ -44,7 +59,7 @@ class OpenMeteoClientTests {
                 .andRespond(withSuccess("{\"timezone\":\"UTC\",\"hourly\":{\"time\":[]}}",
                         MediaType.APPLICATION_JSON));
 
-        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(padrao()))
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
                 .isEqualTo("OPEN_METEO_PAYLOAD_INVALIDO");
@@ -61,7 +76,7 @@ class OpenMeteoClientTests {
                     throw new SocketTimeoutException("timeout simulado");
                 });
 
-        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(padrao()))
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
                 .isEqualTo("API_TIMEOUT");
@@ -78,7 +93,7 @@ class OpenMeteoClientTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body("{}"));
 
-        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(padrao()))
                 .isInstanceOfSatisfying(IntegracaoHttpException.class, ex -> {
                     assertThat(ex.getCode()).isEqualTo("API_RATE_LIMIT");
                     assertThat(ex.getRetryAfterSeconds()).isEqualTo(120);
@@ -94,7 +109,7 @@ class OpenMeteoClientTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body("{}"));
 
-        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(padrao()))
                 .isInstanceOfSatisfying(IntegracaoHttpException.class, ex -> {
                     assertThat(ex.getCode()).isEqualTo("API_REQUISICAO_INVALIDA");
                     assertThat(ex.getHttpStatus()).isEqualTo(400);
@@ -110,7 +125,7 @@ class OpenMeteoClientTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body("{}"));
 
-        assertThatThrownBy(() -> fixture.client().buscarPrevisao())
+        assertThatThrownBy(() -> fixture.client().buscarPrevisao(padrao()))
                 .isInstanceOf(IntegracaoHttpException.class)
                 .extracting("code")
                 .isEqualTo("API_HTTP_5XX");
@@ -121,9 +136,6 @@ class OpenMeteoClientTests {
         OpenMeteoProperties properties = new OpenMeteoProperties();
         properties.setEnabled(true);
         properties.setBaseUrl("https://open-meteo.test");
-        properties.setLatitude("-3.0");
-        properties.setLongitude("-60.0");
-        properties.setTimezone("UTC");
         properties.setReadTimeout(readTimeout);
         properties.setConnectTimeout(Duration.ofSeconds(1));
         IntegracaoCoreProperties coreProperties = new IntegracaoCoreProperties();

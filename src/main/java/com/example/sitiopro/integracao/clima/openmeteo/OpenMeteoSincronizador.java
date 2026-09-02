@@ -1,5 +1,6 @@
 package com.example.sitiopro.integracao.clima.openmeteo;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.integracao.clima.service.OpenMeteoPersistenceService;
 import com.example.sitiopro.integracao.core.FonteIntegracao;
 import com.example.sitiopro.integracao.core.IntegracaoSincronizador;
@@ -16,14 +17,17 @@ public class OpenMeteoSincronizador implements IntegracaoSincronizador {
     private final OpenMeteoClient client;
     private final OpenMeteoPersistenceService persistenceService;
     private final OpenMeteoProperties properties;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final CacheInvalidationService cacheInvalidationService;
 
     public OpenMeteoSincronizador(OpenMeteoClient client,
             OpenMeteoPersistenceService persistenceService, OpenMeteoProperties properties,
+            ConfiguracaoOperacionalService configuracaoOperacionalService,
             CacheInvalidationService cacheInvalidationService) {
         this.client = client;
         this.persistenceService = persistenceService;
         this.properties = properties;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
         this.cacheInvalidationService = cacheInvalidationService;
     }
 
@@ -39,7 +43,8 @@ public class OpenMeteoSincronizador implements IntegracaoSincronizador {
 
     @Override
     public boolean configurada() {
-        return properties.configurada();
+        return properties.getContexto() != null && !properties.getContexto().isBlank()
+                && configuracaoOperacionalService.obter().localizacaoConfigurada();
     }
 
     @Override
@@ -64,7 +69,8 @@ public class OpenMeteoSincronizador implements IntegracaoSincronizador {
 
     @Override
     public ResultadoSincronizacao sincronizar() {
-        ResultadoSincronizacao resultado = persistenceService.persistir(client.buscarPrevisao());
+        var configuracao = configuracaoOperacionalService.obter();
+        ResultadoSincronizacao resultado = persistenceService.persistir(client.buscarPrevisao(configuracao), configuracao);
         cacheInvalidationService.invalidarClimaResumo();
         return resultado;
     }

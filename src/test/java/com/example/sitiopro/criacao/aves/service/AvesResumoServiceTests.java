@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 
 @ExtendWith(MockitoExtension.class)
 class AvesResumoServiceTests {
@@ -43,7 +44,7 @@ class AvesResumoServiceTests {
         Clock clock = Clock.fixed(Instant.parse("2026-09-05T12:00:00Z"), ZoneOffset.UTC);
         hoje = LocalDate.of(2026, 9, 5);
         service = new AvesResumoService(loteRepository, incubacaoRepository, posturaRepository,
-                mortalidadeRepository, alertaService, new AvesProperties(), clock);
+                mortalidadeRepository, alertaService, new AvesProperties(), servico(), clock);
     }
 
     @Test

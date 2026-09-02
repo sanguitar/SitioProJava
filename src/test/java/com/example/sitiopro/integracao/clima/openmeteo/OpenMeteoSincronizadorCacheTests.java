@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 
 class OpenMeteoSincronizadorCacheTests {
 
@@ -20,15 +22,15 @@ class OpenMeteoSincronizadorCacheTests {
         CacheInvalidationService invalidation = mock(CacheInvalidationService.class);
         OpenMeteoResponse response = mock(OpenMeteoResponse.class);
         ResultadoSincronizacao resultado = new ResultadoSincronizacao(24, 20, 4, 0);
-        when(client.buscarPrevisao()).thenReturn(response);
-        when(persistence.persistir(response)).thenReturn(resultado);
+        when(client.buscarPrevisao(padrao())).thenReturn(response);
+        when(persistence.persistir(response, padrao())).thenReturn(resultado);
         OpenMeteoSincronizador sincronizador = new OpenMeteoSincronizador(
-                client, persistence, new OpenMeteoProperties(), invalidation);
+                client, persistence, new OpenMeteoProperties(), servico(), invalidation);
 
         assertThat(sincronizador.sincronizar()).isEqualTo(resultado);
 
         InOrder ordem = inOrder(persistence, invalidation);
-        ordem.verify(persistence).persistir(response);
+        ordem.verify(persistence).persistir(response, padrao());
         ordem.verify(invalidation).invalidarClimaResumo();
     }
 }

@@ -8,6 +8,7 @@ import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.security.UsuarioPrincipal;
+import com.example.sitiopro.usuario.security.UsuarioSessaoService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +24,14 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final SenhaPolicy senhaPolicy;
+    private final UsuarioSessaoService usuarioSessaoService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, SenhaPolicy senhaPolicy) {
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+            SenhaPolicy senhaPolicy, UsuarioSessaoService usuarioSessaoService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.senhaPolicy = senhaPolicy;
+        this.usuarioSessaoService = usuarioSessaoService;
     }
 
     public List<Usuario> listarTodos() {
@@ -46,6 +50,14 @@ public class UsuarioService {
 
     public long contarUsuarios() {
         return usuarioRepository.count();
+    }
+
+    public long contarAtivos() {
+        return usuarioRepository.countByAtivoTrue();
+    }
+
+    public long contarAdministradoresAtivos() {
+        return usuarioRepository.countByPerfilAndAtivoTrue(PerfilUsuario.ADMIN);
     }
 
     public boolean existePorLogin(String login) {
@@ -87,11 +99,16 @@ public class UsuarioService {
     public Usuario editar(Long id, EditarUsuarioRequest request) {
         Usuario usuario = buscarPorId(id);
         validarNaoRemoveUltimoAdmin(usuario, request.getPerfil(), request.isAtivo());
+        boolean foiDesativado = usuario.isAtivo() && !request.isAtivo();
 
         usuario.setNome(normalizarTexto(request.getNome()));
         usuario.setPerfil(request.getPerfil());
         usuario.setAtivo(request.isAtivo());
-        return usuarioRepository.save(usuario);
+        Usuario atualizado = usuarioRepository.save(usuario);
+        if (foiDesativado) {
+            usuarioSessaoService.revogarAposCommit(usuario.getId());
+        }
+        return atualizado;
     }
 
     @Transactional
@@ -117,8 +134,12 @@ public class UsuarioService {
     public void desativar(Long id) {
         Usuario usuario = buscarPorId(id);
         validarNaoRemoveUltimoAdmin(usuario, usuario.getPerfil(), false);
+        boolean estavaAtivo = usuario.isAtivo();
         usuario.setAtivo(false);
         usuarioRepository.save(usuario);
+        if (estavaAtivo) {
+            usuarioSessaoService.revogarAposCommit(usuario.getId());
+        }
     }
 
     @Transactional

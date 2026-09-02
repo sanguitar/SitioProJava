@@ -89,12 +89,11 @@ Incubações registram ovos, origem, incubadora e previsão. A finalização val
 
 Os códigos operacionais são definidos exclusivamente pelo backend. Lotes usam `AV-AAAA-NNNN` e incubações usam `INC-AAAA-NNNN`; uma sequência anual no SQL Server, protegida por application lock transacional, evita duplicidade em requisições concorrentes sem derivar o valor de IDs. Os DTOs de criação e edição não aceitam o código, inclusive no lote resultante de uma incubação.
 
-Alertas de mortalidade, eclosão próxima e incubação atrasada reutilizam a engine de Alertas. Tarefas manuais ou recorrentes podem ser vinculadas a `LOTE:{id}` ou `INCUBACAO:{id}` sem duplicar a implementação de recorrência. Os limites são configuráveis externamente:
+Alertas de mortalidade, eclosão próxima e incubação atrasada reutilizam a engine de Alertas. Tarefas manuais ou recorrentes podem ser vinculadas a `LOTE:{id}` ou `INCUBACAO:{id}` sem duplicar a implementação de recorrência. Dias padrão de incubação de galinha e antecedência de eclosão são administrados em `/sitio/admin/configuracoes`. Os limites de mortalidade permanecem externos:
 
 ```text
 CRIACAO_AVES_MORTALIDADE_ALERTA_PERCENTUAL=5.0
 CRIACAO_AVES_MORTALIDADE_PERIODO_DIAS=7
-CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS=2
 ```
 
 API autenticada, paginada nas coleções e baseada somente em DTOs:
@@ -513,7 +512,7 @@ Cada execução registra início, fim, fonte, resultado, contadores, erro seguro
 
 O adapter usa `GET /v1/forecast` e persiste previsão horária de temperatura, umidade relativa, precipitação, probabilidade de precipitação, vento, rajadas, ET0, umidade do solo de 0–1 cm e weather code. O upsert usa `fonte + contexto + data_hora_previsao`; dados iguais são contabilizados como ignorados, alterações são atualizadas e previsões antigas são removidas depois da retenção configurável, inicialmente 30 dias.
 
-Configuração local mínima:
+Configuração técnica e valores para a primeira inicialização (opcionais para localização):
 
 ```text
 SITIOPRO_OPEN_METEO_ENABLED=true
@@ -529,6 +528,29 @@ O cron usa seis campos do Spring e pode ser alterado sem recompilar. O padrão e
 GET /api/v1/clima/resumo
 GET /api/v1/clima/previsao?horas=168
 ```
+
+### Configurações operacionais
+
+`GET|POST /sitio/admin/configuracoes` exige ADMIN e oferece nome da propriedade, timezone IANA,
+latitude/longitude decimais, dias padrão de incubação de galinha e antecedência do alerta de eclosão.
+O atalho fica na Central Admin. CSRF e DTO com lista explícita de campos protegem a atualização.
+
+A V15 cria `configuracoes_operacionais`, uma entidade tipada com registro único, constraints,
+controle de versão e auditoria `criado_em/por` e `alterado_em/por`. No startup, somente se o registro
+não existir, são importados `SITIO_NOME_PROPRIEDADE`, `SITIO_TIMEZONE`, `SITIO_LATITUDE`,
+`SITIO_LONGITUDE`, `CRIACAO_AVES_GALINHA_INCUBACAO_DIAS` e `CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS`.
+Depois disso, o SQL Server é a fonte de verdade; mudar env ou reiniciar não sobrescreve alterações da tela.
+Não há gravação durante GET nem fallback que esconda falhas do banco.
+
+Sem valores iniciais válidos, os defaults são Sítio Guaratinguetá, `Etc/UTC`, 21 dias e 2 dias.
+Coordenadas ficam nulas em conjunto, impedindo consultas externas para uma localização inventada.
+O período de galinha afeta apenas novos ciclos; previsões já registradas permanecem intactas.
+A antecedência também alimenta os alertas e o resumo de Aves.
+
+Open-Meteo usa uma fotografia da configuração para consulta e persistência. Alterar localização/fuso
+avança sua revisão, isolando previsões e cache anteriores até a próxima sincronização, sem misturar locais.
+URLs, cron, timeouts, habilitação das integrações e todos os secrets continuam em deployment config/env.
+Propriedade, Agricultura e cadastros de outros domínios não são alterados por esta tela.
 
 Dados Open-Meteo exigem atribuição CC BY 4.0, mantida ao lado do resumo climático. A API gratuita é destinada a uso não comercial e possui limites oficiais; para uso comercial, configure o endpoint/plano oficial adequado antes da produção.
 

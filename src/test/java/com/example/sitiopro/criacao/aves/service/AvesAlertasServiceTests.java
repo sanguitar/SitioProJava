@@ -1,5 +1,8 @@
 package com.example.sitiopro.criacao.aves.service;
 
+import com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura;
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 import com.example.sitiopro.criacao.aves.config.AvesProperties;
 import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
@@ -32,12 +35,27 @@ class AvesAlertasServiceTests {
     @Mock private IncubacaoAvesRepository incubacaoRepository;
     @Mock private AlertaService alertaService;
     private AvesAlertasService service;
+    private ConfiguracaoOperacionalService configuracao;
 
     @BeforeEach
     void preparar() {
+        configuracao = servico();
         service = new AvesAlertasService(loteRepository, mortalidadeRepository, incubacaoRepository,
-                alertaService, new AvesProperties(),
+                alertaService, new AvesProperties(), configuracao,
                 Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneOffset.UTC));
+    }
+
+    @Test
+    void antecedenciaPersistidaAmpliaJanelaDeEclosao() {
+        when(configuracao.obter()).thenReturn(new ConfiguracaoOperacionalLeitura(
+                "Teste", "UTC", null, null, 21, 5, 0, null, null));
+        when(incubacaoRepository.findByStatusOrderByDataPrevistaEclosaoAsc(StatusIncubacaoAves.EM_INCUBACAO))
+                .thenReturn(List.of(incubacao(20L, "INC-20", LocalDate.of(2026, 8, 29)),
+                        incubacao(21L, "INC-21", LocalDate.of(2026, 8, 30))));
+        service.avaliar();
+        verify(alertaService).sincronizar(eq(ModuloOrigem.CRIACOES),
+                eq(TipoAlerta.CRIACAO_INCUBACAO_ECLOSAO_PROXIMA),
+                argThat(c -> c.size() == 1 && c.getFirst().referenciaOrigem().equals("INCUBACAO:20")));
     }
 
     @Test

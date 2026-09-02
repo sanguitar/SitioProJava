@@ -1,5 +1,6 @@
 package com.example.sitiopro.criacao.aves.service;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.criacao.aves.config.AvesProperties;
 import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
@@ -27,16 +28,18 @@ public class AvesAlertasService {
     private final IncubacaoAvesRepository incubacaoRepository;
     private final AlertaService alertaService;
     private final AvesProperties properties;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final Clock clock;
 
     public AvesAlertasService(LoteAvesRepository loteRepository, MortalidadeAvesRepository mortalidadeRepository,
             IncubacaoAvesRepository incubacaoRepository, AlertaService alertaService,
-            AvesProperties properties, Clock clock) {
+            AvesProperties properties, ConfiguracaoOperacionalService configuracaoOperacionalService, Clock clock) {
         this.loteRepository = loteRepository;
         this.mortalidadeRepository = mortalidadeRepository;
         this.incubacaoRepository = incubacaoRepository;
         this.alertaService = alertaService;
         this.properties = properties;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
         this.clock = clock;
     }
 
@@ -72,7 +75,8 @@ public class AvesAlertasService {
 
     private void avaliarEclosoesProximas() {
         LocalDate hoje = LocalDate.now(clock);
-        LocalDate limite = hoje.plusDays(properties.getEclosaoProximaDias());
+        LocalDate limite = hoje.plusDays(
+                configuracaoOperacionalService.obter().antecedenciaAlertaEclosaoDias());
         List<CondicaoAlerta> condicoes = incubacaoRepository
                 .findByStatusOrderByDataPrevistaEclosaoAsc(StatusIncubacaoAves.EM_INCUBACAO).stream()
                 .filter(i -> !i.getDataPrevistaEclosao().isBefore(hoje) && !i.getDataPrevistaEclosao().isAfter(limite))

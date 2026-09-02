@@ -1,5 +1,6 @@
 package com.example.sitiopro.integracao.clima.service;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.integracao.clima.dto.PrevisaoClimaticaResponse;
 import com.example.sitiopro.integracao.clima.entity.PrevisaoClimatica;
@@ -22,28 +23,35 @@ public class ClimaConsultaService {
 
     private final PrevisaoClimaticaRepository repository;
     private final OpenMeteoProperties properties;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final Clock clock;
 
     public ClimaConsultaService(PrevisaoClimaticaRepository repository,
-            OpenMeteoProperties properties, Clock clock) {
+            OpenMeteoProperties properties, ConfiguracaoOperacionalService configuracaoOperacionalService,
+            Clock clock) {
         this.repository = repository;
         this.properties = properties;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.CLIMA_RESUMO, key = "@cacheKeyFactory.climaResumo()")
     public ClimaResumo resumo() {
-        LocalDateTime agoraLocal = LocalDateTime.ofInstant(clock.instant(), properties.zoneId());
+        var configuracao = configuracaoOperacionalService.obter();
+        if (!configuracao.localizacaoConfigurada()) return ClimaResumo.naoSincronizado();
+        String contexto = configuracao.contextoClima(properties.getContexto());
+        LocalDateTime agoraLocal = LocalDateTime.ofInstant(
+                clock.instant(), configuracao.zoneId());
         Optional<PrevisaoClimatica> atual = repository
                 .findFirstByFonteAndContextoAndDataHoraPrevisaoLessThanEqualOrderByDataHoraPrevisaoDesc(
-                        FonteIntegracao.OPEN_METEO, properties.getContexto(), agoraLocal);
+                        FonteIntegracao.OPEN_METEO, contexto, agoraLocal);
         if (atual.isEmpty()) {
             atual = repository.findFirstByFonteAndContextoAndDataHoraPrevisaoGreaterThanOrderByDataHoraPrevisao(
-                    FonteIntegracao.OPEN_METEO, properties.getContexto(), agoraLocal);
+                    FonteIntegracao.OPEN_METEO, contexto, agoraLocal);
         }
         Optional<PrevisaoClimatica> ultima = repository.findFirstByFonteAndContextoOrderByObtidoEmDesc(
-                FonteIntegracao.OPEN_METEO, properties.getContexto());
+                FonteIntegracao.OPEN_METEO, contexto);
         if (atual.isEmpty() || ultima.isEmpty()) {
             return ClimaResumo.naoSincronizado();
         }
@@ -51,7 +59,7 @@ public class ClimaConsultaService {
         BigDecimal chuva24h = repository
                 .findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                         FonteIntegracao.OPEN_METEO,
-                        properties.getContexto(),
+                        contexto,
                         agoraLocal,
                         agoraLocal.plusHours(24))
                 .stream()
@@ -82,10 +90,13 @@ public class ClimaConsultaService {
     @Transactional(readOnly = true)
     public List<PrevisaoClimaticaResponse> previsao(int horas) {
         int horizonte = Math.max(1, Math.min(horas, 384));
-        LocalDateTime agoraLocal = LocalDateTime.ofInstant(clock.instant(), properties.zoneId());
+        var configuracao = configuracaoOperacionalService.obter();
+        if (!configuracao.localizacaoConfigurada()) return List.of();
+        LocalDateTime agoraLocal = LocalDateTime.ofInstant(
+                clock.instant(), configuracao.zoneId());
         return repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                         FonteIntegracao.OPEN_METEO,
-                        properties.getContexto(),
+                        configuracao.contextoClima(properties.getContexto()),
                         agoraLocal,
                         agoraLocal.plusHours(horizonte))
                 .stream()

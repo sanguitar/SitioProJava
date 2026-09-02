@@ -21,6 +21,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     long countByPerfilAndAtivoTrue(PerfilUsuario perfil);
 
+    long countByAtivoTrue();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from Usuario u where u.perfil = :perfil and u.ativo = true order by u.id")
     List<Usuario> buscarAtivosParaAtualizacao(@Param("perfil") PerfilUsuario perfil);

@@ -1,5 +1,6 @@
 package com.example.sitiopro.criacao.aves.service;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.criacao.aves.config.AvesProperties;
 import com.example.sitiopro.criacao.aves.dto.AvesResumo;
 import com.example.sitiopro.criacao.aves.entity.StatusIncubacaoAves;
@@ -26,14 +27,17 @@ public class AvesResumoService {
     private final MortalidadeAvesRepository mortalidadeRepository;
     private final AlertaService alertaService;
     private final AvesProperties properties;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final Clock clock;
 
     public AvesResumoService(LoteAvesRepository loteRepository, IncubacaoAvesRepository incubacaoRepository,
             RegistroPosturaAvesRepository posturaRepository, MortalidadeAvesRepository mortalidadeRepository,
-            AlertaService alertaService, AvesProperties properties, Clock clock) {
+            AlertaService alertaService, AvesProperties properties,
+            ConfiguracaoOperacionalService configuracaoOperacionalService, Clock clock) {
         this.loteRepository = loteRepository; this.incubacaoRepository = incubacaoRepository;
         this.posturaRepository = posturaRepository; this.mortalidadeRepository = mortalidadeRepository;
         this.alertaService = alertaService; this.properties = properties; this.clock = clock;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
     }
 
     @Transactional(readOnly = true)
@@ -46,7 +50,7 @@ public class AvesResumoService {
                 loteRepository.somarQuantidadePorStatus(StatusLoteAves.ATIVO),
                 incubacaoRepository.countByStatus(StatusIncubacaoAves.EM_INCUBACAO),
                 incubacaoRepository.countByStatusAndDataPrevistaEclosaoBetween(StatusIncubacaoAves.EM_INCUBACAO,
-                        hoje, hoje.plusDays(properties.getEclosaoProximaDias())),
+                        hoje, hoje.plusDays(configuracaoOperacionalService.obter().antecedenciaAlertaEclosaoDias())),
                 alertaService.contarAbertos(ModuloOrigem.CRIACOES),
                 posturaRepository.somarInteirosNaData(hoje),
                 mortalidadeRepository.somarTotalDesde(LocalDateTime.now(clock).minusDays(properties.getMortalidadePeriodoDias())),

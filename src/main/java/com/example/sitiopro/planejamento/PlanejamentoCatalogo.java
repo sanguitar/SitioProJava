@@ -449,16 +449,16 @@ public final class PlanejamentoCatalogo {
                 "Expansão futura condicionada aos termos oficiais"));
 
         adicionar(modulos, modulo("Administração", "Configurações", "/sitio/admin/configuracoes",
-                "configuracoes", "global.css", "domain-admin", "fa-gears", StatusPlanejamento.PRECISA_REVISAO,
-                "Central futura de parametrizações gerais do sistema e módulos administrativos.",
+                "configuracoes", "admin.css", "domain-admin", "fa-gears", StatusPlanejamento.FUNCIONAL,
+                "Configurações operacionais tipadas e auditadas no SQL Server.",
                 links(
-                        link("Categorias atuais", "/sitio/configuracoes", "fa-tags"),
+                        link("Central Admin", "/sitio/admin", "fa-gears"),
                         link("Roadmap", "/sitio/admin/roadmap", "fa-map")
                 ),
-                "Parâmetros gerais do sistema",
-                "Organização das configurações existentes",
-                "Ativação visual de módulos",
-                "Revisão das categorias atuais"));
+                "Nome da propriedade",
+                "Localização e timezone",
+                "Dias padrão de incubação de galinha",
+                "Antecedência do alerta de eclosão"));
 
         adicionar(modulos, modulo("Administração", "Centros de custo", "/sitio/admin/centros-custo",
                 "centros-custo", "global.css", "domain-admin", "fa-coins", StatusPlanejamento.PLANEJADO,

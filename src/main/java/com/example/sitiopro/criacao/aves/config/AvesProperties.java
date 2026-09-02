@@ -11,8 +11,7 @@ import java.util.Map;
 public class AvesProperties {
     private BigDecimal mortalidadeAlertaPercentual = new BigDecimal("5.0");
     private int mortalidadePeriodoDias = 7;
-    private int eclosaoProximaDias = 2;
-    private Map<EspecieAves, Integer> periodosIncubacaoDias = periodoPadrao();
+    private Map<EspecieAves, Integer> periodosIncubacaoDias = new EnumMap<>(EspecieAves.class);
     private boolean tarefasAutomaticasEnabled = true;
     private int tarefaVerificacaoDias = 1;
     private int tarefaOvoscopiaDias = 7;
@@ -23,11 +22,10 @@ public class AvesProperties {
     public void setMortalidadeAlertaPercentual(BigDecimal valor) { this.mortalidadeAlertaPercentual = valor; }
     public int getMortalidadePeriodoDias() { return mortalidadePeriodoDias; }
     public void setMortalidadePeriodoDias(int valor) { this.mortalidadePeriodoDias = valor; }
-    public int getEclosaoProximaDias() { return eclosaoProximaDias; }
-    public void setEclosaoProximaDias(int valor) { this.eclosaoProximaDias = valor; }
     public Map<EspecieAves, Integer> getPeriodosIncubacaoDias() { return periodosIncubacaoDias; }
     public void setPeriodosIncubacaoDias(Map<EspecieAves, Integer> valor) {
-        periodosIncubacaoDias = valor == null ? new EnumMap<>(EspecieAves.class) : new EnumMap<>(valor);
+        periodosIncubacaoDias = new EnumMap<>(EspecieAves.class);
+        if (valor != null) periodosIncubacaoDias.putAll(valor);
     }
     public boolean isTarefasAutomaticasEnabled() { return tarefasAutomaticasEnabled; }
     public void setTarefasAutomaticasEnabled(boolean valor) { tarefasAutomaticasEnabled = valor; }
@@ -40,13 +38,4 @@ public class AvesProperties {
     public int getPintinhosRecentesDias() { return pintinhosRecentesDias; }
     public void setPintinhosRecentesDias(int valor) { pintinhosRecentesDias = valor; }
 
-    public Integer periodoIncubacaoDias(EspecieAves especie) {
-        return especie == null ? null : periodosIncubacaoDias.get(especie);
-    }
-
-    private static Map<EspecieAves, Integer> periodoPadrao() {
-        Map<EspecieAves, Integer> periodos = new EnumMap<>(EspecieAves.class);
-        periodos.put(EspecieAves.GALINHA, 21);
-        return periodos;
-    }
 }

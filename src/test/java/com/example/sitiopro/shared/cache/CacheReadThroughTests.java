@@ -1,5 +1,7 @@
 package com.example.sitiopro.shared.cache;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoProperties;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
@@ -49,11 +51,28 @@ class CacheReadThroughTests {
     @jakarta.annotation.Resource
     private CacheManager cacheManager;
 
+    @jakarta.annotation.Resource
+    private ConfiguracaoOperacionalService configuracaoOperacionalService;
+
     @BeforeEach
     void limpar() {
         cacheManager.getCache(CacheNames.CLIMA_RESUMO).clear();
         cacheManager.getCache(CacheNames.AGROFIT_CULTURAS).clear();
         reset(previsaoRepository, agrofitRepository);
+        when(configuracaoOperacionalService.obter()).thenReturn(
+                com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao());
+    }
+
+    @Test
+    void mudancaDeLocalizacaoNaoReutilizaCacheNemPrevisoesAnteriores() {
+        cacheManager.getCache(CacheNames.CLIMA_RESUMO).put("principal", ClimaResumo.naoSincronizado());
+        var novo = new com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura(
+                "Teste", "UTC", new java.math.BigDecimal("-8"), new java.math.BigDecimal("-63"), 21, 2, 1, null, null);
+        when(configuracaoOperacionalService.obter()).thenReturn(novo);
+        climaConsultaService.resumo();
+        verify(previsaoRepository).findFirstByFonteAndContextoOrderByObtidoEmDesc(
+                com.example.sitiopro.integracao.core.FonteIntegracao.OPEN_METEO, "principal-local-1");
+        assertThat(cacheManager.getCache(CacheNames.CLIMA_RESUMO).get("principal-local-1")).isNotNull();
     }
 
     @Test
@@ -114,11 +133,11 @@ class CacheReadThroughTests {
         OpenMeteoProperties openMeteoProperties() {
             OpenMeteoProperties properties = new OpenMeteoProperties();
             properties.setContexto("principal");
-            properties.setLatitude("-3");
-            properties.setLongitude("-60");
-            properties.setTimezone("UTC");
             return properties;
         }
+
+        @Bean
+        ConfiguracaoOperacionalService configuracaoOperacionalService() { return servico(); }
 
         @Bean
         Clock clock() {

@@ -1,5 +1,6 @@
 package com.example.sitiopro.criacao.aves.service;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.criacao.aves.config.AvesProperties;
 import com.example.sitiopro.criacao.aves.dto.AcompanhamentoIncubacaoAvesResumo;
 import com.example.sitiopro.criacao.aves.dto.AjustarPrevisaoIncubacaoAvesRequest;
@@ -55,6 +56,7 @@ public class IncubacaoAvesService {
     private final RegistroPosturaAvesRepository posturaRepository;
     private final IncubacaoAcompanhamentoService acompanhamentoService;
     private final IncubacaoOperacionalService operacionalService;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final AvesProperties properties;
     private final Clock clock;
 
@@ -66,6 +68,7 @@ public class IncubacaoAvesService {
             RegistroPosturaAvesRepository posturaRepository,
             IncubacaoAcompanhamentoService acompanhamentoService,
             IncubacaoOperacionalService operacionalService,
+            ConfiguracaoOperacionalService configuracaoOperacionalService,
             AvesProperties properties,
             Clock clock) {
         this.repository = repository;
@@ -76,6 +79,7 @@ public class IncubacaoAvesService {
         this.posturaRepository = posturaRepository;
         this.acompanhamentoService = acompanhamentoService;
         this.operacionalService = operacionalService;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -101,12 +105,17 @@ public class IncubacaoAvesService {
     }
 
     public Map<EspecieAves, Integer> periodosIncubacao() {
-        return Map.copyOf(properties.getPeriodosIncubacaoDias());
+        Map<EspecieAves, Integer> periodos = new LinkedHashMap<>(properties.getPeriodosIncubacaoDias());
+        periodos.put(EspecieAves.GALINHA, configuracaoOperacionalService.obter().diasPadraoIncubacao());
+        return Map.copyOf(periodos);
     }
 
     public LocalDate previsaoPadrao(EspecieAves especie, LocalDate inicio) {
-        Integer dias = properties.periodoIncubacaoDias(especie);
-        return inicio == null || dias == null ? null : inicio.plusDays(dias);
+        if (inicio == null || especie == null) return null;
+        Integer dias = especie == EspecieAves.GALINHA
+                ? Integer.valueOf(configuracaoOperacionalService.obter().diasPadraoIncubacao())
+                : properties.getPeriodosIncubacaoDias().get(especie);
+        return dias == null ? null : inicio.plusDays(dias);
     }
 
     @Transactional

@@ -226,14 +226,18 @@
 
         <div class="sidebar-section" sec:authorize="hasRole('ADMIN')">
             <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
-               th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude' or active == 'integracoes'} ? ' active'"
+               th:classappend="${active == 'admin' or active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude' or active == 'integracoes'} ? ' active'"
                data-bs-toggle="collapse" href="#collapseAdministracao" role="button">
                 <span><i class="fa-solid fa-gears me-2"></i> Administração</span>
                 <i class="fa-solid fa-chevron-down small"></i>
             </a>
             <div class="collapse"
                  id="collapseAdministracao"
-                 th:classappend="${active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude' or active == 'integracoes'} ? ' show'">
+                 th:classappend="${active == 'admin' or active == 'usuarios' or active == 'categoria' or active == 'configuracoes' or active == 'roadmap' or active == 'centros-custo' or active == 'unidades-medida' or active == 'dados-propriedade' or active == 'saude' or active == 'integracoes'} ? ' show'">
+                <a th:href="@{/sitio/admin}" class="sidebar-link sidebar-child"
+                   th:classappend="${active == 'admin'} ? ' active'">
+                    <i class="fa-solid fa-table-columns me-2"></i> Central
+                </a>
                 <a th:href="@{/sitio/admin/usuarios}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'usuarios'} ? ' active'">
                     <i class="fa-solid fa-users me-2"></i> Usuários

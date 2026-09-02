@@ -1,7 +1,10 @@
 package com.example.sitiopro.criacao.aves.service;
 
 import com.example.sitiopro.criacao.aves.dto.*;
+import com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura;
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.criacao.aves.config.AvesProperties;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 import com.example.sitiopro.criacao.aves.entity.*;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.RegistroPosturaAvesRepository;
@@ -35,14 +38,17 @@ class IncubacaoAvesServiceTests {
     @Mock private IncubacaoAcompanhamentoService acompanhamentoService;
     @Mock private IncubacaoOperacionalService operacionalService;
     private IncubacaoAvesService service;
+    private ConfiguracaoOperacionalService configuracao;
+    private AvesProperties properties;
     private InstalacaoCriacao incubadora;
     private final UsuarioAtor operador = new UsuarioAtor(2L, "operador", false);
 
     @BeforeEach
     void preparar() {
-        AvesProperties properties = new AvesProperties();
+        configuracao = servico();
+        properties = new AvesProperties();
         service = new IncubacaoAvesService(repository, instalacaoService, loteService, alertasService, codigoService,
-                posturaRepository, acompanhamentoService, operacionalService, properties,
+                posturaRepository, acompanhamentoService, operacionalService, configuracao, properties,
                 Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneOffset.UTC));
         incubadora = new InstalacaoCriacao(); ReflectionTestUtils.setField(incubadora, "id", 10L);
         incubadora.setNome("Incubadora principal"); incubadora.setTipo(TipoInstalacaoCriacao.INCUBADORA); incubadora.setAtivo(true);
@@ -50,6 +56,25 @@ class IncubacaoAvesServiceTests {
         lenient().when(acompanhamentoService.listar(anyLong())).thenReturn(List.of());
         lenient().when(operacionalService.tarefas(anyLong())).thenReturn(List.of());
         lenient().when(operacionalService.alertas(anyLong())).thenReturn(List.of());
+    }
+
+    @Test
+    void previsaoLeDiasPersistidosSomenteParaGalinha() {
+        when(configuracao.obter()).thenReturn(new ConfiguracaoOperacionalLeitura(
+                "Teste", "UTC", null, null, 23, 3, 0, null, null));
+        LocalDate inicio = LocalDate.of(2026, 9, 1);
+        assertThat(service.previsaoPadrao(EspecieAves.GALINHA, inicio)).isEqualTo(inicio.plusDays(23));
+        assertThat(service.periodosIncubacao()).containsEntry(EspecieAves.GALINHA, 23);
+        assertThat(service.previsaoPadrao(EspecieAves.PATO, inicio)).isNull();
+    }
+
+    @Test
+    void preservaPeriodoDeOutrasEspeciesSemPermitirEnvSobrescreverGalinha() {
+        properties.setPeriodosIncubacaoDias(java.util.Map.of(EspecieAves.PATO, 28, EspecieAves.GALINHA, 99));
+        LocalDate inicio = LocalDate.of(2026, 9, 1);
+        assertThat(service.previsaoPadrao(EspecieAves.PATO, inicio)).isEqualTo(inicio.plusDays(28));
+        assertThat(service.previsaoPadrao(EspecieAves.GALINHA, inicio)).isEqualTo(inicio.plusDays(21));
+        assertThat(service.periodosIncubacao()).containsEntry(EspecieAves.PATO, 28).containsEntry(EspecieAves.GALINHA, 21);
     }
 
     @Test

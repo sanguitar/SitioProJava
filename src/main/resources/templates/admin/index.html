@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Administração')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+
+    <main class="main-content main-content-wide admin-home">
+        <div th:replace="~{fragments/ui :: topbar('Central Administrativa', 'Administração')}"></div>
+
+        <div class="page-heading admin-heading">
+            <div>
+                <small class="module-group">Governança do sistema</small>
+                <h1>Central Administrativa</h1>
+                <p>Contas, disponibilidade e integrações em uma visão compacta.</p>
+            </div>
+        </div>
+
+        <section class="admin-grid" aria-label="Áreas administrativas">
+            <a class="admin-module-card" th:href="@{/sitio/admin/configuracoes}">
+                <div class="admin-card-heading">
+                    <span class="admin-card-icon"><i class="fa-solid fa-sliders"></i></span>
+                    <div><h2>Configurações</h2><span class="admin-status admin-status-ok">Operacionais</span></div>
+                    <i class="fa-solid fa-chevron-right admin-card-arrow"></i>
+                </div>
+                <p class="admin-card-note">Dados da propriedade, localização e incubação.</p>
+            </a>
+            <a class="admin-module-card" th:href="@{/sitio/admin/usuarios}">
+                <div class="admin-card-heading">
+                    <span class="admin-card-icon"><i class="fa-solid fa-users"></i></span>
+                    <div>
+                        <h2>Usuários</h2>
+                        <span th:if="${resumo.usuarios.disponivel}" class="admin-status admin-status-ok">Disponível</span>
+                        <span th:unless="${resumo.usuarios.disponivel}" class="admin-status admin-status-warning">Indisponível</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right admin-card-arrow"></i>
+                </div>
+                <dl class="admin-metrics" th:if="${resumo.usuarios.disponivel}">
+                    <div><dt>Ativos</dt><dd th:text="${resumo.usuarios.ativos}">0</dd></div>
+                    <div><dt>Administradores</dt><dd th:text="${resumo.usuarios.administradores}">0</dd></div>
+                </dl>
+                <p class="admin-card-fallback" th:unless="${resumo.usuarios.disponivel}">Resumo temporariamente indisponível.</p>
+            </a>
+
+            <a class="admin-module-card" th:href="@{/sitio/admin/saude}">
+                <div class="admin-card-heading">
+                    <span class="admin-card-icon admin-card-icon-health"><i class="fa-solid fa-heart-pulse"></i></span>
+                    <div>
+                        <h2>Saúde do sistema</h2>
+                        <span th:if="${resumo.saude.disponivel}" class="admin-status admin-status-ok">Monitorada</span>
+                        <span th:unless="${resumo.saude.disponivel}" class="admin-status admin-status-warning">Degradada</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right admin-card-arrow"></i>
+                </div>
+                <dl class="admin-metrics">
+                    <div><dt>Aplicação</dt><dd th:text="${resumo.saude.aplicacao}">UP</dd></div>
+                    <div><dt>Banco</dt><dd th:text="${resumo.saude.banco}">UP</dd></div>
+                </dl>
+            </a>
+
+            <a class="admin-module-card" th:href="@{/sitio/admin/integracoes}">
+                <div class="admin-card-heading">
+                    <span class="admin-card-icon admin-card-icon-integration"><i class="fa-solid fa-plug-circle-bolt"></i></span>
+                    <div>
+                        <h2>Integrações</h2>
+                        <span th:if="${resumo.integracoes.disponivel}" class="admin-status admin-status-ok">Disponível</span>
+                        <span th:unless="${resumo.integracoes.disponivel}" class="admin-status admin-status-warning">Degradada</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right admin-card-arrow"></i>
+                </div>
+                <dl class="admin-metrics" th:if="${resumo.integracoes.disponivel}">
+                    <div><dt>Operacionais</dt><dd th:text="${resumo.integracoes.operacionais}">0</dd></div>
+                    <div><dt>Com falha</dt><dd th:text="${resumo.integracoes.comFalha}">0</dd></div>
+                </dl>
+                <p class="admin-card-fallback" th:unless="${resumo.integracoes.disponivel}">Resumo temporariamente indisponível.</p>
+            </a>
+
+            <a class="admin-module-card" th:if="${resumo.observabilidade.aplicavel}" th:href="@{/sitio/admin/saude}">
+                <div class="admin-card-heading">
+                    <span class="admin-card-icon admin-card-icon-observability"><i class="fa-solid fa-chart-line"></i></span>
+                    <div>
+                        <h2>Observabilidade</h2>
+                        <span class="admin-status" th:classappend="${resumo.observabilidade.status == 'DISPONIVEL'} ? ' admin-status-ok' : ' admin-status-warning'"
+                              th:text="${resumo.observabilidade.status}">DISPONÍVEL</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right admin-card-arrow"></i>
+                </div>
+                <p class="admin-card-note">Telemetria e diagnóstico operacional.</p>
+            </a>
+        </section>
+
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

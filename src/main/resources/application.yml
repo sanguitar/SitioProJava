@@ -74,13 +74,18 @@ info:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:
+  configuracao-operacional:
+    inicial:
+      nome-propriedade: ${SITIO_NOME_PROPRIEDADE:Sítio Guaratinguetá}
+      timezone: ${SITIO_TIMEZONE:${sitiopro.integracoes.open-meteo.timezone:Etc/UTC}}
+      latitude: ${SITIO_LATITUDE:${sitiopro.integracoes.open-meteo.latitude:}}
+      longitude: ${SITIO_LONGITUDE:${sitiopro.integracoes.open-meteo.longitude:}}
+      dias-padrao-incubacao: ${CRIACAO_AVES_GALINHA_INCUBACAO_DIAS:${sitiopro.criacoes.aves.periodos-incubacao-dias.GALINHA:21}}
+      antecedencia-alerta-eclosao-dias: ${CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS:${sitiopro.criacoes.aves.eclosao-proxima-dias:2}}
   criacoes:
     aves:
       mortalidade-alerta-percentual: ${CRIACAO_AVES_MORTALIDADE_ALERTA_PERCENTUAL:5.0}
       mortalidade-periodo-dias: ${CRIACAO_AVES_MORTALIDADE_PERIODO_DIAS:7}
-      eclosao-proxima-dias: ${CRIACAO_AVES_ECLOSAO_PROXIMA_DIAS:2}
-      periodos-incubacao-dias:
-        GALINHA: ${CRIACAO_AVES_GALINHA_INCUBACAO_DIAS:21}
       tarefas-automaticas-enabled: ${CRIACAO_AVES_TAREFAS_AUTOMATICAS_ENABLED:true}
       tarefa-verificacao-dias: ${CRIACAO_AVES_TAREFA_VERIFICACAO_DIAS:1}
       tarefa-ovoscopia-dias: ${CRIACAO_AVES_TAREFA_OVOSCOPIA_DIAS:7}
@@ -121,9 +126,6 @@ sitiopro:
     open-meteo:
       enabled: ${SITIOPRO_OPEN_METEO_ENABLED:false}
       base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
-      latitude: ${SITIO_LATITUDE:}
-      longitude: ${SITIO_LONGITUDE:}
-      timezone: ${SITIO_TIMEZONE:}
       schedule-zone: ${SITIOPRO_INTEGRATIONS_ZONE:UTC}
       contexto: ${SITIOPRO_CLIMATE_CONTEXT:principal}
       cron: ${OPEN_METEO_CRON:0 17 */3 * * *}

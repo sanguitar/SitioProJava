@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao;
 
 @ExtendWith(MockitoExtension.class)
 class OpenMeteoPersistenceServiceTests {
@@ -37,9 +38,19 @@ class OpenMeteoPersistenceServiceTests {
     void configurar() {
         OpenMeteoProperties properties = new OpenMeteoProperties();
         properties.setContexto("principal");
-        properties.setTimezone("UTC");
         Clock clock = Clock.fixed(Instant.parse("2026-08-21T12:00:00Z"), ZoneOffset.UTC);
         service = new OpenMeteoPersistenceService(repository, properties, clock);
+    }
+
+    @Test
+    void respostaEmAndamentoPermaneceVinculadaALocalizacaoDaRequisicao() {
+        var snapshot = new com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura(
+                "Teste", "America/Porto_Velho", new BigDecimal("-8"), new BigDecimal("-63"), 21, 2, 3, null, null);
+        service.persistir(response("28.4"), snapshot);
+        ArgumentCaptor<List<PrevisaoClimatica>> captor = captorLista();
+        verify(repository).saveAll(captor.capture());
+        assertThat(captor.getValue().getFirst().getContexto()).isEqualTo("principal-local-3");
+        assertThat(captor.getValue().getFirst().getTimezone()).isEqualTo("America/Porto_Velho");
     }
 
     @Test
@@ -48,7 +59,7 @@ class OpenMeteoPersistenceServiceTests {
         when(repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                 any(), anyString(), any(), any())).thenReturn(List.of());
 
-        ResultadoSincronizacao primeira = service.persistir(response);
+        ResultadoSincronizacao primeira = service.persistir(response, padrao());
 
         ArgumentCaptor<List<PrevisaoClimatica>> captor = captorLista();
         verify(repository).saveAll(captor.capture());
@@ -57,7 +68,7 @@ class OpenMeteoPersistenceServiceTests {
 
         when(repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                 any(), anyString(), any(), any())).thenReturn(List.of(persistida));
-        ResultadoSincronizacao segunda = service.persistir(response);
+        ResultadoSincronizacao segunda = service.persistir(response, padrao());
 
         assertThat(segunda).isEqualTo(new ResultadoSincronizacao(1, 0, 0, 1));
     }
@@ -73,7 +84,7 @@ class OpenMeteoPersistenceServiceTests {
         when(repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                 any(), anyString(), any(), any())).thenReturn(List.of(existente));
 
-        ResultadoSincronizacao resultado = service.persistir(response("28.4"));
+        ResultadoSincronizacao resultado = service.persistir(response("28.4"), padrao());
 
         assertThat(resultado).isEqualTo(new ResultadoSincronizacao(1, 0, 1, 0));
         assertThat(existente.getTemperatura()).isEqualByComparingTo("28.4");
@@ -91,7 +102,7 @@ class OpenMeteoPersistenceServiceTests {
         when(repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
                 any(), anyString(), any(), any())).thenReturn(List.of(existente));
 
-        service.persistir(response("28.4"));
+        service.persistir(response("28.4"), padrao());
 
         verify(repository).saveAll(any());
         assertThat(existente.getObtidoEm()).isEqualTo(LocalDateTime.of(2026, 8, 21, 12, 0));

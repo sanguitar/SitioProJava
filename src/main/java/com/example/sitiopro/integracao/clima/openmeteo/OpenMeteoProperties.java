@@ -2,7 +2,6 @@ package com.example.sitiopro.integracao.clima.openmeteo;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZoneId;
 
@@ -11,9 +10,6 @@ public class OpenMeteoProperties {
 
     private boolean enabled;
     private String baseUrl = "https://api.open-meteo.com";
-    private String latitude = "";
-    private String longitude = "";
-    private String timezone = "";
     private String scheduleZone = "UTC";
     private String contexto = "principal";
     private String cron = "0 17 */3 * * *";
@@ -37,30 +33,6 @@ public class OpenMeteoProperties {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
-    }
-
-    public String getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(String latitude) {
-        this.latitude = latitude;
-    }
-
-    public String getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(String longitude) {
-        this.longitude = longitude;
-    }
-
-    public String getTimezone() {
-        return timezone;
-    }
-
-    public void setTimezone(String timezone) {
-        this.timezone = timezone;
     }
 
     public String getContexto() {
@@ -125,33 +97,6 @@ public class OpenMeteoProperties {
 
     public void setRetentionDays(int retentionDays) {
         this.retentionDays = retentionDays;
-    }
-
-    public boolean configurada() {
-        try {
-            BigDecimal lat = latitudeDecimal();
-            BigDecimal lon = longitudeDecimal();
-            ZoneId.of(timezone);
-            return lat.compareTo(BigDecimal.valueOf(-90)) >= 0
-                    && lat.compareTo(BigDecimal.valueOf(90)) <= 0
-                    && lon.compareTo(BigDecimal.valueOf(-180)) >= 0
-                    && lon.compareTo(BigDecimal.valueOf(180)) <= 0
-                    && contexto != null && !contexto.isBlank();
-        } catch (RuntimeException ex) {
-            return false;
-        }
-    }
-
-    public BigDecimal latitudeDecimal() {
-        return new BigDecimal(latitude == null ? "" : latitude.trim());
-    }
-
-    public BigDecimal longitudeDecimal() {
-        return new BigDecimal(longitude == null ? "" : longitude.trim());
-    }
-
-    public ZoneId zoneId() {
-        return configurada() ? ZoneId.of(timezone) : ZoneId.of("UTC");
     }
 
     public ZoneId scheduleZoneId() {

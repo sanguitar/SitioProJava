@@ -1,5 +1,6 @@
 package com.example.sitiopro.shared.cache;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoProperties;
 import org.springframework.stereotype.Component;
 
@@ -9,13 +10,16 @@ import java.util.Locale;
 public class CacheKeyFactory {
 
     private final OpenMeteoProperties openMeteoProperties;
+    private final ConfiguracaoOperacionalService configuracaoOperacionalService;
 
-    public CacheKeyFactory(OpenMeteoProperties openMeteoProperties) {
+    public CacheKeyFactory(OpenMeteoProperties openMeteoProperties,
+            ConfiguracaoOperacionalService configuracaoOperacionalService) {
         this.openMeteoProperties = openMeteoProperties;
+        this.configuracaoOperacionalService = configuracaoOperacionalService;
     }
 
     public String climaResumo() {
-        return normalizar(openMeteoProperties.getContexto());
+        return configuracaoOperacionalService.obter().contextoClima(normalizar(openMeteoProperties.getContexto()));
     }
 
     private String normalizar(String valor) {

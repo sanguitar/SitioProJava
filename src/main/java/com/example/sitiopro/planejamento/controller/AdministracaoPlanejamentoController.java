@@ -22,8 +22,6 @@ public class AdministracaoPlanejamentoController {
     }
 
     @GetMapping({
-            "/configuracoes",
-            "/configuracoes/{acao}",
             "/centros-custo",
             "/centros-custo/{acao}",
             "/unidades-medida",

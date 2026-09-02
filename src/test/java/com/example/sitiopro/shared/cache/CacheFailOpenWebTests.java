@@ -1,5 +1,7 @@
 package com.example.sitiopro.shared.cache;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 import com.example.sitiopro.integracao.api.ClimaApiController;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoProperties;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
@@ -132,11 +134,11 @@ class CacheFailOpenWebTests {
         OpenMeteoProperties openMeteoProperties() {
             OpenMeteoProperties properties = new OpenMeteoProperties();
             properties.setContexto("principal");
-            properties.setLatitude("-3");
-            properties.setLongitude("-60");
-            properties.setTimezone("UTC");
             return properties;
         }
+
+        @Bean
+        ConfiguracaoOperacionalService configuracaoOperacionalService() { return servico(); }
 
         @Bean
         Clock clock() {

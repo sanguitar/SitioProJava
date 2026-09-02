@@ -1,5 +1,7 @@
 package com.example.sitiopro;
 
+import com.example.sitiopro.administracao.configuracao.controller.ConfiguracaoOperacionalController;
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.abastecimento.controller.AbastecimentoController;
 import com.example.sitiopro.abastecimento.service.AbastecimentoService;
 import com.example.sitiopro.categoria.controller.CategoriaController;
@@ -146,6 +148,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         PropriedadePlanejamentoController.class,
         VeiculosPlanejamentoController.class,
         AdministracaoPlanejamentoController.class,
+        ConfiguracaoOperacionalController.class,
         PlanejamentoRedirectController.class,
         UsuarioController.class,
         SistemaSaudeController.class,
@@ -153,6 +156,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
+
+    @MockBean
+    private ConfiguracaoOperacionalService configuracaoOperacionalService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -543,6 +549,22 @@ class SitioProRoutesTests {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"novo", "detalhe", "historico"})
+    void atalhosAntigosDeConfiguracoesRedirecionamParaTelaUnica(String acao) throws Exception {
+        mockMvc.perform(get("/sitio/admin/configuracoes/" + acao))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/sitio/admin/configuracoes"));
+    }
+
+    @Test
+    void configuracoesOperacionaisRenderizamTelaFuncional() throws Exception {
+        when(configuracaoOperacionalService.obter()).thenReturn(
+                com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao());
+        mockMvc.perform(get("/sitio/admin/configuracoes")).andExpect(status().isOk())
+                .andExpect(view().name("admin/configuracoes"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Dias padrão de incubação de galinha")));
+    }
+
+    @ParameterizedTest
     @MethodSource("rotasPlanejadas")
     void rotasPlanejadasRenderizamPlaceholder(String rota) throws Exception {
         mockMvc.perform(get(rota))
@@ -575,7 +597,6 @@ class SitioProRoutesTests {
                 "/sitio/deterioracoes",
                 "/sitio/patrimonio",
                 "/sitio/seguranca",
-                "/sitio/admin/configuracoes",
                 "/sitio/admin/centros-custo",
                 "/sitio/admin/unidades-medida",
                 "/sitio/admin/propriedade"

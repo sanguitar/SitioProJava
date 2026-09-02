@@ -1,5 +1,6 @@
 package com.example.sitiopro.integracao.clima.service;
 
+import com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura;
 import com.example.sitiopro.integracao.clima.entity.PrevisaoClimatica;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoProperties;
 import com.example.sitiopro.integracao.clima.openmeteo.OpenMeteoResponse;
@@ -31,14 +32,16 @@ public class OpenMeteoPersistenceService {
     }
 
     @Transactional
-    public ResultadoSincronizacao persistir(OpenMeteoResponse response) {
+    public ResultadoSincronizacao persistir(OpenMeteoResponse response, ConfiguracaoOperacionalLeitura configuracao) {
         response.validar();
+        String timezone = configuracao.timezone();
+        String contexto = configuracao.contextoClima(properties.getContexto());
         OpenMeteoResponse.Hourly hourly = response.hourly();
         LocalDateTime inicio = hourly.time().getFirst();
         LocalDateTime fim = hourly.time().getLast();
         Map<LocalDateTime, PrevisaoClimatica> existentes = new HashMap<>();
         repository.findByFonteAndContextoAndDataHoraPrevisaoBetweenOrderByDataHoraPrevisao(
-                        FonteIntegracao.OPEN_METEO, properties.getContexto(), inicio, fim)
+                        FonteIntegracao.OPEN_METEO, contexto, inicio, fim)
                 .forEach(item -> existentes.put(item.getDataHoraPrevisao(), item));
 
         LocalDateTime obtidoEm = LocalDateTime.now(clock);
@@ -53,8 +56,8 @@ public class OpenMeteoPersistenceService {
             if (nova) {
                 previsao = new PrevisaoClimatica(
                         FonteIntegracao.OPEN_METEO,
-                        properties.getContexto(),
-                        properties.getTimezone(),
+                        contexto,
+                        timezone,
                         dataHora);
             }
             boolean mudou = previsao.atualizar(
@@ -68,7 +71,7 @@ public class OpenMeteoPersistenceService {
                     hourly.soilMoisture0To1cm().get(indice),
                     hourly.weatherCode().get(indice),
                     obtidoEm,
-                    properties.getTimezone());
+                    timezone);
             if (nova) {
                 inseridos++;
                 alteradas.add(previsao);
@@ -86,7 +89,7 @@ public class OpenMeteoPersistenceService {
         int retencao = Math.max(1, properties.getRetentionDays());
         repository.deleteByFonteAndContextoAndDataHoraPrevisaoBefore(
                 FonteIntegracao.OPEN_METEO,
-                properties.getContexto(),
+                contexto,
                 LocalDateTime.now(clock).minusDays(retencao));
         return new ResultadoSincronizacao(hourly.time().size(), inseridos, atualizados, ignorados);
     }

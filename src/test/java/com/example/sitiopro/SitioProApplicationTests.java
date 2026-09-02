@@ -1,5 +1,6 @@
 package com.example.sitiopro;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.categoria.repository.CategoriaRepository;
 import com.example.sitiopro.compras.repository.CompraRepository;
@@ -59,6 +60,8 @@ import org.springframework.web.client.RestClient;
                 + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
 })
 class SitioProApplicationTests {
+    @MockBean
+    private ConfiguracaoOperacionalService configuracaoOperacionalService;
 
     @MockBean
     private AbastecimentoRepository abastecimentoRepository;

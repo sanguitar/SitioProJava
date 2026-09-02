@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Configurações')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+    <aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+    <main class="main-content main-content-wide admin-settings">
+        <div th:replace="~{fragments/ui :: topbar('Configurações operacionais', 'Administração')}"></div>
+        <div class="page-heading admin-heading">
+            <div><small class="module-group">Administração</small><h1>Configurações</h1></div>
+            <a th:href="@{/sitio/admin}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left me-1"></i>Central Admin</a>
+        </div>
+        <div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+
+        <form th:action="@{/sitio/admin/configuracoes}" th:object="${configuracaoForm}" method="post">
+            <section class="admin-settings-section" aria-labelledby="dados-heading">
+                <h2 id="dados-heading"><i class="fa-solid fa-house me-2" aria-hidden="true"></i>Dados da propriedade</h2>
+                <div class="admin-settings-fields">
+                    <div class="admin-settings-full">
+                        <label for="nomePropriedade" class="form-label">Nome da propriedade</label>
+                        <input type="text" th:field="*{nomePropriedade}" maxlength="120" required class="form-control"
+                               th:classappend="${#fields.hasErrors('nomePropriedade')} ? 'is-invalid'" aria-describedby="nome-help">
+                        <div id="nome-help" class="form-text">Identificação operacional do sítio. Até 120 caracteres.</div>
+                        <div class="invalid-feedback" th:errors="*{nomePropriedade}"></div>
+                    </div>
+                </div>
+            </section>
+            <section class="admin-settings-section" aria-labelledby="localizacao-heading">
+                <h2 id="localizacao-heading"><i class="fa-solid fa-location-dot me-2" aria-hidden="true"></i>Localização</h2>
+                <div class="admin-settings-fields">
+                    <div class="admin-settings-full">
+                        <label for="timezone" class="form-label">Timezone</label>
+                        <input type="text" th:field="*{timezone}" list="timezones" maxlength="80" required class="form-control"
+                               th:classappend="${#fields.hasErrors('timezone')} ? 'is-invalid'" aria-describedby="timezone-help">
+                        <datalist id="timezones">
+                            <option value="America/Porto_Velho"></option><option value="America/Manaus"></option>
+                            <option value="America/Sao_Paulo"></option><option value="America/Cuiaba"></option>
+                            <option value="America/Rio_Branco"></option><option value="Etc/UTC"></option>
+                        </datalist>
+                        <div id="timezone-help" class="form-text">Fuso IANA, como America/Porto_Velho.</div>
+                        <div class="invalid-feedback" th:errors="*{timezone}"></div>
+                    </div>
+                    <div>
+                        <label for="latitude" class="form-label">Latitude</label>
+                        <input type="number" th:field="*{latitude}" step="0.000001" min="-90" max="90" class="form-control"
+                               th:classappend="${#fields.hasErrors('latitude')} ? 'is-invalid'" aria-describedby="latitude-help">
+                        <div id="latitude-help" class="form-text">De -90 a 90, com até 6 casas decimais.</div>
+                        <div class="invalid-feedback" th:errors="*{latitude}"></div>
+                    </div>
+                    <div>
+                        <label for="longitude" class="form-label">Longitude</label>
+                        <input type="number" th:field="*{longitude}" step="0.000001" min="-180" max="180" class="form-control"
+                               th:classappend="${#fields.hasErrors('longitude')} ? 'is-invalid'" aria-describedby="longitude-help">
+                        <div id="longitude-help" class="form-text">De -180 a 180. Coordenadas são opcionais, sempre em par.</div>
+                        <div class="invalid-feedback" th:errors="*{longitude}"></div>
+                    </div>
+                </div>
+            </section>
+            <section class="admin-settings-section" aria-labelledby="incubacao-heading">
+                <h2 id="incubacao-heading"><i class="fa-solid fa-egg me-2" aria-hidden="true"></i>Incubação</h2>
+                <div class="admin-settings-fields">
+                    <div>
+                        <label for="diasPadraoIncubacao" class="form-label">Dias padrão de incubação de galinha</label>
+                        <input type="number" th:field="*{diasPadraoIncubacao}" min="1" max="120" step="1" required class="form-control"
+                               th:classappend="${#fields.hasErrors('diasPadraoIncubacao')} ? 'is-invalid'" aria-describedby="incubacao-help">
+                        <div id="incubacao-help" class="form-text">Período para novos ciclos de galinha. Padrão: 21 dias.</div>
+                        <div class="invalid-feedback" th:errors="*{diasPadraoIncubacao}"></div>
+                    </div>
+                    <div>
+                        <label for="antecedenciaAlertaEclosaoDias" class="form-label">Antecedência do alerta de eclosão</label>
+                        <input type="number" th:field="*{antecedenciaAlertaEclosaoDias}" min="0" max="30" step="1" required class="form-control"
+                               th:classappend="${#fields.hasErrors('antecedenciaAlertaEclosaoDias')} ? 'is-invalid'" aria-describedby="alerta-help">
+                        <div id="alerta-help" class="form-text">Dias antes da eclosão prevista. Padrão: 2 dias.</div>
+                        <div class="invalid-feedback" th:errors="*{antecedenciaAlertaEclosaoDias}"></div>
+                    </div>
+                </div>
+            </section>
+            <div class="admin-settings-actions">
+                <small th:if="${configuracao.alteradoEm != null}">
+                    Última alteração: <span th:text="${#temporals.format(configuracao.alteradoEm, 'dd/MM/yyyy HH:mm')}"></span>
+                    por <span th:text="${configuracao.alteradoPor}"></span>
+                </small>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk me-2"></i>Salvar configurações</button>
+            </div>
+        </form>
+        <div th:replace="~{fragments/ui :: appFooter}"></div>
+    </main>
+    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.servico;
 
 @ExtendWith(MockitoExtension.class)
 class ClimaConsultaServiceTests {
@@ -69,12 +70,9 @@ class ClimaConsultaServiceTests {
 
     private ClimaConsultaService service() {
         OpenMeteoProperties properties = new OpenMeteoProperties();
-        properties.setLatitude("-3");
-        properties.setLongitude("-60");
-        properties.setTimezone("UTC");
         return new ClimaConsultaService(
                 repository,
-                properties,
+                properties, servico(),
                 Clock.fixed(Instant.parse("2026-08-21T12:30:00Z"), ZoneOffset.UTC));
     }
 

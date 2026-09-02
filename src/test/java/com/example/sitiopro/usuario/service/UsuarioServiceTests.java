@@ -7,6 +7,7 @@ import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.security.UsuarioPrincipal;
+import com.example.sitiopro.usuario.security.UsuarioSessaoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +37,15 @@ class UsuarioServiceTests {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UsuarioSessaoService usuarioSessaoService;
+
     private UsuarioService usuarioService;
 
     @BeforeEach
     void configurar() {
-        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, new SenhaPolicy());
+        usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, new SenhaPolicy(),
+                usuarioSessaoService);
     }
 
     @Test
@@ -116,6 +121,8 @@ class UsuarioServiceTests {
         assertThatThrownBy(() -> usuarioService.desativar(1L))
                 .isInstanceOf(UsuarioOperacaoException.class)
                 .hasMessageContaining("ADMIN ativo");
+
+        verify(usuarioSessaoService, never()).revogarAposCommit(1L);
     }
 
     @Test
@@ -132,6 +139,33 @@ class UsuarioServiceTests {
         assertThatThrownBy(() -> usuarioService.editar(1L, request))
                 .isInstanceOf(UsuarioOperacaoException.class)
                 .hasMessageContaining("ADMIN ativo");
+    }
+
+    @Test
+    void desativarUsuarioRevogaSomenteDepoisDaPersistencia() {
+        Usuario operador = usuario(2L, PerfilUsuario.OPERADOR, true);
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(operador));
+
+        usuarioService.desativar(2L);
+
+        assertThat(operador.isAtivo()).isFalse();
+        verify(usuarioRepository).save(operador);
+        verify(usuarioSessaoService).revogarAposCommit(2L);
+    }
+
+    @Test
+    void editarUsuarioParaInativoTambemRevogaSessoes() {
+        Usuario operador = usuario(2L, PerfilUsuario.OPERADOR, true);
+        EditarUsuarioRequest request = new EditarUsuarioRequest();
+        request.setNome("Operador");
+        request.setPerfil(PerfilUsuario.OPERADOR);
+        request.setAtivo(false);
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(operador));
+        when(usuarioRepository.save(operador)).thenReturn(operador);
+
+        usuarioService.editar(2L, request);
+
+        verify(usuarioSessaoService).revogarAposCommit(2L);
     }
 
     @Test

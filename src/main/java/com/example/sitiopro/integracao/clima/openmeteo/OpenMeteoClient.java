@@ -1,5 +1,6 @@
 package com.example.sitiopro.integracao.clima.openmeteo;
 
+import com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacionalLeitura;
 import com.example.sitiopro.integracao.core.ExternalHttpExceptionMapper;
 import com.example.sitiopro.integracao.core.FonteIntegracao;
 import com.example.sitiopro.integracao.core.IntegracaoHttpException;
@@ -33,23 +34,23 @@ public class OpenMeteoClient {
         this.resilienceExecutor = resilienceExecutor;
     }
 
-    public OpenMeteoResponse buscarPrevisao() {
-        if (!properties.configurada()) {
+    public OpenMeteoResponse buscarPrevisao(ConfiguracaoOperacionalLeitura configuracao) {
+        if (!configuracao.localizacaoConfigurada()) {
             throw new IntegracaoHttpException(
                     "OPEN_METEO_NAO_CONFIGURADO", "Localização do Open-Meteo não configurada.", null,
                     IntegracaoHttpException.Tipo.PERMANENTE);
         }
-        return resilienceExecutor.executar(FonteIntegracao.OPEN_METEO, this::executarRequest);
+        return resilienceExecutor.executar(FonteIntegracao.OPEN_METEO, () -> executarRequest(configuracao));
     }
 
-    private OpenMeteoResponse executarRequest() {
+    private OpenMeteoResponse executarRequest(ConfiguracaoOperacionalLeitura configuracao) {
         try {
             OpenMeteoResponse response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/v1/forecast")
-                            .queryParam("latitude", properties.latitudeDecimal())
-                            .queryParam("longitude", properties.longitudeDecimal())
-                            .queryParam("timezone", properties.getTimezone())
+                            .queryParam("latitude", configuracao.latitude())
+                            .queryParam("longitude", configuracao.longitude())
+                            .queryParam("timezone", configuracao.timezone())
                             .queryParam("forecast_days", Math.max(1, Math.min(properties.getForecastDays(), 16)))
                             .queryParam("temperature_unit", "celsius")
                             .queryParam("wind_speed_unit", "kmh")

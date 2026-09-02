@@ -1,5 +1,6 @@
 package com.example.sitiopro;
 
+import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import com.example.sitiopro.abastecimento.repository.AbastecimentoRepository;
 import com.example.sitiopro.abastecimento.service.AbastecimentoService;
 import com.example.sitiopro.categoria.model.Categoria;
@@ -76,6 +77,7 @@ import com.example.sitiopro.tarefas.service.TarefaService;
 import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
+import com.example.sitiopro.usuario.security.UsuarioSessaoService;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +95,7 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.client.RestClient;
@@ -118,6 +121,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -146,8 +150,14 @@ class SitioProSecurityTests {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private UsuarioSessaoService usuarioSessaoService;
+
     @MockBean
     private DashboardService dashboardService;
+
+    @MockBean
+    private ConfiguracaoOperacionalService configuracaoOperacionalService;
 
     @MockBean
     private DashboardTendenciasService dashboardTendenciasService;
@@ -282,12 +292,16 @@ class SitioProSecurityTests {
 
     @BeforeEach
     void configurarMocks() {
+        when(configuracaoOperacionalService.obter()).thenReturn(
+                com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao());
         when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
         when(usuarioService.listarTodos()).thenReturn(List.of());
+        when(usuarioService.contarAtivos()).thenReturn(2L);
+        when(usuarioService.contarAdministradoresAtivos()).thenReturn(1L);
         when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
                 0, 0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of()));
         when(estoqueMovimentoService.registrarMovimento(any(), eq(false))).thenReturn(new MovimentoEstoqueResponse(
@@ -337,6 +351,38 @@ class SitioProSecurityTests {
         when(usuarioRepository.findByLogin("operador")).thenReturn(Optional.of(operador));
         when(usuarioRepository.findByLogin("inativo")).thenReturn(Optional.of(inativo));
         when(usuarioRepository.findByLogin("naoexiste")).thenReturn(Optional.empty());
+    }
+
+    @Test
+    void adminAcessaConfiguracoesSemCamposSecretos() throws Exception {
+        String html = mockMvc.perform(get("/sitio/admin/configuracoes").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Dados da propriedade", "name=\"_csrf\"", "name=\"diasPadraoIncubacao\"")
+                .doesNotContain("name=\"senha\"", "type=\"password\"", "connectionString", "jdbc:sqlserver", "apiKey", "EMBRAPA_AGROFIT_TOKEN");
+    }
+
+    @Test
+    void operadorNaoAcessaNemAlteraConfiguracoes() throws Exception {
+        mockMvc.perform(get("/sitio/admin/configuracoes").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/sitio/admin/configuracoes").with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void configuracoesExigemCsrfMesmoParaAdmin() throws Exception {
+        mockMvc.perform(post("/sitio/admin/configuracoes").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminAlteraConfiguracoesComCsrf() throws Exception {
+        mockMvc.perform(post("/sitio/admin/configuracoes").with(user("admin").roles("ADMIN")).with(csrf())
+                        .param("nomePropriedade", "Sítio teste").param("timezone", "America/Porto_Velho")
+                        .param("latitude", "-8.123456").param("longitude", "-63.123456")
+                        .param("diasPadraoIncubacao", "21").param("antecedenciaAlertaEclosaoDias", "3"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/sitio/admin/configuracoes"));
+        verify(configuracaoOperacionalService).atualizar(any());
     }
 
     @Test
@@ -400,6 +446,73 @@ class SitioProSecurityTests {
     void adminAcessaGestaoDeUsuarios() throws Exception {
         mockMvc.perform(get("/sitio/admin/usuarios")
                         .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void centralAdministrativaEExclusivaDoAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/admin")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Central Administrativa")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Usuários")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Integrações")));
+
+        mockMvc.perform(get("/sitio/admin")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void centralAdministrativaRenderizaMesmoComServicosDegradados() throws Exception {
+        when(sistemaSaudeService.resumo()).thenThrow(new IllegalStateException("health indisponível"));
+        when(integracaoPainelService.resumo()).thenThrow(new IllegalStateException("integração indisponível"));
+
+        mockMvc.perform(get("/sitio/admin")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Degradada")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("INDISPONIVEL")));
+    }
+
+    @Test
+    void desativacaoDeUsuarioExigeCsrf() throws Exception {
+        mockMvc.perform(post("/sitio/admin/usuarios/2/desativar")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/sitio/admin/usuarios/2/desativar")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/admin/usuarios"));
+
+        verify(usuarioService).desativar(2L);
+    }
+
+    @Test
+    void usuarioDesativadoPerdeSessaoSemAfetarOutroUsuario() throws Exception {
+        MvcResult loginOperador = mockMvc.perform(post("/login")
+                        .param("username", "operador")
+                        .param("password", SENHA_VALIDA)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        MvcResult loginAdmin = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", SENHA_VALIDA)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        MockHttpSession sessaoOperador = (MockHttpSession) loginOperador.getRequest().getSession(false);
+        MockHttpSession sessaoAdmin = (MockHttpSession) loginAdmin.getRequest().getSession(false);
+
+        assertThat(usuarioSessaoService.revogarAgora(2L)).isEqualTo(1);
+
+        mockMvc.perform(get("/sitio/painel").session(sessaoOperador))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?expired"));
+        mockMvc.perform(get("/sitio/painel").session(sessaoAdmin))
                 .andExpect(status().isOk());
     }
 

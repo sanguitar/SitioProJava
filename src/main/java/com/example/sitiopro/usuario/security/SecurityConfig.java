@@ -15,11 +15,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 
 import java.time.Instant;
 import java.util.Map;
@@ -31,7 +35,8 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper,
+            SessionRegistry sessionRegistry) throws Exception {
         RequestMatcher apiMatcher = new AntPathRequestMatcher("/api/**");
         AccessDeniedHandlerImpl pageAccessDeniedHandler = new AccessDeniedHandlerImpl();
         pageAccessDeniedHandler.setErrorPage("/403");
@@ -94,7 +99,7 @@ public class SecurityConfig {
                                 "/api/v1/alertas/*/criar-tarefa").authenticated()
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers("/administracao/**", "/configuracoes/roadmap").hasRole("ADMIN")
-                        .requestMatchers("/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
+                        .requestMatchers("/sitio/admin", "/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/fornecedores/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/*/cancelar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/tarefas/*/cancelar",
@@ -137,6 +142,11 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll())
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .maxSessionsPreventsLogin(false)
+                        .expiredUrl("/login?expired")
+                        .sessionRegistry(sessionRegistry))
                 .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(delegatingAccessDeniedHandler));
 
         return http.build();
@@ -145,5 +155,15 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
     }
 }
