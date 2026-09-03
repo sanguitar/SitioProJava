@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead('Propriedade - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
+
+<header class="property-heading"><div><small class="module-group" th:text="${titulo}"></small><h1 th:text="${cadastro == 'propriedade' ? 'Dados da propriedade' : (registroId == null ? 'Novo cadastro' : 'Editar cadastro')}"></h1></div>
+<a th:href="@{${caminho}}" class="btn btn-outline-secondary" aria-label="Voltar" title="Voltar"><i class="fa-solid fa-arrow-left"></i></a></header>
+<div th:replace="~{propriedade/fragments :: tabs}"></div>
+<form th:action="@{${acao}}" th:object="${form}" method="post" class="property-form">
+<input type="hidden" th:field="*{versao}">
+<div class="alert alert-danger" role="alert" th:if="${#fields.hasAnyErrors()}"><ul class="mb-0"><li th:each="e : ${#fields.allErrors()}" th:text="${e}"></li></ul></div>
+<div class="property-fields">
+<div class="property-full"><label class="form-label" for="nome">Nome</label><input class="form-control" th:field="*{nome}" maxlength="120" required></div>
+<th:block th:if="${cadastro == 'propriedade'}">
+<div><label class="form-label" for="municipio">Município</label><input class="form-control" th:field="*{municipio}" maxlength="120"></div>
+<div><label class="form-label" for="uf">UF</label><select class="form-select" th:field="*{uf}"><option value="">Não informada</option><option th:each="u : ${#strings.arraySplit('AC,AL,AP,AM,BA,CE,DF,ES,GO,MA,MT,MS,MG,PA,PB,PR,PE,PI,RJ,RN,RS,RO,RR,SC,SP,SE,TO', ',')}" th:value="${u}" th:text="${u}"></option></select></div>
+<div class="property-full"><label class="form-label" for="areaTotalHa">Área total (ha)</label><input class="form-control" type="number" min="0.0001" step="0.0001" th:field="*{areaTotalHa}"></div>
+<div><label class="form-label" for="latitudeCentral">Latitude central</label><input class="form-control" type="number" min="-90" max="90" step="0.000001" th:field="*{latitudeCentral}"></div>
+<div><label class="form-label" for="longitudeCentral">Longitude central</label><input class="form-control" type="number" min="-180" max="180" step="0.000001" th:field="*{longitudeCentral}"></div>
+</th:block>
+<div th:if="${cadastro != 'areas' and cadastro != 'propriedade'}"><label class="form-label" for="areaId">Área vinculada</label><select class="form-select" th:field="*{areaId}"><option value="">Sem vínculo</option><option th:each="a : ${areas}" th:value="${a.id}" th:text="${a.nome + (a.ativo ? '' : ' (inativa)')}"></option></select></div>
+<div th:if="${tipos.length > 0}"><label class="form-label" for="tipo">Tipo</label><select class="form-select" th:field="*{tipo}" required><option value="">Selecione</option><option th:each="t : ${tipos}" th:value="${t}" th:text="${#strings.replace(t.name(), '_', ' ')}"></option></select></div>
+<div th:if="${cadastro == 'areas' or cadastro == 'talhoes' or cadastro == 'piquetes'}"><label class="form-label" for="areaHa">Área (ha)</label><input class="form-control" type="number" min="0.0001" step="0.0001" th:field="*{areaHa}" th:required="${cadastro == 'talhoes'}"></div>
+<th:block th:if="${cadastro == 'estruturas'}">
+<div><label class="form-label" for="capacidade">Capacidade</label><input class="form-control" type="number" min="0.001" step="0.001" th:field="*{capacidade}"></div>
+<div><label class="form-label" for="unidadeCapacidade">Unidade de capacidade</label><input class="form-control" th:field="*{unidadeCapacidade}" maxlength="30" placeholder="Ex.: lugares, m³"></div>
+</th:block>
+<div th:if="${cadastro == 'recursos-hidricos'}"><label class="form-label" for="capacidadeLitros">Capacidade (litros)</label><input class="form-control" type="number" min="0.001" step="0.001" th:field="*{capacidadeLitros}"></div>
+<div class="property-full"><label class="form-label" for="observacao" th:text="${cadastro == 'areas' ? 'Descrição' : 'Observação'}"></label><textarea class="form-control" th:field="*{observacao}" rows="3" maxlength="1000"></textarea></div>
+<div th:if="${cadastro == 'talhoes' or cadastro == 'piquetes'}"><label class="form-label" for="status">Situação</label><select class="form-select" th:field="*{status}" required><option th:each="e : ${estados}" th:value="${e}" th:text="${e}"></option></select></div>
+<div class="form-check property-full" th:unless="${cadastro == 'talhoes' or cadastro == 'piquetes'}"><input id="ativo" class="form-check-input" type="checkbox" th:field="*{ativo}"><label class="form-check-label" for="ativo">Cadastro ativo</label></div>
+</div>
+<div class="property-end-actions"><button class="btn btn-success" type="submit"><i class="fa-solid fa-floppy-disk me-2"></i>Salvar</button></div>
+</form><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

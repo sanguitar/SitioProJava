@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DateTimeException;
 import java.time.ZoneId;
+import com.example.sitiopro.propriedade.service.PropriedadeService;
 
 @Service
 public class ConfiguracaoOperacionalService {
@@ -20,11 +21,13 @@ public class ConfiguracaoOperacionalService {
     private static final String TIMEZONE_SEGURO = "Etc/UTC";
     private final ConfiguracaoOperacionalRepository repository;
     private final ConfiguracaoOperacionalInicialProperties propriedadesIniciais;
+    private final PropriedadeService propriedadeService;
 
     public ConfiguracaoOperacionalService(ConfiguracaoOperacionalRepository repository,
-            ConfiguracaoOperacionalInicialProperties propriedadesIniciais) {
+            ConfiguracaoOperacionalInicialProperties propriedadesIniciais, PropriedadeService propriedadeService) {
         this.repository = repository;
         this.propriedadesIniciais = propriedadesIniciais;
+        this.propriedadeService = propriedadeService;
     }
 
     @Transactional
@@ -46,8 +49,9 @@ public class ConfiguracaoOperacionalService {
     public ConfiguracaoOperacionalLeitura atualizar(ConfiguracaoOperacionalForm form) {
         Valores validados = validar(form);
         ConfiguracaoOperacional configuracao = buscar();
-        configuracao.atualizar(validados.nomePropriedade(), validados.timezone(),
-                validados.latitude(), validados.longitude(), validados.diasPadraoIncubacao(),
+        propriedadeService.atualizarDadosFisicos(validados.nomePropriedade(), validados.latitude(),
+                validados.longitude(), form.getPropriedadeVersao());
+        configuracao.atualizar(validados.timezone(), validados.diasPadraoIncubacao(),
                 validados.antecedenciaAlertaEclosaoDias());
         return leitura(repository.saveAndFlush(configuracao));
     }
@@ -55,7 +59,8 @@ public class ConfiguracaoOperacionalService {
     private ConfiguracaoOperacional criarConfiguracaoInicial() {
         Valores iniciais = valoresIniciaisSeguros();
         return repository.saveAndFlush(new ConfiguracaoOperacional(
-                iniciais.nomePropriedade(), iniciais.timezone(), iniciais.latitude(), iniciais.longitude(),
+                propriedadeService.inicializarPrincipal(iniciais.nomePropriedade(), iniciais.latitude(), iniciais.longitude()),
+                iniciais.timezone(),
                 iniciais.diasPadraoIncubacao(), iniciais.antecedenciaAlertaEclosaoDias()));
     }
 
@@ -156,10 +161,14 @@ public class ConfiguracaoOperacionalService {
     }
 
     private ConfiguracaoOperacionalLeitura leitura(ConfiguracaoOperacional configuracao) {
+        var propriedade = configuracao.getPropriedade();
+        boolean dadosFisicosMaisRecentes = propriedade.getAlteradoEm() != null
+                && (configuracao.getAlteradoEm() == null || propriedade.getAlteradoEm().isAfter(configuracao.getAlteradoEm()));
         return new ConfiguracaoOperacionalLeitura(configuracao.getNomePropriedade(), configuracao.getTimezone(),
                 configuracao.getLatitude(), configuracao.getLongitude(), configuracao.getDiasPadraoIncubacao(),
-                configuracao.getAntecedenciaAlertaEclosaoDias(), configuracao.getRevisaoLocalizacao(), configuracao.getAlteradoEm(),
-                configuracao.getAlteradoPor());
+                configuracao.getAntecedenciaAlertaEclosaoDias(), configuracao.getRevisaoLocalizacao(),
+                dadosFisicosMaisRecentes ? propriedade.getAlteradoEm() : configuracao.getAlteradoEm(),
+                dadosFisicosMaisRecentes ? propriedade.getAlteradoPor() : configuracao.getAlteradoPor(), propriedade.getVersao());
     }
 
     private record Valores(String nomePropriedade, String timezone, BigDecimal latitude, BigDecimal longitude,

@@ -10,6 +10,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import com.example.sitiopro.propriedade.entity.EstruturaPropriedade;
 
 @Entity
 @Table(name = "criacao_instalacoes")
@@ -30,6 +34,13 @@ public class InstalacaoCriacao extends AuditableEntity {
     private String descricao;
 
     private Integer capacidade;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estrutura_id")
+    private EstruturaPropriedade estrutura;
+
+    public EstruturaPropriedade getEstrutura() { return estrutura; }
+    public void setEstrutura(EstruturaPropriedade estrutura) { this.estrutura = estrutura; }
 
     @Column(nullable = false)
     private boolean ativo = true;

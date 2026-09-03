@@ -18,6 +18,11 @@ public class InstalacoesAvesController {
     private final InstalacaoCriacaoService service;
     public InstalacoesAvesController(InstalacaoCriacaoService service) { this.service = service; }
 
+    @InitBinder("instalacaoForm")
+    void campos(org.springframework.web.bind.WebDataBinder binder) {
+        binder.setAllowedFields("nome", "tipo", "descricao", "capacidade", "ativo", "estruturaId");
+    }
+
     @GetMapping
     public String listar(@RequestParam(defaultValue = "0") int pagina, Model model) {
         base(model); model.addAttribute("pagina", service.listar(pagina, 20)); return "criacoes/aves/instalacoes/lista";
@@ -46,5 +51,5 @@ public class InstalacoesAvesController {
     }
 
     private void base(Model m) { m.addAttribute("active", "aves"); }
-    private void formulario(Model m, InstalacaoCriacaoRequest r, Long id) { base(m); m.addAttribute("instalacaoForm", r); m.addAttribute("instalacaoId", id); m.addAttribute("tipos", TipoInstalacaoCriacao.values()); }
+    private void formulario(Model m, InstalacaoCriacaoRequest r, Long id) { base(m); m.addAttribute("instalacaoForm", r); m.addAttribute("instalacaoId", id); m.addAttribute("tipos", TipoInstalacaoCriacao.values()); m.addAttribute("estruturas", service.estruturasDisponiveis()); }
 }

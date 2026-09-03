@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead('Propriedade - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
+
+<section class="property-section"><h1>Não foi possível concluir</h1><p role="alert" th:text="${erro}"></p><a class="btn btn-outline-secondary" th:href="@{/sitio/propriedade}"><i class="fa-solid fa-arrow-left me-2"></i>Propriedade</a></section><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

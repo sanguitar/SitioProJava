@@ -1,0 +1,19 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><body>
+<nav th:fragment="tabs" class="property-tabs" aria-label="Cadastros da propriedade">
+<a th:href="@{/sitio/propriedade}" th:classappend="${cadastro == 'propriedade'} ? 'active'"><i class="fa-solid fa-house" aria-hidden="true"></i>Visão geral</a>
+<a th:href="@{/sitio/propriedade/areas}" th:classappend="${cadastro == 'areas'} ? 'active'"><i class="fa-solid fa-map" aria-hidden="true"></i>Áreas</a>
+<a th:href="@{/sitio/propriedade/talhoes}" th:classappend="${cadastro == 'talhoes'} ? 'active'"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>Talhões</a>
+<a th:href="@{/sitio/propriedade/piquetes}" th:classappend="${cadastro == 'piquetes'} ? 'active'"><i class="fa-solid fa-border-all" aria-hidden="true"></i>Piquetes</a>
+<a th:href="@{/sitio/propriedade/estruturas}" th:classappend="${cadastro == 'estruturas'} ? 'active'"><i class="fa-solid fa-warehouse" aria-hidden="true"></i>Estruturas</a>
+<a th:href="@{/sitio/propriedade/recursos-hidricos}" th:classappend="${cadastro == 'recursos-hidricos'} ? 'active'"><i class="fa-solid fa-droplet" aria-hidden="true"></i>Recursos hídricos</a>
+</nav>
+<div th:fragment="messages">
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<div class="alert alert-danger" role="alert" th:if="${erro}" th:text="${erro}"></div>
+</div>
+<div th:fragment="pagination" class="property-pagination" th:if="${pagina.totalPaginas > 1}">
+<a class="btn btn-outline-secondary btn-sm" th:if="${pagina.pagina > 0}" th:href="@{${caminho}(pagina=${pagina.pagina - 1})}" aria-label="Página anterior"><i class="fa-solid fa-chevron-left"></i></a>
+<span th:text="${'Página ' + (pagina.pagina + 1) + ' de ' + pagina.totalPaginas}"></span>
+<a class="btn btn-outline-secondary btn-sm" th:if="${pagina.pagina + 1 < pagina.totalPaginas}" th:href="@{${caminho}(pagina=${pagina.pagina + 1})}" aria-label="Próxima página"><i class="fa-solid fa-chevron-right"></i></a>
+</div>
+</body></html>

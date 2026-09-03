@@ -28,7 +28,8 @@ class InstalacaoCriacaoServiceTests {
 
     @BeforeEach
     void preparar() {
-        service = new InstalacaoCriacaoService(repository, loteRepository);
+        service = new InstalacaoCriacaoService(repository, loteRepository,
+                org.mockito.Mockito.mock(com.example.sitiopro.propriedade.service.PropriedadeService.class));
     }
 
     @Test

@@ -17,6 +17,11 @@ public class InstalacaoCriacaoRequest {
     private Integer capacidade;
     private boolean ativo = true;
 
+    @Min(1)
+    private Long estruturaId;
+    public Long getEstruturaId() { return estruturaId; }
+    public void setEstruturaId(Long estruturaId) { this.estruturaId = estruturaId; }
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public TipoInstalacaoCriacao getTipo() { return tipo; }

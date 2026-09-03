@@ -5,6 +5,8 @@ import com.example.sitiopro.administracao.configuracao.dto.ConfiguracaoOperacion
 import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalInvalidaException;
 import com.example.sitiopro.administracao.configuracao.service.ConfiguracaoOperacionalService;
 import jakarta.validation.Valid;
+import com.example.sitiopro.propriedade.service.PropriedadeOperacaoException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -29,7 +31,7 @@ public class ConfiguracaoOperacionalController {
     @InitBinder("configuracaoForm")
     void restringirCampos(WebDataBinder binder) {
         binder.setAllowedFields("nomePropriedade", "timezone", "latitude", "longitude",
-                "diasPadraoIncubacao", "antecedenciaAlertaEclosaoDias");
+                "diasPadraoIncubacao", "antecedenciaAlertaEclosaoDias", "propriedadeVersao");
     }
 
     @GetMapping
@@ -54,6 +56,8 @@ public class ConfiguracaoOperacionalController {
                 service.atualizar(form);
             } catch (ConfiguracaoOperacionalInvalidaException ex) {
                 bindingResult.rejectValue(ex.getCampo(), "configuracao.invalida", ex.getMessage());
+            } catch (PropriedadeOperacaoException | ObjectOptimisticLockingFailureException ex) {
+                bindingResult.reject("configuracao.conflito", "Dados físicos alterados. Recarregue a página antes de salvar.");
             }
         }
         if (bindingResult.hasErrors()) {

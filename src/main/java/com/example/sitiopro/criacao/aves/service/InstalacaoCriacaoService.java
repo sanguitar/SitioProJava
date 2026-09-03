@@ -9,6 +9,9 @@ import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
+import com.example.sitiopro.propriedade.service.PropriedadeService;
+import com.example.sitiopro.propriedade.service.PropriedadeOperacaoException;
+import com.example.sitiopro.propriedade.dto.CadastroFisicoResumo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -26,11 +29,17 @@ public class InstalacaoCriacaoService {
     private static final Logger log = LoggerFactory.getLogger(InstalacaoCriacaoService.class);
     private final InstalacaoCriacaoRepository repository;
     private final LoteAvesRepository loteRepository;
+    private final PropriedadeService propriedadeService;
 
-    public InstalacaoCriacaoService(InstalacaoCriacaoRepository repository, LoteAvesRepository loteRepository) {
+    public InstalacaoCriacaoService(InstalacaoCriacaoRepository repository, LoteAvesRepository loteRepository,
+            PropriedadeService propriedadeService) {
         this.repository = repository;
         this.loteRepository = loteRepository;
+        this.propriedadeService = propriedadeService;
     }
+
+    @Transactional(readOnly = true)
+    public List<CadastroFisicoResumo> estruturasDisponiveis() { return propriedadeService.estruturasDisponiveis(); }
 
     @Transactional(readOnly = true)
     public PaginaResponse<InstalacaoCriacaoResumo> listar(int pagina, int tamanho) {
@@ -61,6 +70,7 @@ public class InstalacaoCriacaoService {
         request.setDescricao(atual.getDescricao());
         request.setCapacidade(atual.getCapacidade());
         request.setAtivo(atual.isAtivo());
+        request.setEstruturaId(atual.getEstrutura() == null ? null : atual.getEstrutura().getId());
         return request;
     }
 
@@ -118,8 +128,18 @@ public class InstalacaoCriacaoService {
     private AvesOperacaoException naoEncontrada(Long id) { return new AvesOperacaoException("INSTALACAO_NAO_ENCONTRADA", "Instalação não encontrada: " + id, HttpStatus.NOT_FOUND); }
     private long ocupacao(Long id, Long ignorar) { return loteRepository.somarOcupacao(id, StatusLoteAves.ATIVO, ignorar); }
     private void validar(InstalacaoCriacaoRequest r) { if (r.getTipo() == null) throw new AvesOperacaoException("TIPO_OBRIGATORIO", "Informe o tipo da instalação."); if (r.getCapacidade() != null && r.getCapacidade() < 1) throw new AvesOperacaoException("CAPACIDADE_INVALIDA", "Capacidade deve ser maior que zero."); }
-    private void aplicar(InstalacaoCriacao i, InstalacaoCriacaoRequest r, String nome) { i.setNome(nome); i.setTipo(r.getTipo()); i.setDescricao(texto(r.getDescricao())); i.setCapacidade(r.getCapacidade()); i.setAtivo(r.isAtivo()); }
-    private InstalacaoCriacaoResumo resumo(InstalacaoCriacao i) { return new InstalacaoCriacaoResumo(i.getId(), i.getNome(), i.getTipo(), i.getTipo().getRotulo(), i.getDescricao(), i.getCapacidade(), ocupacao(i.getId(), null), i.isAtivo(), i.getVersao(), i.getCriadoEm(), i.getCriadoPor(), i.getAlteradoEm(), i.getAlteradoPor()); }
+    private void aplicar(InstalacaoCriacao i, InstalacaoCriacaoRequest r, String nome) {
+        try {
+            i.setEstrutura(r.getEstruturaId() == null ? null : propriedadeService.estruturaParaVinculo(r.getEstruturaId()));
+        } catch (PropriedadeOperacaoException ex) {
+            throw new AvesOperacaoException("ESTRUTURA_INVALIDA", ex.getMessage(), ex.getStatus());
+        }
+        i.setNome(nome); i.setTipo(r.getTipo()); i.setDescricao(texto(r.getDescricao()));
+        i.setCapacidade(r.getCapacidade()); i.setAtivo(r.isAtivo());
+    }
+    private InstalacaoCriacaoResumo resumo(InstalacaoCriacao i) { return new InstalacaoCriacaoResumo(i.getId(), i.getNome(), i.getTipo(), i.getTipo().getRotulo(), i.getDescricao(), i.getCapacidade(), ocupacao(i.getId(), null), i.isAtivo(), i.getVersao(), i.getCriadoEm(), i.getCriadoPor(), i.getAlteradoEm(), i.getAlteradoPor(),
+            i.getEstrutura() == null ? null : i.getEstrutura().getId(),
+            i.getEstrutura() == null ? null : i.getEstrutura().getNome()); }
     private String nome(String valor) { if (!StringUtils.hasText(valor)) throw new AvesOperacaoException("NOME_OBRIGATORIO", "Informe o nome da instalação."); return valor.trim(); }
     private String texto(String valor) { return StringUtils.hasText(valor) ? valor.trim() : null; }
     private int normalizarPagina(int p) { return Math.max(0, p); }

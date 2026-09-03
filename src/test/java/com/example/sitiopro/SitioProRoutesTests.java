@@ -565,6 +565,13 @@ class SitioProRoutesTests {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"", "/novo", "/detalhe", "/historico"})
+    void dadosFisicosAntigosApontamParaPropriedade(String sufixo) throws Exception {
+        mockMvc.perform(get("/sitio/admin/propriedade" + sufixo))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/sitio/propriedade"));
+    }
+
+    @ParameterizedTest
     @MethodSource("rotasPlanejadas")
     void rotasPlanejadasRenderizamPlaceholder(String rota) throws Exception {
         mockMvc.perform(get(rota))
@@ -598,8 +605,7 @@ class SitioProRoutesTests {
                 "/sitio/patrimonio",
                 "/sitio/seguranca",
                 "/sitio/admin/centros-custo",
-                "/sitio/admin/unidades-medida",
-                "/sitio/admin/propriedade"
+                "/sitio/admin/unidades-medida"
         );
 
         Stream<String> fluxosPadrao = basesComFluxoPadrao.stream()

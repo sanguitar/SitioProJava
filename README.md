@@ -550,7 +550,40 @@ A antecedência também alimenta os alertas e o resumo de Aves.
 Open-Meteo usa uma fotografia da configuração para consulta e persistência. Alterar localização/fuso
 avança sua revisão, isolando previsões e cache anteriores até a próxima sincronização, sem misturar locais.
 URLs, cron, timeouts, habilitação das integrações e todos os secrets continuam em deployment config/env.
-Propriedade, Agricultura e cadastros de outros domínios não são alterados por esta tela.
+A partir da V16, nome e coordenadas são lidos de Propriedade e editados pelo serviço desse domínio,
+na mesma transação dos parâmetros operacionais. Timezone e incubação continuam em Configurações.
+O formulário inclui a versão física para impedir sobrescritas de edições concorrentes.
+Agricultura e os demais cadastros não são alterados por esta tela.
+
+### Propriedade: fundação física
+
+`/sitio/propriedade` reúne o imóvel principal, áreas, talhões, piquetes, estruturas e recursos hídricos.
+O resumo mostra área total informada e contagens dos cadastros; as listas incluem ativos e inativos.
+Município, UF, área total e coordenadas podem permanecer não informados até existir dado confiável.
+Coordenadas são centrais e opcionais em par; não representam limites, CRS/datum confirmado ou levantamento GIS.
+
+A V16 cria seis tabelas tipadas, com auditoria e `@Version`. O backfill transfere nome e coordenadas da
+V15 para `propriedades`, valida a cópia e remove os campos físicos antigos de Configurações.
+Uma FK mantém o vínculo operacional; a propriedade principal é selecionada por atributo, nunca por ID fixo.
+Novas instalações importam os valores iniciais pelo bootstrap já existente, sem sobrescrever dados administrados.
+Uma alteração de coordenadas pelo domínio também invalida logicamente o contexto climático anterior.
+
+Áreas são classificações físicas. Talhões e piquetes recebem códigos imutáveis `TL-0001` e `PQ-0001`
+derivados do IDENTITY do SQL Server, sem campo de código no request. Sequências podem conter lacunas.
+As FKs compostas garantem que uma área vinculada pertença ao mesmo imóvel.
+`InstalacaoCriacao.estrutura` é opcional: instalações existentes permanecem sem vínculo e continuam
+funcionando. O formulário de Criações permite vincular/desvincular estruturas ativas. Capacidade física
+não substitui capacidade ou ocupação de aves. Estruturas com instalações ativas devem ser desvinculadas
+antes da desativação. Desativar uma área preserva os vínculos existentes e impede novos vínculos.
+
+MVC: `/sitio/propriedade` e subrotas `areas`, `talhoes`, `piquetes`, `estruturas`,
+`recursos-hidricos`, com lista, `/novo`, `/{id}` e `/{id}/editar`.
+POST cria/atualiza; POST `/{id}/desativar` exige a versão atual. O imóvel é editado em `/editar`.
+API: GET `/api/v1/propriedade/resumo`; listas/detalhes nas mesmas cinco subrotas;
+POST cria, PUT `/{id}` atualiza e POST `/{id}/desativar` desativa. PUT na raiz atualiza o imóvel.
+Listas usam `pagina`/ `tamanho` com limite de 100. Requests são tipados e não aceitam entidades JPA.
+ADMIN altera; OPERADOR apenas consulta. Todas as mutações exigem sessão e CSRF.
+Sem plantios, culturas, safras, manejo animal, telemetria ou irrigação nesta etapa.
 
 Dados Open-Meteo exigem atribuição CC BY 4.0, mantida ao lado do resumo climático. A API gratuita é destinada a uso não comercial e possui limites oficiais; para uso comercial, configure o endpoint/plano oficial adequado antes da produção.
 

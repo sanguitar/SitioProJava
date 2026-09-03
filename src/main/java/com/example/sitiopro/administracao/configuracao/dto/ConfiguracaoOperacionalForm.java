@@ -12,6 +12,10 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public class ConfiguracaoOperacionalForm {
+    @jakarta.validation.constraints.PositiveOrZero
+    private Long propriedadeVersao;
+    public Long getPropriedadeVersao() { return propriedadeVersao; }
+    public void setPropriedadeVersao(Long propriedadeVersao) { this.propriedadeVersao = propriedadeVersao; }
 
     @NotBlank(message = "Informe o nome da propriedade.")
     @Size(max = 120, message = "O nome deve ter no máximo 120 caracteres.")

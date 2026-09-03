@@ -476,13 +476,13 @@ public final class PlanejamentoCatalogo {
                 "Detalhe com abreviação e tipo",
                 "Histórico de uso"));
 
-        adicionar(modulos, modulo("Administração", "Dados da propriedade", "/sitio/admin/propriedade",
-                "dados-propriedade", "global.css", "domain-admin", "fa-location-dot", StatusPlanejamento.PLANEJADO,
-                "Dados cadastrais do sítio, localização, áreas, documentos e responsáveis.",
-                "Resumo cadastral da propriedade",
-                "Cadastro de dados gerais",
-                "Detalhe com endereço, documentos e contatos",
-                "Histórico de alterações cadastrais"));
+        adicionar(modulos, modulo("Propriedade", "Cadastro físico", "/sitio/admin/propriedade",
+                "propriedade", "propriedade.css", "property-page", "fa-location-dot", StatusPlanejamento.FUNCIONAL,
+                "Imóvel, áreas, talhões, piquetes, estruturas e recursos hídricos.",
+                "Resumo e dados físicos do imóvel",
+                "Cadastros físicos com controle de versão",
+                "Vínculo opcional das instalações de Criações",
+                "Auditoria de alterações"));
 
         return Collections.unmodifiableMap(modulos);
     }

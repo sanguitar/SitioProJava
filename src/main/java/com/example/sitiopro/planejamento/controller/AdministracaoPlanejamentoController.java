@@ -25,11 +25,14 @@ public class AdministracaoPlanejamentoController {
             "/centros-custo",
             "/centros-custo/{acao}",
             "/unidades-medida",
-            "/unidades-medida/{acao}",
-            "/propriedade",
-            "/propriedade/{acao}"
+            "/unidades-medida/{acao}"
     })
     public String pagina(HttpServletRequest request, Model model) {
         return PlanejamentoView.renderizar(request, model);
+    }
+
+    @GetMapping({"/propriedade", "/propriedade/{acao}"})
+    public String propriedade() {
+        return "redirect:/sitio/propriedade";
     }
 }

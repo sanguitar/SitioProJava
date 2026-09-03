@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead('Propriedade - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
+
+<header class="property-heading"><div><small class="module-group">Cadastro físico</small><h1 th:text="${propriedade.nome}">Propriedade</h1>
+<p th:text="${propriedade.municipio == null ? 'Município não informado' : propriedade.municipio + (propriedade.uf == null ? '' : ' / ' + propriedade.uf)}"></p></div>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{/sitio/propriedade/editar}" class="btn btn-success"><i class="fa-solid fa-pen me-2"></i>Editar propriedade</a></header>
+<div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>
+<dl class="property-metrics">
+<div><dt>Área total</dt><dd th:text="${propriedade.areaTotalHa == null ? 'Não informada' : #numbers.formatDecimal(propriedade.areaTotalHa, 1, 4) + ' ha'}"></dd></div>
+<div><dt>Áreas</dt><dd><a th:href="@{/sitio/propriedade/areas}" th:text="${propriedade.areas}">0</a></dd></div>
+<div><dt>Talhões</dt><dd><a th:href="@{/sitio/propriedade/talhoes}" th:text="${propriedade.talhoes}">0</a></dd></div>
+<div><dt>Piquetes</dt><dd><a th:href="@{/sitio/propriedade/piquetes}" th:text="${propriedade.piquetes}">0</a></dd></div>
+<div><dt>Estruturas</dt><dd><a th:href="@{/sitio/propriedade/estruturas}" th:text="${propriedade.estruturas}">0</a></dd></div>
+<div><dt>Recursos hídricos</dt><dd><a th:href="@{/sitio/propriedade/recursos-hidricos}" th:text="${propriedade.recursosHidricos}">0</a></dd></div>
+</dl>
+<section class="property-section"><h2>Dados do imóvel</h2><dl class="property-details">
+<div><dt>Situação</dt><dd th:text="${propriedade.ativo ? 'Ativa' : 'Inativa'}"></dd></div>
+<div><dt>Latitude central</dt><dd th:text="${propriedade.latitudeCentral ?: 'Não informada'}"></dd></div>
+<div><dt>Longitude central</dt><dd th:text="${propriedade.longitudeCentral ?: 'Não informada'}"></dd></div>
+<div class="property-full"><dt>Observação</dt><dd th:text="${propriedade.observacao ?: 'Não informada'}"></dd></div>
+</dl></section><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

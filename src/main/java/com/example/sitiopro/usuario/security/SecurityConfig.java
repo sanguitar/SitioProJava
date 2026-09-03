@@ -97,7 +97,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/tarefas", "/api/v1/tarefas/*/iniciar",
                                 "/api/v1/tarefas/*/concluir", "/api/v1/alertas/*/reconhecer",
                                 "/api/v1/alertas/*/criar-tarefa").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers("/api/v1/propriedade", "/api/v1/propriedade/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/**").denyAll()
+                        .requestMatchers(HttpMethod.GET, "/sitio/propriedade/editar",
+                                "/sitio/propriedade/*/novo", "/sitio/propriedade/*/*/editar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/propriedade", "/sitio/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers("/sitio/propriedade", "/sitio/propriedade/**").hasRole("ADMIN")
                         .requestMatchers("/administracao/**", "/configuracoes/roadmap").hasRole("ADMIN")
                         .requestMatchers("/sitio/admin", "/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/fornecedores/*").hasRole("ADMIN")

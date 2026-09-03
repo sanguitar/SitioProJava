@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead('Propriedade - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
+
+<header class="property-heading"><div><small class="module-group">Cadastro físico</small><h1 th:text="${titulo}"></h1></div>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{${caminho + '/novo'}}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo cadastro</a></header>
+<div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>
+<div class="property-empty" th:if="${pagina.conteudo.isEmpty()}"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><p>Nenhum registro cadastrado.</p></div>
+<div class="table-responsive" th:unless="${pagina.conteudo.isEmpty()}">
+<table class="table align-middle property-table"><thead><tr><th>Nome / código</th><th>Tipo / área</th><th>Dimensão</th><th>Situação</th><th><span class="visually-hidden">Abrir</span></th></tr></thead><tbody>
+<tr th:each="r : ${pagina.conteudo}">
+<td><a th:href="@{${caminho + '/' + r.id}}" th:text="${r.nome}"></a><small th:if="${r.codigo}" th:text="${r.codigo}"></small></td>
+<td><span th:text="${r.tipo == null ? (r.areaNome ?: 'Sem área vinculada') : #strings.replace(r.tipo, '_', ' ')}"></span></td>
+<td><span th:if="${r.areaHa != null}" th:text="${#numbers.formatDecimal(r.areaHa,1,4) + ' ha'}"></span>
+<span th:if="${r.capacidade != null}" th:text="${r.capacidade + ' ' + r.unidadeCapacidade}"></span>
+<span th:if="${r.capacidadeLitros != null}" th:text="${r.capacidadeLitros + ' L'}"></span>
+<span th:if="${r.areaHa == null and r.capacidade == null and r.capacidadeLitros == null}">Não informada</span></td>
+<td><span class="status-badge-visual" th:classappend="${r.ativo} ? 'status-functional' : 'status-review'" th:text="${r.status}"></span></td>
+<td><a th:href="@{${caminho + '/' + r.id}}" class="btn btn-outline-secondary btn-sm" aria-label="Abrir registro" title="Abrir registro"><i class="fa-solid fa-arrow-right"></i></a></td>
+</tr></tbody></table></div>
+<div th:replace="~{propriedade/fragments :: pagination}"></div><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

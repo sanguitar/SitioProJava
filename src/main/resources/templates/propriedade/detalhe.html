@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead('Propriedade - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
+
+<header class="property-heading"><div><small class="module-group" th:text="${registro.codigo ?: titulo}"></small><h1 th:text="${registro.nome}"></h1></div>
+<div class="property-actions"><a th:href="@{${caminho}}" class="btn btn-outline-secondary" aria-label="Voltar à lista" title="Voltar à lista"><i class="fa-solid fa-arrow-left"></i></a>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{${caminho + '/' + registro.id + '/editar'}}" class="btn btn-success"><i class="fa-solid fa-pen me-2"></i>Editar</a></div></header>
+<div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>
+<section class="property-section"><dl class="property-details">
+<div><dt>Situação</dt><dd th:text="${registro.status}"></dd></div>
+<div th:if="${registro.tipo}"><dt>Tipo</dt><dd th:text="${#strings.replace(registro.tipo,'_',' ')}"></dd></div>
+<div th:if="${cadastro != 'areas'}"><dt>Área vinculada</dt><dd th:text="${registro.areaNome ?: 'Sem vínculo'}"></dd></div>
+<div th:if="${registro.areaHa != null}"><dt>Área (ha)</dt><dd th:text="${registro.areaHa}"></dd></div>
+<div th:if="${registro.capacidade != null}"><dt>Capacidade</dt><dd th:text="${registro.capacidade + ' ' + registro.unidadeCapacidade}"></dd></div>
+<div th:if="${registro.capacidadeLitros != null}"><dt>Capacidade (L)</dt><dd th:text="${registro.capacidadeLitros}"></dd></div>
+<div class="property-full"><dt>Observação</dt><dd th:text="${registro.observacao ?: 'Não informada'}"></dd></div>
+</dl></section>
+<form sec:authorize="hasRole('ADMIN')" th:if="${registro.ativo}" th:action="@{${caminho + '/' + registro.id + '/desativar'}}" method="post" class="property-end-actions">
+<input type="hidden" name="versao" th:value="${registro.versao}"><button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-ban me-2"></i>Desativar</button>
+</form><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

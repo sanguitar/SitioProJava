@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InstalacaoCriacaoRepository extends JpaRepository<InstalacaoCriacao, Long> {
+    boolean existsByEstruturaIdAndAtivoTrue(Long estruturaId);
     boolean existsByNomeIgnoreCase(String nome);
     boolean existsByNomeIgnoreCaseAndIdNot(String nome, Long id);
     List<InstalacaoCriacao> findByAtivoTrueOrderByNomeAsc();

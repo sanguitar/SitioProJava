@@ -31,11 +31,19 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.integracao.api",
         "com.example.sitiopro.tarefas.api",
         "com.example.sitiopro.criacao.aves.api",
-        "com.example.sitiopro.dashboard.api"
+        "com.example.sitiopro.dashboard.api",
+        "com.example.sitiopro.propriedade.api"
 })
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(com.example.sitiopro.propriedade.service.PropriedadeOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> propriedade(
+            com.example.sitiopro.propriedade.service.PropriedadeOperacaoException ex, HttpServletRequest request) {
+        return negocio("PROPRIEDADE_OPERACAO_INVALIDA", ex.getMessage(), ex.getStatus(), request);
+    }
+
     private static final Pattern SENSITIVE_VALUE_PATTERN = Pattern.compile(
             "(?i)(senha|password|passwd|pwd|secret|token|authorization|cookie|connection\\s*string|connectionString)\\s*[:=]\\s*\\S+");
     private static final Pattern SENSITIVE_URI_PATTERN = Pattern.compile(

@@ -18,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import com.example.sitiopro.propriedade.entity.Propriedade;
+import com.example.sitiopro.propriedade.service.PropriedadeService;
 
 import static com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao;
 import static org.assertj.core.api.Assertions.*;
@@ -27,13 +29,19 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ConfiguracaoOperacionalServiceTests {
     @Mock private ConfiguracaoOperacionalRepository repository;
+    @Mock private PropriedadeService propriedadeService;
     private ConfiguracaoOperacionalInicialProperties properties;
     private ConfiguracaoOperacionalService service;
 
     @BeforeEach
     void preparar() {
         properties = new ConfiguracaoOperacionalInicialProperties();
-        service = new ConfiguracaoOperacionalService(repository, properties);
+        service = new ConfiguracaoOperacionalService(repository, properties, propriedadeService);
+        lenient().when(propriedadeService.inicializarPrincipal(anyString(), any(), any())).thenAnswer(inv -> {
+            Propriedade p = new Propriedade();
+            p.setNome(inv.getArgument(0)); p.inicializarCoordenadas(inv.getArgument(1), inv.getArgument(2));
+            return p;
+        });
     }
 
     @Test
@@ -96,7 +104,13 @@ class ConfiguracaoOperacionalServiceTests {
 
     @Test
     void atualizarNormalizaNomeEIsolaLocalizacaoAnteriorSemMexerEmIncubacoes() {
-        when(repository.findById(1)).thenReturn(Optional.of(entidade()));
+        var entidade = entidade();
+        when(repository.findById(1)).thenReturn(Optional.of(entidade));
+        doAnswer(inv -> {
+            entidade.getPropriedade().setNome(inv.getArgument(0));
+            entidade.getPropriedade().atualizarCoordenadas(inv.getArgument(1), inv.getArgument(2));
+            return null;
+        }).when(propriedadeService).atualizarDadosFisicos(anyString(), any(), any(), any());
         when(repository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
         var form = padrao().paraFormulario();
         form.setNomePropriedade("  Meu Sítio  ");
@@ -166,6 +180,8 @@ class ConfiguracaoOperacionalServiceTests {
     }
 
     private ConfiguracaoOperacional entidade() {
-        return new ConfiguracaoOperacional("Teste", "UTC", new BigDecimal("-3"), new BigDecimal("-60"), 21, 2);
+        Propriedade p = new Propriedade();
+        p.setNome("Teste"); p.inicializarCoordenadas(new BigDecimal("-3"), new BigDecimal("-60"));
+        return new ConfiguracaoOperacional(p, "UTC", 21, 2);
     }
 }

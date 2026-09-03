@@ -122,10 +122,10 @@ class ConfiguracaoOperacionalSqlServerIntegrationTests {
 
     @Test
     void sqlRejeitaCoordenadasInvalidasEMultiplosRegistros() {
-        assertThatThrownBy(() -> jdbc.update("UPDATE configuracoes_operacionais SET latitude=91 WHERE id=1"))
-                .hasStackTraceContaining("ck_config_operacionais_latitude");
-        assertThatThrownBy(() -> jdbc.update("UPDATE configuracoes_operacionais SET longitude=NULL WHERE id=1"))
-                .hasStackTraceContaining("ck_config_operacionais_coordenadas");
+        assertThatThrownBy(() -> jdbc.update("UPDATE propriedades SET latitude_central=91 WHERE principal=1"))
+                .hasStackTraceContaining("ck_propriedades_latitude");
+        assertThatThrownBy(() -> jdbc.update("UPDATE propriedades SET longitude_central=NULL WHERE principal=1"))
+                .hasStackTraceContaining("ck_propriedades_coordenadas");
         assertThatThrownBy(() -> jdbc.update("UPDATE configuracoes_operacionais SET id=2 WHERE id=1"))
                 .hasStackTraceContaining("ck_config_operacionais_registro_unico");
         assertThatThrownBy(() -> jdbc.update("UPDATE configuracoes_operacionais SET dias_padrao_incubacao=0 WHERE id=1"))

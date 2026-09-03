@@ -155,14 +155,17 @@
 
         <div class="sidebar-section">
             <a class="sidebar-link sidebar-group-toggle d-flex justify-content-between align-items-center"
-               th:classappend="${active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' active'"
+               th:classappend="${active == 'propriedade' or active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' active'"
                data-bs-toggle="collapse" href="#collapsePropriedade" role="button">
                 <span><i class="fa-solid fa-house me-2"></i> Propriedade</span>
                 <i class="fa-solid fa-chevron-down small"></i>
             </a>
             <div class="collapse"
                  id="collapsePropriedade"
-                 th:classappend="${active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' show'">
+                 th:classappend="${active == 'propriedade' or active == 'casa' or active == 'manutencao' or active == 'patrimonio' or active == 'seguranca'} ? ' show'">
+                <a th:href="@{/sitio/propriedade}" class="sidebar-link sidebar-child" th:classappend="${active == 'propriedade'} ? ' active'">
+                    <i class="fa-solid fa-map me-2"></i> Cadastro físico
+                </a>
                 <a th:href="@{/sitio/casa}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'casa'} ? ' active'">
                     <i class="fa-solid fa-house me-2"></i> Casa
