@@ -47,8 +47,14 @@ public class AgrofitCultura {
         return nome;
     }
 
+    public Long getId() { return id; }
+
     public String getNomeNormalizado() {
         return nomeNormalizado;
+    }
+
+    public LocalDateTime getObtidoEm() {
+        return obtidoEm;
     }
 
     public void atualizarNome(String nome, LocalDateTime obtidoEm) {

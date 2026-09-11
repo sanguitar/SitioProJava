@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<th:block th:with="c=${ficha.resumo}">
+<header class="agri-heading"><div><h2 th:text="${c.culturaNome + ' #' + c.id}"></h2><p th:text="${c.safraNome}"></p></div>
+<div class="agri-actions"><span th:replace="~{agricultura/fragments :: status(${c.status})}"></span>
+<a sec:authorize="hasRole('ADMIN')" th:if="${!c.status.finalizado()}" class="btn btn-outline-secondary" th:href="@{/sitio/agricultura/cultivos/{id}/editar(id=${c.id})}"><i class="fa-solid fa-pen me-2"></i>Editar</a></div></header>
+<dl class="agri-metrics">
+<div><dt>Talh&atilde;o</dt><dd><a th:href="@{/sitio/propriedade/talhoes/{id}(id=${c.talhaoId})}" th:text="${c.talhaoCodigo}"></a><small class="d-block" th:text="${c.talhaoNome}"></small></dd></div>
+<div><dt>&Aacute;rea cultivada</dt><dd th:text="${c.areaCultivadaHa + ' ha'}"></dd></div>
+<div><dt th:text="${c.status.name() == 'PLANEJADO' ? 'Plantio planejado' : 'Plantio'}"></dt><dd th:text="${#temporals.format(c.dataPlantio, 'dd/MM/yyyy')}"></dd></div>
+<div><dt>Dias desde plantio</dt><dd th:text="${c.diasDesdePlantio ?: '-'}"></dd></div>
+<div><dt>Previs&atilde;o de colheita</dt><dd th:text="${c.previsaoColheita == null ? 'Nao definida' : #temporals.format(c.previsaoColheita, 'dd/MM/yyyy')}"></dd></div>
+<div><dt>Colheita final</dt><dd th:text="${c.dataColheitaReal == null ? '-' : #temporals.format(c.dataColheitaReal, 'dd/MM/yyyy')}"></dd></div>
+</dl>
+<nav class="agri-actions agri-quick" aria-label="Operacoes do cultivo" th:if="${!c.status.finalizado()}">
+<a class="btn btn-success" th:href="@{/sitio/agricultura/cultivos/{id}/acompanhamentos/novo(id=${c.id})}"><i class="fa-solid fa-clipboard-check me-2"></i>Registrar acompanhamento</a>
+<a class="btn btn-outline-secondary" th:if="${c.status.name() != 'PRONTO_COLHEITA'}" th:href="@{/sitio/agricultura/cultivos/{id}/plantios/novo(id=${c.id})}"><i class="fa-solid fa-seedling me-2"></i>Registrar plantio</a>
+<a class="btn btn-outline-secondary" th:href="@{/sitio/agricultura/cultivos/{id}/tarefas/novo(id=${c.id})}"><i class="fa-solid fa-list-check me-2"></i>Criar tarefa</a>
+<a class="btn btn-outline-secondary" th:if="${!#lists.isEmpty(ficha.plantios)}" th:href="@{/sitio/agricultura/cultivos/{id}/adubacoes/novo(id=${c.id})}"><i class="fa-solid fa-flask me-2"></i>Aduba&ccedil;&atilde;o</a>
+<a class="btn btn-outline-secondary" th:if="${!#lists.isEmpty(ficha.plantios)}" th:href="@{/sitio/agricultura/cultivos/{id}/irrigacoes/novo(id=${c.id})}"><i class="fa-solid fa-droplet me-2"></i>Irriga&ccedil;&atilde;o</a>
+<a class="btn btn-outline-secondary" th:if="${!#lists.isEmpty(ficha.plantios)}" th:href="@{/sitio/agricultura/cultivos/{id}/tratamentos/novo(id=${c.id})}"><i class="fa-solid fa-spray-can-sparkles me-2"></i>Tratamento</a>
+<a class="btn btn-outline-secondary" th:if="${!#lists.isEmpty(ficha.plantios)}" th:href="@{/sitio/agricultura/cultivos/{id}/ocorrencias/novo(id=${c.id})}"><i class="fa-solid fa-triangle-exclamation me-2"></i>Registrar ocorr&ecirc;ncia</a>
+<a class="btn btn-outline-secondary" th:if="${!#lists.isEmpty(ficha.plantios)}" th:href="@{/sitio/agricultura/cultivos/{id}/colheitas/novo(id=${c.id})}"><i class="fa-solid fa-basket-shopping me-2"></i>Registrar colheita</a>
+</nav>
+<div class="agri-columns">
+<section class="agri-section"><h2>Clima local</h2>
+<p class="agri-empty" th:if="${!ficha.clima.disponivel}">Clima indispon&iacute;vel. Sem previs&atilde;o local sincronizada.</p>
+<th:block th:if="${ficha.clima.disponivel}">
+<p class="text-warning" th:if="${ficha.clima.desatualizado}">Previs&atilde;o desatualizada</p>
+<dl class="agri-details">
+<div><dt>Temperatura</dt><dd th:text="${ficha.clima.temperatura == null ? '-' : ficha.clima.temperatura + ' C'}"></dd></div>
+<div><dt>Chuva nas pr&oacute;ximas 24h</dt><dd th:text="${ficha.clima.chuvaProximas24h == null ? '-' : ficha.clima.chuvaProximas24h + ' mm'}"></dd></div>
+<div><dt>Umidade relativa</dt><dd th:text="${ficha.clima.umidadeRelativa == null ? '-' : ficha.clima.umidadeRelativa + '%'}"></dd></div>
+<div><dt>&Uacute;ltima sincroniza&ccedil;&atilde;o</dt><dd th:text="${#temporals.format(ficha.clima.ultimaAtualizacao, 'dd/MM/yyyy HH:mm')}"></dd></div>
+</dl></th:block></section>
+<section class="agri-section"><h2>Tarefas relacionadas</h2><div th:replace="~{agricultura/fragments :: tasks(${ficha.tarefas})}"></div></section>
+</div>
+<section class="agri-section"><h2>Acompanhamentos</h2>
+<p class="agri-empty" th:if="${#lists.isEmpty(ficha.acompanhamentos)}">Nenhum acompanhamento registrado.</p>
+<article class="agri-history" th:each="a : ${ficha.acompanhamentos}">
+<header><strong th:text="${a.tipo.rotulo}"></strong><small th:text="${#temporals.format(a.dataHora, 'dd/MM/yyyy HH:mm')}"></small></header>
+<p class="agri-text" th:text="${a.descricao}"></p><p class="agri-text text-muted" th:if="${a.observacao}" th:text="${a.observacao}"></p><small th:text="${a.responsavel}"></small></article>
+</section>
+<section class="agri-section"><h2>Opera&ccedil;&otilde;es de plantio</h2>
+<p class="agri-empty" th:if="${#lists.isEmpty(ficha.plantios)}">Nenhum plantio realizado.</p>
+<article class="agri-history" th:each="p : ${ficha.plantios}">
+<header><strong th:text="${p.quantidade + ' ' + p.unidade}"></strong><small th:text="${#temporals.format(p.data, 'dd/MM/yyyy')}"></small></header>
+<dl class="agri-details"><div><dt>Origem</dt><dd th:text="${p.origem.rotulo + ': ' + p.descricaoOrigem}"></dd></div>
+<div th:if="${p.metodo}"><dt>M&eacute;todo</dt><dd th:text="${p.metodo}"></dd></div><div th:if="${p.espacamento}"><dt>Espa&ccedil;amento</dt><dd th:text="${p.espacamento}"></dd></div></dl>
+<p th:if="${p.movimentoEstoqueId != null}"><a th:href="@{/sitio/estoque/movimentacoes}" th:text="${'Movimento de Estoque #' + p.movimentoEstoqueId}"></a></p>
+<p class="agri-text" th:if="${p.observacao}" th:text="${p.observacao}"></p><small th:text="${p.responsavel}"></small>
+</article></section>
+<section class="agri-section"><h2>Aduba&ccedil;&otilde;es</h2><p class="agri-empty" th:if="${#lists.isEmpty(ficha.adubacoes)}">Nenhuma aduba&ccedil;&atilde;o registrada.</p>
+<article class="agri-history" th:each="a : ${ficha.adubacoes}"><header><strong th:text="${a.produto + ' / ' + a.quantidade + ' ' + a.unidade}"></strong><small th:text="${#temporals.format(a.data, 'dd/MM/yyyy')}"></small></header>
+<p th:text="${a.origem.rotulo + ': ' + a.descricaoOrigem}"></p><p th:if="${a.movimentoEstoqueId != null}"><a th:href="@{/sitio/estoque/movimentacoes}" th:text="${'Movimento de Estoque #' + a.movimentoEstoqueId}"></a></p><small th:text="${a.responsavel}"></small></article></section>
+<section class="agri-section"><h2>Irriga&ccedil;&otilde;es</h2><p class="agri-empty" th:if="${#lists.isEmpty(ficha.irrigacoes)}">Nenhuma irriga&ccedil;&atilde;o registrada.</p>
+<article class="agri-history" th:each="i : ${ficha.irrigacoes}"><header><strong th:text="${(i.volumeLitros == null ? '' : i.volumeLitros + ' L') + (i.duracaoMinutos == null ? '' : ' / ' + i.duracaoMinutos + ' min')}"></strong><small th:text="${#temporals.format(i.dataHora, 'dd/MM/yyyy HH:mm')}"></small></header><p th:if="${i.metodo}" th:text="${i.metodo}"></p><small th:text="${i.responsavel}"></small></article></section>
+<section class="agri-section"><h2>Tratamentos</h2><p class="agri-empty" th:if="${#lists.isEmpty(ficha.tratamentos)}">Nenhum tratamento registrado.</p>
+<article class="agri-history" th:each="t : ${ficha.tratamentos}"><header><strong th:text="${t.finalidade}"></strong><small th:text="${#temporals.format(t.data, 'dd/MM/yyyy')}"></small></header><p th:text="${t.produtoAplicado + ' / ' + t.quantidade + ' ' + t.unidade}"></p><p th:if="${t.movimentoEstoqueId != null}"><a th:href="@{/sitio/estoque/movimentacoes}" th:text="${'Movimento de Estoque #' + t.movimentoEstoqueId}"></a></p><small th:text="${t.responsavel}"></small></article></section>
+<section class="agri-section"><h2>Ocorr&ecirc;ncias abertas</h2><p class="agri-empty" th:if="${#lists.isEmpty(ficha.ocorrencias.?[status.aberta()])}">Nenhuma ocorr&ecirc;ncia aberta.</p>
+<article class="agri-history" th:each="o : ${ficha.ocorrencias}" th:if="${o.status.aberta()}"><header><a th:href="@{/sitio/agricultura/ocorrencias/{id}(id=${o.id})}"><strong th:text="${o.titulo}"></strong></a><small th:text="${#temporals.format(o.dataHora, 'dd/MM/yyyy HH:mm')}"></small></header><p th:text="${o.tipo.rotulo + ' / ' + o.severidade.rotulo + ' / ' + o.status.rotulo}"></p><p class="agri-text" th:text="${o.descricao}"></p></article></section>
+<section class="agri-section" th:if="${!#lists.isEmpty(ficha.ocorrencias.?[status.name() == 'ENCERRADA'])}"><h2>Ocorr&ecirc;ncias encerradas</h2><article class="agri-history" th:each="o : ${ficha.ocorrencias}" th:if="${o.status.name() == 'ENCERRADA'}"><header><a th:href="@{/sitio/agricultura/ocorrencias/{id}(id=${o.id})}"><strong th:text="${o.titulo}"></strong></a><small th:text="${#temporals.format(o.encerradaEm, 'dd/MM/yyyy HH:mm')}"></small></header><p class="agri-text" th:text="${o.resolucao}"></p></article></section>
+<section class="agri-section"><h2>Colheitas</h2><p class="agri-empty" th:if="${#lists.isEmpty(ficha.colheitas)}">Nenhuma colheita registrada.</p>
+<article class="agri-history" th:each="h : ${ficha.colheitas}">
+<header><strong th:text="${h.quantidade + ' ' + h.unidade + (h.finalizaCultivo ? ' / Final' : ' / Parcial')}"></strong><small th:text="${#temporals.format(h.data, 'dd/MM/yyyy')}"></small></header>
+<p th:if="${h.classificacao}" th:text="${h.classificacao}"></p><p th:if="${h.perdas != null}" th:text="${'Perdas: ' + h.perdas + ' ' + h.unidade}"></p>
+<p th:text="${'Destino: ' + h.destino.rotulo}"></p><p th:if="${h.movimentoEstoqueId != null}"><a th:href="@{/sitio/estoque/movimentacoes}" th:text="${'Movimento de Estoque #' + h.movimentoEstoqueId}"></a></p>
+<p class="agri-text" th:if="${h.observacao}" th:text="${h.observacao}"></p><small th:text="${h.responsavel}"></small></article>
+</section>
+<section class="agri-section" th:if="${c.observacao}"><h2>Observa&ccedil;&atilde;o do cultivo</h2><p class="agri-text" th:text="${c.observacao}"></p></section>
+<section class="agri-section" sec:authorize="hasRole('ADMIN')" th:if="${!c.status.finalizado()}"><h2>Situa&ccedil;&atilde;o do cultivo</h2>
+<form class="agri-status-form" th:action="@{/sitio/agricultura/cultivos/{id}/status(id=${c.id})}" method="post">
+<input type="hidden" name="versao" th:value="${c.versao}"><label for="status">Novo status</label><select class="form-select" name="status" id="status" required>
+<option value="">Selecione</option>
+<option th:if="${c.status.name() == 'IMPLANTADO'}" value="EM_DESENVOLVIMENTO">Em desenvolvimento</option>
+<option th:if="${c.status.name() == 'IMPLANTADO' or c.status.name() == 'EM_DESENVOLVIMENTO'}" value="PRONTO_COLHEITA">Pronto para colheita</option>
+<option value="PERDIDO">Perdido</option><option value="CANCELADO">Cancelado</option>
+</select><button type="submit" class="btn btn-outline-secondary"><i class="fa-solid fa-check me-2"></i>Aplicar</button></form></section>
+</th:block>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

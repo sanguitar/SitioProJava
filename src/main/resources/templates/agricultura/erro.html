@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<div class="alert alert-warning" role="alert" th:text="${erro}"></div><a class="btn btn-outline-secondary" th:href="@{/sitio/agricultura/cultivos}"><i class="fa-solid fa-arrow-left me-2"></i>Voltar aos cultivos</a>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

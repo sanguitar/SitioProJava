@@ -141,6 +141,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class SitioProSecurityTests {
+    @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
 
     private static final String SENHA_VALIDA = "SenhaMuitoForte123";

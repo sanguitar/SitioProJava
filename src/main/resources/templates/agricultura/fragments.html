@@ -1,0 +1,28 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><body>
+<nav th:fragment="tabs" class="agri-tabs" aria-label="Agricultura">
+<a th:href="@{/sitio/agricultura}" th:classappend="${secao == 'inicio'} ? 'active'"><i class="fa-solid fa-seedling"></i>Vis&atilde;o geral</a>
+<a th:href="@{/sitio/agricultura/safras}" th:classappend="${secao == 'safras'} ? 'active'"><i class="fa-regular fa-calendar"></i>Safras</a>
+<a th:href="@{/sitio/agricultura/cultivos}" th:classappend="${secao == 'cultivos'} ? 'active'"><i class="fa-solid fa-wheat-awn"></i>Cultivos</a>
+<a th:href="@{/sitio/agricultura/culturas}" th:classappend="${secao == 'culturas'} ? 'active'"><i class="fa-solid fa-leaf"></i>Culturas</a>
+<a th:href="@{/sitio/agricultura/adubacao}" th:classappend="${secao == 'adubacao'} ? 'active'"><i class="fa-solid fa-flask"></i>Aduba&ccedil;&atilde;o</a>
+<a th:href="@{/sitio/agricultura/irrigacao}" th:classappend="${secao == 'irrigacao'} ? 'active'"><i class="fa-solid fa-droplet"></i>Irriga&ccedil;&atilde;o</a>
+<a th:href="@{/sitio/agricultura/tratamentos}" th:classappend="${secao == 'tratamentos'} ? 'active'"><i class="fa-solid fa-spray-can-sparkles"></i>Tratamentos</a>
+<a th:href="@{/sitio/agricultura/ocorrencias}" th:classappend="${secao == 'ocorrencias'} ? 'active'"><i class="fa-solid fa-triangle-exclamation"></i>Ocorr&ecirc;ncias</a>
+<a th:href="@{/sitio/agricultura/colheitas}" th:classappend="${secao == 'colheitas'} ? 'active'"><i class="fa-solid fa-basket-shopping"></i>Colheitas</a>
+<a th:href="@{/sitio/propriedade/talhoes}"><i class="fa-solid fa-map"></i>Talh&otilde;es</a>
+</nav>
+<span th:fragment="status(status)" class="agri-status" th:attr="data-status=${status}" th:text="${status.rotulo}"></span>
+<div th:fragment="errors" class="alert alert-danger" role="alert" th:if="${#fields.hasErrors('*')}">
+<ul class="mb-0"><li th:each="e : ${#fields.errors('*')}" th:text="${e}"></li></ul></div>
+<div th:fragment="pagination" class="agri-pagination" th:if="${pagina.totalPaginas > 1}">
+<a class="btn btn-outline-secondary btn-sm" th:if="${pagina.pagina > 0}" th:href="@{${caminho}(pagina=${pagina.pagina - 1})}" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></a>
+<span th:text="${(pagina.pagina + 1) + ' / ' + pagina.totalPaginas}"></span>
+<a class="btn btn-outline-secondary btn-sm" th:if="${pagina.pagina + 1 < pagina.totalPaginas}" th:href="@{${caminho}(pagina=${pagina.pagina + 1})}" aria-label="Proxima"><i class="fa-solid fa-chevron-right"></i></a>
+</div>
+<div th:fragment="tasks(tarefas)" class="agri-records">
+<p class="agri-empty" th:if="${#lists.isEmpty(tarefas)}">Nenhuma tarefa aberta.</p>
+<a class="agri-record" th:each="t : ${tarefas}" th:href="@{/sitio/tarefas/{id}(id=${t.id})}">
+<span><strong th:text="${t.titulo}"></strong><small th:text="${t.responsavelNome ?: 'Sem responsavel'}"></small></span>
+<span th:classappend="${t.vencida} ? 'text-danger'" th:text="${t.dataVencimento == null ? 'Sem prazo' : #temporals.format(t.dataVencimento, 'dd/MM/yyyy HH:mm')}"></span></a>
+</div>
+</body></html>

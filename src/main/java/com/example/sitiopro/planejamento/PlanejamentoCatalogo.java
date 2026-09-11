@@ -182,60 +182,76 @@ public final class PlanejamentoCatalogo {
                 "Histórico de despesca e produtividade"));
 
         adicionar(modulos, modulo("Agricultura", "Áreas/Talhões", "/sitio/agricultura/areas", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-map-location-dot", StatusPlanejamento.PLANEJADO,
-                "Cadastro visual das áreas produtivas, talhões, uso atual e características do solo.",
+                "agricultura.css", "domain-agricultura", "fa-map-location-dot", StatusPlanejamento.FUNCIONAL,
+                "Talhões oficiais mantidos no cadastro físico da Propriedade.",
                 "Listagem de áreas e talhões",
                 "Cadastro de área produtiva",
                 "Detalhe com tamanho, localização e uso",
                 "Histórico de ocupação e manejo"));
 
         adicionar(modulos, modulo("Agricultura", "Culturas", "/sitio/agricultura/culturas", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-seedling", StatusPlanejamento.PLANEJADO,
-                "Catálogo de culturas, variedades, ciclos esperados e parâmetros de manejo.",
+                "agricultura.css", "domain-agricultura", "fa-seedling", StatusPlanejamento.FUNCIONAL,
+                "Catálogo interno de culturas e ciclos, com referência Agrofit opcional.",
                 "Listagem de culturas cadastradas",
-                "Cadastro de cultura e variedade",
-                "Detalhe de ciclo, espaçamento e exigências",
-                "Histórico de uso por talhão"));
+                "Cadastro e edição de culturas",
+                "Ciclo estimado e nome científico",
+                "Ativação e desativação"));
 
         adicionar(modulos, modulo("Agricultura", "Plantios", "/sitio/agricultura/plantios", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-wheat-awn", StatusPlanejamento.PLANEJADO,
+                "agricultura.css", "domain-agricultura", "fa-wheat-awn", StatusPlanejamento.FUNCIONAL,
                 "Planejamento e acompanhamento dos plantios por talhão, cultura, data e estágio.",
                 "Listagem de plantios ativos",
                 "Cadastro de plantio",
-                "Detalhe com área, cultura, estágio e custos",
+                "Origem externa ou consumo pelo serviço oficial de Estoque",
                 "Histórico de safras"));
 
+        adicionar(modulos, modulo("Agricultura", "Safras e cultivos", "/sitio/agricultura", "agricultura",
+                "agricultura.css", "domain-agricultura", "fa-seedling", StatusPlanejamento.FUNCIONAL,
+                "Ciclo agrícola vinculado aos Talhões oficiais da Propriedade.",
+                "Safras e cultivos com área reservada",
+                "Plantios, acompanhamentos e colheitas",
+                "Tarefas relacionadas e clima local",
+                "Histórico auditado de campo"));
+
         adicionar(modulos, modulo("Agricultura", "Adubação", "/sitio/agricultura/adubacao", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-flask", StatusPlanejamento.PLANEJADO,
-                "Registro de adubações, insumos aplicados, dose, área e custo por aplicação.",
+                "agricultura.css", "domain-agricultura", "fa-flask", StatusPlanejamento.FUNCIONAL,
+                "Registro auditável de adubações executadas e consumo opcional do Estoque.",
                 "Listagem de aplicações",
                 "Cadastro de adubação",
-                "Detalhe com insumos e dose por área",
+                "Detalhe com insumos e área aplicada",
                 "Histórico por cultura e talhão"));
 
         adicionar(modulos, modulo("Agricultura", "Irrigação", "/sitio/agricultura/irrigacao", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-droplet", StatusPlanejamento.PLANEJADO,
-                "Planejamento agrícola das irrigações por cultura, talhão e janela operacional.",
-                "Agenda de irrigações por plantio",
-                "Cadastro de programação",
-                "Detalhe de lâmina, duração e setor",
+                "agricultura.css", "domain-agricultura", "fa-droplet", StatusPlanejamento.FUNCIONAL,
+                "Registro das irrigações executadas por cultivo, duração, volume e método.",
+                "Irrigações por cultivo",
+                "Cadastro de execução",
+                "Detalhe de duração, volume e método",
                 "Histórico hídrico por cultura"));
 
         adicionar(modulos, modulo("Agricultura", "Tratamentos", "/sitio/agricultura/tratamentos", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-spray-can-sparkles", StatusPlanejamento.PLANEJADO,
-                "Aplicação de defensivos, controle fitossanitário e acompanhamento de carências.",
+                "agricultura.css", "domain-agricultura", "fa-spray-can-sparkles", StatusPlanejamento.FUNCIONAL,
+                "Registro operacional de tratamentos executados, sem receituário agronômico.",
                 "Listagem de tratamentos",
                 "Cadastro de tratamento",
-                "Detalhe com produto, alvo e carência",
+                "Detalhe com produto, finalidade observada e área",
                 "Histórico fitossanitário"));
 
+        adicionar(modulos, modulo("Agricultura", "Perdas e ocorrências", "/sitio/agricultura/ocorrencias", "agricultura",
+                "agricultura.css", "domain-agricultura", "fa-triangle-exclamation", StatusPlanejamento.FUNCIONAL,
+                "Registro auditável de ocorrências operacionais e perdas parciais ou totais.",
+                "Listagem por cultivo",
+                "Cadastro de ocorrência",
+                "Severidade e área afetada",
+                "Encerramento controlado por perda total"));
+
         adicionar(modulos, modulo("Agricultura", "Colheitas", "/sitio/agricultura/colheitas", "agricultura",
-                "agricultura.css", "domain-agricultura", "fa-basket-shopping", StatusPlanejamento.PLANEJADO,
-                "Controle de colheitas, rendimento, destino, perdas e vínculo com estoque.",
+                "agricultura.css", "domain-agricultura", "fa-basket-shopping", StatusPlanejamento.FUNCIONAL,
+                "Colheitas parciais ou finais, com quantidade, unidade, classificação e perdas.",
                 "Listagem de colheitas",
                 "Cadastro de colheita",
-                "Detalhe com produção, perdas e destino",
-                "Histórico de produtividade"));
+                "Detalhe com produção e perdas",
+                "Histórico por cultivo, com entrada opcional e idempotente no Estoque"));
 
         adicionar(modulos, modulo("Água", "Água / Irrigação", "/sitio/agua", "agua", "agua.css",
                 "domain-agua", "fa-droplet", StatusPlanejamento.PLANEJADO,
@@ -564,6 +580,7 @@ public final class PlanejamentoCatalogo {
                 item("/sitio/agricultura/adubacao"),
                 item("/sitio/agricultura/irrigacao"),
                 item("/sitio/agricultura/tratamentos"),
+                item("/sitio/agricultura/ocorrencias"),
                 item("/sitio/agricultura/colheitas"),
                 item("/sitio/agua"),
                 item("/sitio/agua/reservatorios"),

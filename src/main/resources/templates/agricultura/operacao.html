@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<header class="agri-heading"><h2 th:text="${titulo}"></h2><a th:href="@{/sitio/agricultura/cultivos/{id}(id=${cultivo.id})}" th:text="${cultivo.culturaNome + ' / ' + cultivo.talhaoCodigo}"></a></header>
+<form class="agri-form" th:action="@{${acao}}" method="post" th:object="${form}">
+<div th:replace="~{agricultura/fragments :: errors}"></div><input th:if="${operacao != 'tarefas'}" type="hidden" th:field="*{versao}">
+<input th:if="${operacao == 'adubacoes' or operacao == 'irrigacoes' or operacao == 'tratamentos' or operacao == 'ocorrencias' or operacao == 'colheitas'}" type="hidden" th:field="*{chaveIdempotencia}">
+<div class="agri-fields">
+<th:block th:if="${operacao == 'plantios' or operacao == 'colheitas' or operacao == 'adubacoes' or operacao == 'tratamentos'}">
+<div><label for="data" class="form-label">Data</label><input id="data" class="form-control" type="date" th:field="*{data}" required></div>
+<div><label for="quantidade" class="form-label">Quantidade</label><input id="quantidade" class="form-control" type="number" th:field="*{quantidade}" required min="0.0001" step="0.0001"></div>
+<div><label for="unidade" class="form-label">Unidade</label><input id="unidade" class="form-control" type="text" th:field="*{unidade}" required maxlength="30" placeholder="kg, un, caixa..."></div>
+</th:block>
+<th:block th:if="${operacao == 'plantios'}">
+<div><label for="metodo" class="form-label">M&eacute;todo</label><input id="metodo" class="form-control" type="text" th:field="*{metodo}" maxlength="80"></div>
+<div><label for="espacamento" class="form-label">Espa&ccedil;amento</label><input id="espacamento" class="form-control" type="text" th:field="*{espacamento}" maxlength="120"></div>
+<div><label for="origem" class="form-label">Origem</label><select id="origem" th:field="*{origem}" class="form-select"><option value="EXTERNA">Externa / manual</option><option value="ESTOQUE">Estoque do s&iacute;tio</option></select></div>
+<div><label for="descricaoOrigem" class="form-label">Descri&ccedil;&atilde;o da origem externa</label><input id="descricaoOrigem" class="form-control" type="text" th:field="*{descricaoOrigem}" maxlength="180"></div>
+<fieldset class="agri-full agri-fields"><legend>Sementes ou mudas do Estoque</legend>
+<div><label for="itemEstoqueId" class="form-label">Item</label><select id="itemEstoqueId" class="form-select" th:field="*{itemEstoqueId}"><option value="">Selecione</option><option th:each="o : ${itens}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="localEstoqueId" class="form-label">Local</label><select id="localEstoqueId" class="form-select" th:field="*{localEstoqueId}"><option value="">Selecione</option><option th:each="o : ${locais}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="loteCodigo" class="form-label">Lote (quando controlado)</label><input id="loteCodigo" class="form-control" type="text" th:field="*{loteCodigo}" maxlength="80"></div>
+<p class="form-text">Preencha apenas para origem Estoque. Use a unidade cadastrada no item.</p>
+</fieldset>
+</th:block>
+<th:block th:if="${operacao == 'adubacoes'}">
+<div><label for="produto" class="form-label">Produto aplicado</label><input id="produto" class="form-control" type="text" th:field="*{produto}" required maxlength="180"></div>
+<div><label for="areaAplicadaHa" class="form-label">&Aacute;rea aplicada (ha)</label><input id="areaAplicadaHa" class="form-control" type="number" th:field="*{areaAplicadaHa}" min="0.0001" step="0.0001"></div>
+</th:block>
+<th:block th:if="${operacao == 'tratamentos'}">
+<div><label for="finalidade" class="form-label">Finalidade observada</label><input id="finalidade" class="form-control" type="text" th:field="*{finalidade}" required maxlength="180"></div>
+<div><label for="produtoAplicado" class="form-label">Produto aplicado</label><input id="produtoAplicado" class="form-control" type="text" th:field="*{produtoAplicado}" required maxlength="180"></div>
+<div><label for="areaTratadaHa" class="form-label">&Aacute;rea tratada (ha)</label><input id="areaTratadaHa" class="form-control" type="number" th:field="*{areaTratadaHa}" min="0.0001" step="0.0001"></div>
+</th:block>
+<th:block th:if="${operacao == 'adubacoes' or operacao == 'tratamentos'}">
+<div><label for="metodo" class="form-label">M&eacute;todo de aplica&ccedil;&atilde;o</label><input id="metodo" class="form-control" type="text" th:field="*{metodo}" maxlength="120"></div>
+<div><label for="origem" class="form-label">Origem do insumo</label><select id="origem" th:field="*{origem}" class="form-select"><option th:each="o : ${origens}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div class="agri-full"><label for="descricaoOrigem" class="form-label">Origem externa</label><input id="descricaoOrigem" class="form-control" type="text" th:field="*{descricaoOrigem}" maxlength="180" placeholder="Fornecedor ou origem do insumo"></div>
+<fieldset class="agri-full agri-fields"><legend>Consumo do Estoque</legend>
+<div><label for="itemEstoqueId" class="form-label">Item</label><select id="itemEstoqueId" class="form-select" th:field="*{itemEstoqueId}"><option value="">Selecione</option><option th:each="o : ${itens}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="localEstoqueId" class="form-label">Local de origem</label><select id="localEstoqueId" class="form-select" th:field="*{localEstoqueId}"><option value="">Selecione</option><option th:each="o : ${locais}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="loteCodigo" class="form-label">Lote</label><input id="loteCodigo" class="form-control" type="text" th:field="*{loteCodigo}" maxlength="80"></div>
+<p class="form-text">Preencha apenas quando a origem for o Estoque. Este registro descreve uma opera&ccedil;&atilde;o executada, n&atilde;o uma recomenda&ccedil;&atilde;o agron&ocirc;mica.</p>
+</fieldset>
+</th:block>
+<th:block th:if="${operacao == 'irrigacoes'}">
+<div><label for="dataHora" class="form-label">Data e hora</label><input id="dataHora" class="form-control" type="datetime-local" th:field="*{dataHora}" required></div>
+<div><label for="duracaoMinutos" class="form-label">Dura&ccedil;&atilde;o (min)</label><input id="duracaoMinutos" class="form-control" type="number" th:field="*{duracaoMinutos}" min="1" max="10080"></div>
+<div><label for="volumeLitros" class="form-label">Volume (L)</label><input id="volumeLitros" class="form-control" type="number" th:field="*{volumeLitros}" min="0.0001" step="0.0001"></div>
+<div><label for="metodo" class="form-label">M&eacute;todo / setor</label><input id="metodo" class="form-control" type="text" th:field="*{metodo}" maxlength="120"></div>
+<p class="form-text agri-full">Informe ao menos a dura&ccedil;&atilde;o ou o volume medido.</p>
+</th:block>
+<th:block th:if="${operacao == 'ocorrencias'}">
+<div><label for="dataHora" class="form-label">Data e hora</label><input id="dataHora" class="form-control" type="datetime-local" th:field="*{dataHora}" required></div>
+<div><label for="tipo" class="form-label">Tipo</label><select id="tipo" class="form-select" th:field="*{tipo}"><option th:each="o : ${tipos}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div><label for="severidade" class="form-label">Severidade</label><select id="severidade" class="form-select" th:field="*{severidade}"><option th:each="o : ${severidades}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div><label for="areaAfetadaHa" class="form-label">&Aacute;rea afetada (ha)</label><input id="areaAfetadaHa" class="form-control" type="number" th:field="*{areaAfetadaHa}" min="0.0001" step="0.0001"></div>
+<div class="agri-full"><label for="titulo" class="form-label">T&iacute;tulo</label><input id="titulo" class="form-control" type="text" th:field="*{titulo}" maxlength="180" required></div>
+<div class="agri-full"><label for="descricao" class="form-label">Descri&ccedil;&atilde;o</label><textarea id="descricao" th:field="*{descricao}" class="form-control" rows="3" maxlength="1000" required></textarea></div>
+<div class="agri-full"><label for="agrofitCulturaIds" class="form-label">Refer&ecirc;ncias Agrofit locais</label>
+<select id="agrofitCulturaIds" class="form-select" th:field="*{agrofitCulturaIds}" multiple size="4">
+<option th:each="o : ${agrofit}" th:value="${o.id}" th:text="${o.nome}"></option></select>
+<p class="form-text" th:if="${#lists.isEmpty(agrofit)}">Nenhuma refer&ecirc;ncia Agrofit foi sincronizada localmente.</p>
+<p class="form-text" th:if="${!#lists.isEmpty(agrofit)}">Consulta local de refer&ecirc;ncia; n&atilde;o constitui recomenda&ccedil;&atilde;o de produto, dose ou aplica&ccedil;&atilde;o.</p></div>
+<div><label for="quantidadePerdida" class="form-label">Quantidade perdida</label><input id="quantidadePerdida" class="form-control" type="number" th:field="*{quantidadePerdida}" min="0.0001" step="0.0001"></div>
+<div><label for="unidadePerda" class="form-label">Unidade da perda</label><input id="unidadePerda" class="form-control" type="text" th:field="*{unidadePerda}" maxlength="30"></div>
+<div class="form-check agri-full"><input id="perdaTotal" class="form-check-input" type="checkbox" th:field="*{perdaTotal}"><label for="perdaTotal" class="form-check-label">Registrar perda total e encerrar o cultivo</label></div>
+</th:block>
+<th:block th:if="${operacao == 'acompanhamentos'}">
+<div><label for="dataHora" class="form-label">Data e hora</label><input id="dataHora" class="form-control" type="datetime-local" th:field="*{dataHora}" required></div>
+<div><label for="tipo" class="form-label">Tipo</label><select id="tipo" class="form-select" th:field="*{tipo}"><option th:each="o : ${tipos}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div class="agri-full"><label for="descricao" class="form-label">Descri&ccedil;&atilde;o</label><textarea id="descricao" th:field="*{descricao}" class="form-control" rows="3" maxlength="1000"></textarea></div>
+</th:block>
+<th:block th:if="${operacao == 'colheitas'}">
+<div><label for="classificacao" class="form-label">Qualidade / classifica&ccedil;&atilde;o</label><input id="classificacao" class="form-control" type="text" th:field="*{classificacao}" maxlength="120"></div>
+<div><label for="perdas" class="form-label">Perdas (mesma unidade)</label><input id="perdas" class="form-control" type="number" th:field="*{perdas}" min="0" step="0.0001"></div>
+<div class="form-check agri-full"><input id="finalizaCultivo" class="form-check-input" type="checkbox" th:field="*{finalizaCultivo}"><label for="finalizaCultivo" class="form-check-label">Finalizar o cultivo nesta colheita</label></div>
+<div><label for="destino" class="form-label">Destino</label><select id="destino" class="form-select" th:field="*{destino}"><option th:each="o : ${destinos}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<fieldset class="agri-full agri-fields"><legend>Entrada opcional no Estoque</legend>
+<div><label for="itemEstoqueId" class="form-label">Item compat&iacute;vel</label><select id="itemEstoqueId" class="form-select" th:field="*{itemEstoqueId}"><option value="">Selecione</option><option th:each="o : ${itens}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="localEstoqueId" class="form-label">Local de destino</label><select id="localEstoqueId" class="form-select" th:field="*{localEstoqueId}"><option value="">Selecione</option><option th:each="o : ${locais}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="loteCodigo" class="form-label">Lote</label><input id="loteCodigo" class="form-control" type="text" th:field="*{loteCodigo}" maxlength="80"></div>
+<div><label for="validade" class="form-label">Validade</label><input id="validade" class="form-control" type="date" th:field="*{validade}"></div>
+<p class="form-text">Preencha somente para destino Estoque. A unidade deve coincidir com o item oficial.</p>
+</fieldset>
+</th:block>
+<th:block th:if="${operacao == 'tarefas'}">
+<div><label for="titulo" class="form-label">T&iacute;tulo</label><input id="titulo" class="form-control" type="text" th:field="*{titulo}" required maxlength="160"></div>
+<div><label for="prioridade" class="form-label">Prioridade</label><select id="prioridade" class="form-select" th:field="*{prioridade}"><option th:each="o : ${prioridades}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div><label for="dataVencimento" class="form-label">Prazo</label><input id="dataVencimento" class="form-control" type="datetime-local" th:field="*{dataVencimento}" ></div>
+<div><label for="responsavelId" class="form-label">Respons&aacute;vel</label><select id="responsavelId" class="form-select" th:field="*{responsavelId}"><option value="">Selecione</option><option th:each="o : ${responsaveis}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div class="agri-full"><label for="descricao" class="form-label">Descri&ccedil;&atilde;o</label><textarea id="descricao" th:field="*{descricao}" class="form-control" rows="3" maxlength="2000"></textarea></div>
+</th:block>
+<th:block th:if="${operacao != 'tarefas'}"><div class="agri-full"><label for="observacao" class="form-label">Observa&ccedil;&atilde;o</label><textarea id="observacao" th:field="*{observacao}" class="form-control" rows="3" maxlength="1000"></textarea></div></th:block>
+</div>
+<div class="agri-actions"><a class="btn btn-outline-secondary" th:href="@{/sitio/agricultura/cultivos/{id}(id=${cultivo.id})}">Cancelar</a><button class="btn btn-success" type="submit"><i class="fa-solid fa-check me-2"></i>Registrar</button></div>
+</form>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

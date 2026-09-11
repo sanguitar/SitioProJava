@@ -9,7 +9,8 @@ public enum TipoAlerta {
     CHUVA_INTENSA_24H("Chuva intensa nas próximas 24h"),
     CRIACAO_MORTALIDADE_ALTA("Mortalidade elevada no lote"),
     CRIACAO_INCUBACAO_ECLOSAO_PROXIMA("Eclosão próxima"),
-    CRIACAO_INCUBACAO_ATRASADA("Incubação atrasada");
+    CRIACAO_INCUBACAO_ATRASADA("Incubação atrasada"),
+    AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante");
 
     private final String rotulo;
 

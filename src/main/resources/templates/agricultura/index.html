@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<header class="agri-heading"><div><h2>Ciclo agr&iacute;cola</h2>
+<p th:text="${painel.safraAtual == null ? 'Nenhuma safra em andamento' : painel.safraAtual.nome}"></p></div>
+<a sec:authorize="hasRole('ADMIN')" class="btn btn-success" th:href="@{/sitio/agricultura/cultivos/novo}"><i class="fa-solid fa-plus me-2"></i>Novo cultivo</a></header>
+<dl class="agri-metrics">
+<div><dt>Cultivos abertos</dt><dd th:text="${painel.cultivosAtivos}">0</dd></div>
+<div><dt>&Aacute;rea reservada</dt><dd><span th:text="${painel.areaCultivadaHa}">0</span> <small>ha</small></dd></div>
+<div><dt>Safra em andamento</dt><dd><a th:if="${painel.safraAtual != null}" th:href="@{/sitio/agricultura/safras/{id}(id=${painel.safraAtual.id})}" th:text="${painel.safraAtual.nome}"></a><span th:if="${painel.safraAtual == null}">N&atilde;o definida</span></dd></div>
+<div><dt>Ocorr&ecirc;ncias abertas</dt><dd th:text="${painel.ocorrenciasAbertas}">0</dd></div>
+<div><dt>Altas ou cr&iacute;ticas</dt><dd th:text="${painel.ocorrenciasAltaCritica}">0</dd></div>
+<div><dt>Cultivos afetados</dt><dd th:text="${painel.cultivosAfetados}">0</dd></div>
+</dl>
+<div class="agri-columns">
+<section class="agri-section"><h2>Pr&oacute;ximos trabalhos</h2><div th:replace="~{agricultura/fragments :: tasks(${painel.proximosTrabalhos})}"></div></section>
+<section class="agri-section"><h2>Aten&ccedil;&atilde;o no campo</h2>
+<p class="agri-empty" th:if="${#lists.isEmpty(painel.alertas)}">Nenhuma colheita pr&oacute;xima ou atrasada.</p>
+<a class="agri-record" th:each="a : ${painel.alertas}" th:href="@{/sitio/agricultura/cultivos/{id}(id=${a.cultivoId})}"><span><strong th:text="${a.titulo}"></strong><small th:text="${a.descricao}"></small></span><i class="fa-solid fa-arrow-right"></i></a></section>
+</div>
+<section class="agri-section"><h2>Colheitas recentes</h2>
+<p class="agri-empty" th:if="${#lists.isEmpty(painel.colheitasRecentes)}">Nenhuma colheita registrada.</p>
+<a class="agri-record" th:each="c : ${painel.colheitasRecentes}" th:href="@{/sitio/agricultura/cultivos/{id}(id=${c.cultivoId})}"><span><strong th:text="${c.culturaNome}"></strong><small th:text="${#temporals.format(c.data, 'dd/MM/yyyy')}"></small></span><strong th:text="${c.quantidade + ' ' + c.unidade}"></strong></a></section>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

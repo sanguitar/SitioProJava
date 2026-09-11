@@ -2,3 +2,55 @@
     --module-color: var(--brand-field);
     --module-accent: var(--brand-harvest);
 }
+
+.agriculture-page { min-width: 0; max-width: 1600px; }
+.agri-heading, .agri-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.agri-heading { padding: 6px 0 20px; }
+.agri-heading h2 { font-size: 1.4rem; margin: 0; overflow-wrap: anywhere; }
+.agri-heading p { color: var(--text-secondary); margin: 8px 0 0; }
+.agri-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line-soft); margin-bottom: 24px; }
+.agri-tabs a { display: flex; gap: 8px; align-items: center; padding: 12px; border-bottom: 3px solid transparent; text-decoration: none; color: var(--text-secondary); font-size: 0.85rem; }
+.agri-tabs a.active { border-color: var(--semantic-success); color: var(--semantic-success); font-weight: 700; }
+.agri-tabs a:hover { background: var(--surface-panel); }
+.agri-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 0 0 24px; }
+.agri-metrics > div { padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
+.agri-metrics dt, .agri-details dt { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+.agri-metrics dd { font-size: 1.2rem; font-weight: 700; margin: 8px 0 0; overflow-wrap: anywhere; }
+.agri-metrics small { font-size: 0.8rem; font-weight: 400; }
+.agri-metrics a, .agri-record { color: var(--semantic-info); text-decoration: none; }
+.agri-columns, .agri-fields, .agri-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.agri-columns > *, .agri-fields > * { min-width: 0; }
+.agri-full { grid-column: 1 / -1; }
+.agri-details dd { overflow-wrap: anywhere; margin: 5px 0; }
+.agri-section { padding: 24px 0; border-top: 1px solid var(--line-soft); }
+.agri-section h2, .agri-fields legend { font-size: 1rem; font-weight: 650; margin-bottom: 20px; }
+.agri-fields fieldset { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.agri-record { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--line-soft); font-size: 0.85rem; overflow-wrap: anywhere; }
+.agri-record small, .agri-table small { display: block; margin-top: 4px; color: var(--text-muted); }
+.agri-empty { color: var(--text-muted); padding: 26px 0; font-size: 0.9rem; }
+.agri-form { max-width: 900px; }
+.agri-form > .agri-actions { justify-content: flex-end; padding: 24px 0; margin-top: 20px; border-top: 1px solid var(--line-soft); }
+.agri-actions .btn { white-space: normal; }
+.agri-quick { justify-content: flex-start; margin: 24px 0; }
+.agri-status { display: inline-block; padding: 5px 8px; background: #e8edf1; color: #31566b; border-radius: 4px; font-size: 0.75rem; font-weight: 650; }
+.agri-status[data-status="EM_ANDAMENTO"], .agri-status[data-status="IMPLANTADO"], .agri-status[data-status="EM_DESENVOLVIMENTO"], .agri-status[data-status="COLHIDO"] { background: #e5f2e9; color: #23623d; }
+.agri-status[data-status="PRONTO_COLHEITA"] { background: #fff1cc; color: #795514; }
+.agri-status[data-status="PERDIDO"], .agri-status[data-status="CANCELADO"] { background: #fae6e4; color: #942e26; }
+.agri-history { padding: 16px 0; border-bottom: 1px solid var(--line-soft); font-size: 0.88rem; }
+.agri-history header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.agri-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.agri-status-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.agri-status-form select { width: auto; max-width: 100%; }
+.agri-table { min-width: 620px; font-size: 0.88rem; }
+.agri-table td { max-width: 260px; overflow-wrap: anywhere; vertical-align: middle; }
+.agriculture-page .table-responsive { position: relative; }
+.agri-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 18px 0; font-size: 0.8rem; }
+@media (max-width: 760px) {
+    .agri-columns, .agri-fields, .agri-details { grid-template-columns: minmax(0, 1fr); }
+    .agri-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .agri-metrics dd { font-size: 1rem; }
+    .agri-tabs a { padding: 10px 8px; font-size: 0.8rem; }
+    .agri-heading h2 { font-size: 1.2rem; }
+    .agri-record { flex-wrap: wrap; gap: 8px; }
+    .agriculture-page .app-topbar { grid-template-columns: minmax(0, 1fr); }
+}

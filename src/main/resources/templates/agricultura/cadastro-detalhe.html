@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<header class="agri-heading"><h2 th:text="${secao == 'safras' ? registro.nome : registro.nomeComum}"></h2>
+<a sec:authorize="hasRole('ADMIN')" class="btn btn-outline-secondary" th:href="@{${caminho} + '/' + ${registro.id} + '/editar'}"><i class="fa-solid fa-pen me-2"></i>Editar</a></header>
+<dl class="agri-details" th:if="${secao == 'safras'}">
+<div><dt>Status</dt><dd><span th:replace="~{agricultura/fragments :: status(${registro.status})}"></span></dd></div>
+<div><dt>Anos</dt><dd th:text="${registro.anoInicio + ' / ' + registro.anoFim}"></dd></div>
+<div><dt>In&iacute;cio</dt><dd th:text="${#temporals.format(registro.dataInicio, 'dd/MM/yyyy')}"></dd></div>
+<div><dt>T&eacute;rmino previsto</dt><dd th:text="${registro.dataFim == null ? 'Nao informado' : #temporals.format(registro.dataFim, 'dd/MM/yyyy')}"></dd></div>
+</dl>
+<dl class="agri-details" th:if="${secao == 'culturas'}">
+<div><dt>Nome cient&iacute;fico</dt><dd th:text="${registro.nomeCientifico ?: 'Nao informado'}"></dd></div>
+<div><dt>Ciclo estimado</dt><dd th:text="${registro.cicloDiasEstimado == null ? 'Nao informado' : registro.cicloDiasEstimado + ' dias'}"></dd></div>
+<div><dt>Refer&ecirc;ncia Agrofit</dt><dd th:text="${registro.agrofitNome ?: 'Sem vinculo'}"></dd></div>
+<div><dt>Status</dt><dd th:text="${registro.ativo ? 'Ativa' : 'Inativa'}"></dd></div>
+</dl>
+<section class="agri-section" th:if="${registro.observacao != null}"><h2>Observa&ccedil;&atilde;o</h2><p class="agri-text" th:text="${registro.observacao}"></p></section>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

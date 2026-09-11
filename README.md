@@ -715,6 +715,94 @@ POST /api/v1/alertas/{id}/criar-tarefa
 
 `ADMIN` pode administrar todas as tarefas e resolver alertas. `OPERADOR` pode criar tarefas, alterar as não atribuídas, as próprias ou as que criou, e consultar/reconhecer alertas. Todas as mutações MVC/API exigem CSRF. Notificações push, e-mail, WhatsApp e clientes mobile permanecem no roadmap; a API e o resumo operacional já fornecem a base para essas evoluções.
 
+## Agricultura: safras e cultivos
+
+A operação agrícola está em `/sitio/agricultura`. ADMIN administra Safras, Culturas e Cultivos;
+OPERADOR consulta e registra Plantio, Acompanhamento, Adubação, Irrigação, Tratamento,
+Ocorrência, Colheita e tarefas de campo.
+As mutações MVC/API exigem CSRF e usam DTOs explícitos, sem binding de entidades.
+
+- A V17 cria seis tabelas tipadas. V1–V16 permanecem intactas; Hibernate continua em `validate`.
+- A V18 preserva V1–V17, cria quatro tabelas operacionais e amplia Colheita com destino,
+  movimento de Estoque e chave de idempotência.
+- A V19 preserva V1–V18 e evolui Ocorrências com título, status, resolução, histórico,
+  referências Agrofit locais e controle de versão. Registros V18 são migrados sem perda.
+- Safra pertence à Propriedade. Cultivo referencia obrigatoriamente Safra, CulturaAgricola e
+  Talhão oficial. FKs compostas impedem misturar propriedades.
+- A soma das áreas dos cultivos não finalizados, inclusive planejados, reserva a área física
+  do Talhão. Não há alocação por janelas futuras nesta etapa. Um bloqueio transacional da
+  propriedade serializa reservas e encerramento de safras sem alterar seu cadastro físico.
+- CulturaAgricola é um catálogo interno com ciclo estimado e referência Agrofit opcional.
+  O vínculo usa os registros já sincronizados no SQL Server; nenhuma tela exige internet.
+- A previsão de colheita pode ser informada ou calculada pelo ciclo da cultura. O primeiro
+  plantio registra a data real. Datas operacionais usam o timezone persistido do sítio.
+- Origem externa exige descrição. Origem Estoque exige item/local, unidade compatível e lote
+  quando aplicável. O consumo passa por `EstoqueMovimentoService`, na mesma transação do plantio.
+- Plantio, Acompanhamento e Colheita exigem a versão atual do Cultivo e avançam sua revisão.
+  Reenvios obsoletos são recusados sem repetir registros ou consumo. Falhas revertem toda a operação.
+- Colheitas podem ser parciais ou finais. Quantidades e perdas usam BigDecimal e a unidade
+  é preservada entre colheitas do mesmo Cultivo. O destino pode ser `SEM_ESTOQUE` ou `ESTOQUE`.
+  Neste último, item e local oficiais são obrigatórios, a unidade deve ser compatível e a entrada
+  passa por `EstoqueMovimentoService`. Retry retorna o registro original sem duplicar saldo.
+- Adubações e Tratamentos registram operações executadas, com origem externa ou consumo do
+  Estoque oficial. Irrigações registram duração e/ou volume. Ocorrências fitossanitárias são
+  tipadas como praga, doença, deficiência, dano climático, planta daninha ou outro, mantêm
+  acompanhamentos históricos e podem ser encerradas com resolução. A perda total encerra o Cultivo.
+- Referências Agrofit são opcionais e lidas exclusivamente do catálogo persistido no SQL Server;
+  nenhuma tela faz chamada HTTP. Catálogo vazio ou integração degradada não bloqueiam o módulo.
+  As referências não prescrevem produto, dose, aplicação ou diagnóstico agronômico.
+- Ocorrências altas ou críticas sincronizam um alerta persistente por ocorrência. O alerta é
+  atualizado sem duplicação e resolvido no encerramento. A tarefa de inspeção usa a chave
+  automática estável do módulo Tarefas, sem scheduler novo.
+- As operações da V18 usam chaves idempotentes únicas por Cultivo. Movimento de Estoque e
+  registro agrícola compartilham a transação; qualquer rollback desfaz ambos.
+- Tarefas usam o serviço existente com `AGRICULTURA / CULTIVO:{id}`. Não há scheduler novo.
+  Avisos de colheita próxima (sete dias) ou atrasada são calculados do estado local, sem
+  criar alertas persistentes duplicados; desaparecem após a finalização do Cultivo.
+- A ficha consulta `ClimaConsultaService`, nunca o cliente Open-Meteo. A leitura climática
+  fica separada da transação da ficha e pode degradar sem impedir a consulta do cultivo.
+- Todos os registros operacionais preservam a auditoria existente (autor e datas).
+
+Rotas MVC:
+
+```text
+GET /sitio/agricultura
+GET /sitio/agricultura/{safras|culturas|cultivos}
+GET /sitio/agricultura/{safras|culturas|cultivos}/novo
+GET /sitio/agricultura/{safras|culturas|cultivos}/{id}
+GET /sitio/agricultura/{safras|culturas|cultivos}/{id}/editar
+POST /sitio/agricultura/{safras|culturas|cultivos}
+POST /sitio/agricultura/{safras|culturas|cultivos}/{id}
+GET /sitio/agricultura/colheitas
+GET /sitio/agricultura/{adubacao|irrigacao|tratamentos|ocorrencias}
+GET /sitio/agricultura/ocorrencias/{id}
+GET /sitio/agricultura/ocorrencias/{id}/editar
+GET /sitio/agricultura/cultivos/{id}/{plantios|acompanhamentos|adubacoes|irrigacoes|tratamentos|ocorrencias|colheitas|tarefas}/novo
+POST /sitio/agricultura/cultivos/{id}/{plantios|acompanhamentos|adubacoes|irrigacoes|tratamentos|ocorrencias|colheitas|tarefas}
+POST /sitio/agricultura/ocorrencias/{id}
+POST /sitio/agricultura/ocorrencias/{id}/{encerrar|tarefa-inspecao}
+POST /sitio/agricultura/cultivos/{id}/status
+```
+
+API:
+
+```text
+GET /api/v1/agricultura/resumo
+GET /api/v1/agricultura/{safras|culturas|cultivos}
+GET /api/v1/agricultura/{adubacoes|irrigacoes|tratamentos|ocorrencias}
+GET /api/v1/agricultura/cultivos/{id}
+GET /api/v1/agricultura/ocorrencias/{id}
+POST /api/v1/agricultura/{safras|culturas|cultivos}
+PUT /api/v1/agricultura/{safras|culturas|cultivos}/{id}
+PUT /api/v1/agricultura/ocorrencias/{id}
+POST /api/v1/agricultura/cultivos/{id}/{plantios|acompanhamentos|adubacoes|irrigacoes|tratamentos|ocorrencias|colheitas|tarefas|status}
+POST /api/v1/agricultura/ocorrencias/{id}/{encerrar|tarefa-inspecao}
+```
+
+Os atalhos antigos de Plantios levam aos Cultivos; Áreas/Talhões leva ao cadastro oficial
+da Propriedade. Agrofit permanece somente como referência da CulturaAgricola. Não há conversão
+automática de unidade, Venda, Financeiro, GIS/QGIS, receituário, diagnóstico ou automação agronômica.
+
 ## Flyway e schema
 
 O schema do banco é versionado por Flyway. As migrations ficam em:

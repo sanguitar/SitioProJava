@@ -85,6 +85,35 @@ public class EstoqueMovimentoService {
                 "Alimentação do lote de aves #" + loteAvesId);
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoAgricultura(MovimentoEstoqueRequest request, Long cultivoId) {
+        if (cultivoId == null) {
+            throw new EstoqueOperacaoException("CULTIVO_OBRIGATORIO", "Informe o cultivo de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "agricultura", cultivoId,
+                "Plantio do cultivo #" + cultivoId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoAgriculturaOperacao(MovimentoEstoqueRequest request,
+            Long cultivoId, String operacao) {
+        if (cultivoId == null || !StringUtils.hasText(operacao)) {
+            throw new EstoqueOperacaoException("ORIGEM_AGRICULTURA_OBRIGATORIA",
+                    "Informe o cultivo e a operacao agricola de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "agricultura", cultivoId,
+                limitarOrigem(operacao.trim() + " do cultivo #" + cultivoId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarEntradaAgriculturaColheita(MovimentoEstoqueRequest request, Long cultivoId) {
+        if (cultivoId == null) {
+            throw new EstoqueOperacaoException("CULTIVO_OBRIGATORIO", "Informe o cultivo de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoEntrada(request), false, "agricultura", cultivoId,
+                "Colheita do cultivo #" + cultivoId);
+    }
+
     private MovimentoEstoque registrarMovimentoInterno(MovimentoEstoqueRequest request,
             boolean ajusteAdministrativoPermitido,
             String origemModulo,
@@ -141,6 +170,10 @@ public class EstoqueMovimentoService {
             log.info("Movimentação de estoque concluída.");
         }
         return salvo;
+    }
+
+    private String limitarOrigem(String descricao) {
+        return descricao.length() <= 200 ? descricao : descricao.substring(0, 200);
     }
 
     @Transactional(readOnly = true)

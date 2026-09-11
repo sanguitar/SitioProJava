@@ -32,11 +32,18 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.tarefas.api",
         "com.example.sitiopro.criacao.aves.api",
         "com.example.sitiopro.dashboard.api",
-        "com.example.sitiopro.propriedade.api"
+        "com.example.sitiopro.propriedade.api",
+        "com.example.sitiopro.agricultura.api"
 })
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(com.example.sitiopro.agricultura.service.AgriculturaOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> agricultura(
+            com.example.sitiopro.agricultura.service.AgriculturaOperacaoException ex, HttpServletRequest request) {
+        return negocio("AGRICULTURA_OPERACAO_INVALIDA", ex.getMessage(), ex.getStatus(), request);
+    }
 
     @ExceptionHandler(com.example.sitiopro.propriedade.service.PropriedadeOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> propriedade(

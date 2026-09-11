@@ -60,6 +60,7 @@ import org.springframework.web.client.RestClient;
                 + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
 })
 class SitioProApplicationTests {
+    @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean
     private ConfiguracaoOperacionalService configuracaoOperacionalService;

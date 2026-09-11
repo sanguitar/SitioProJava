@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content agriculture-page">
+<div th:replace="~{fragments/ui :: topbar(${titulo}, 'Agricultura')}"></div>
+<nav th:replace="~{agricultura/fragments :: tabs}"></nav>
+<div class="alert alert-success" role="status" th:if="${mensagem}" th:text="${mensagem}"></div>
+<form class="agri-form" th:action="@{${acao}}" method="post" th:object="${form}">
+<div th:replace="~{agricultura/fragments :: errors}"></div><input type="hidden" th:field="*{versao}">
+<section class="agri-section"><h2 th:text="${titulo}"></h2><div class="agri-fields">
+<th:block th:if="${secao == 'safras'}">
+<div><label for="nome" class="form-label">Nome da safra</label><input id="nome" class="form-control" type="text" th:field="*{nome}" required maxlength="120"></div>
+<div><label for="status" class="form-label">Status</label><select id="status" class="form-select" th:field="*{status}"><option th:each="o : ${statuses}" th:value="${o}" th:text="${o.rotulo}"></option></select></div>
+<div><label for="anoInicio" class="form-label">Ano inicial</label><input id="anoInicio" class="form-control" type="number" th:field="*{anoInicio}" required min="1900" max="9999"></div>
+<div><label for="anoFim" class="form-label">Ano final</label><input id="anoFim" class="form-control" type="number" th:field="*{anoFim}" required min="1900" max="9999"></div>
+<div><label for="dataInicio" class="form-label">In&iacute;cio</label><input id="dataInicio" class="form-control" type="date" th:field="*{dataInicio}" required></div>
+<div><label for="dataFim" class="form-label">T&eacute;rmino previsto</label><input id="dataFim" class="form-control" type="date" th:field="*{dataFim}" ></div>
+</th:block>
+<th:block th:if="${secao == 'culturas'}">
+<div><label for="nomeComum" class="form-label">Nome comum</label><input id="nomeComum" class="form-control" type="text" th:field="*{nomeComum}" required maxlength="180"></div>
+<div><label for="nomeCientifico" class="form-label">Nome cient&iacute;fico</label><input id="nomeCientifico" class="form-control" type="text" th:field="*{nomeCientifico}" maxlength="180"></div>
+<div><label for="cicloDiasEstimado" class="form-label">Ciclo estimado (dias)</label><input id="cicloDiasEstimado" class="form-control" type="number" th:field="*{cicloDiasEstimado}" min="1" max="3650"></div>
+<div><label for="agrofitCulturaId" class="form-label">Refer&ecirc;ncia Agrofit (opcional)</label><select id="agrofitCulturaId" class="form-select" th:field="*{agrofitCulturaId}"><option value="">Selecione</option><option th:each="o : ${agrofit}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div class="form-check agri-full"><input id="ativo" class="form-check-input" type="checkbox" th:field="*{ativo}"><label for="ativo" class="form-check-label">Cultura ativa</label></div>
+</th:block>
+<th:block th:if="${secao == 'cultivos'}">
+<div><label for="safraId" class="form-label">Safra</label><select id="safraId" class="form-select" th:field="*{safraId}"><option value="">Selecione</option><option th:each="o : ${safras}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="talhaoId" class="form-label">Talh&atilde;o oficial</label><select id="talhaoId" class="form-select" th:field="*{talhaoId}"><option value="">Selecione</option><option th:each="o : ${talhoes}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="culturaId" class="form-label">Cultura</label><select id="culturaId" class="form-select" th:field="*{culturaId}"><option value="">Selecione</option><option th:each="o : ${culturas}" th:value="${o.id}" th:text="${o.nome}"></option></select></div>
+<div><label for="areaCultivadaHa" class="form-label">&Aacute;rea cultivada (ha)</label><input id="areaCultivadaHa" class="form-control" type="number" th:field="*{areaCultivadaHa}" required min="0.0001" step="0.0001"></div>
+<div><label for="dataPlantio" class="form-label">Data de plantio planejada</label><input id="dataPlantio" class="form-control" type="date" th:field="*{dataPlantio}" required></div>
+<div><div><label for="previsaoColheita" class="form-label">Previs&atilde;o de colheita</label><input id="previsaoColheita" class="form-control" type="date" th:field="*{previsaoColheita}" ></div><small class="form-text">Em branco: calculada pelo ciclo estimado da cultura.</small></div>
+<p class="form-text agri-full">A &aacute;rea dos cultivos abertos fica reservada no Talh&atilde;o.</p>
+</th:block>
+<div class="agri-full"><label for="observacao" class="form-label">Observa&ccedil;&atilde;o</label><textarea id="observacao" th:field="*{observacao}" class="form-control" rows="3" maxlength="1000"></textarea></div>
+</div></section>
+<div class="agri-actions"><a class="btn btn-outline-secondary" th:href="@{${caminho}}">Cancelar</a><button class="btn btn-success" type="submit"><i class="fa-solid fa-check me-2"></i>Salvar</button></div>
+</form>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

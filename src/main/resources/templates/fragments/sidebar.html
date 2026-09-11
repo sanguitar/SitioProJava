@@ -115,9 +115,15 @@
             <div class="collapse"
                  id="collapseAgricultura"
                  th:classappend="${active == 'agricultura' or active == 'agua'} ? ' show'">
-                <a th:href="@{/sitio/agricultura/plantios}" class="sidebar-link sidebar-child"
+                <a th:href="@{/sitio/agricultura}" class="sidebar-link sidebar-child"
                    th:classappend="${active == 'agricultura'} ? ' active'">
-                    <i class="fa-solid fa-wheat-awn me-2"></i> Plantios
+                    <i class="fa-solid fa-wheat-awn me-2"></i> Safras e cultivos
+                </a>
+                <a th:href="@{/sitio/agricultura/safras}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-regular fa-calendar me-2"></i> Safras
+                </a>
+                <a th:href="@{/sitio/agricultura/cultivos}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-seedling me-2"></i> Cultivos
                 </a>
                 <a th:href="@{/sitio/agricultura/areas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-map-location-dot me-2"></i> Áreas/Talhões
@@ -128,8 +134,14 @@
                 <a th:href="@{/sitio/agricultura/adubacao}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-flask me-2"></i> Adubação
                 </a>
+                <a th:href="@{/sitio/agricultura/irrigacao}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-droplet me-2"></i> Irrigação de cultivos
+                </a>
                 <a th:href="@{/sitio/agricultura/tratamentos}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-spray-can-sparkles me-2"></i> Tratamentos
+                </a>
+                <a th:href="@{/sitio/agricultura/ocorrencias}" class="sidebar-link sidebar-grandchild">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> Perdas/Ocorrências
                 </a>
                 <a th:href="@{/sitio/agricultura/colheitas}" class="sidebar-link sidebar-grandchild">
                     <i class="fa-solid fa-basket-shopping me-2"></i> Colheitas

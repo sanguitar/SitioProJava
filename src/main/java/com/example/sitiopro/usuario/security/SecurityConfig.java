@@ -99,7 +99,30 @@ public class SecurityConfig {
                                 "/api/v1/alertas/*/criar-tarefa").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/api/v1/propriedade", "/api/v1/propriedade/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agricultura/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/agricultura/cultivos/*/plantios",
+                                "/api/v1/agricultura/cultivos/*/acompanhamentos", "/api/v1/agricultura/cultivos/*/colheitas",
+                                "/api/v1/agricultura/cultivos/*/adubacoes", "/api/v1/agricultura/cultivos/*/irrigacoes",
+                                "/api/v1/agricultura/cultivos/*/tratamentos", "/api/v1/agricultura/cultivos/*/ocorrencias",
+                                "/api/v1/agricultura/cultivos/*/tarefas",
+                                "/api/v1/agricultura/ocorrencias/*/encerrar",
+                                "/api/v1/agricultura/ocorrencias/*/tarefa-inspecao").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/agricultura/ocorrencias/*")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers("/api/v1/agricultura/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/**").denyAll()
+                        .requestMatchers(HttpMethod.GET, "/sitio/agricultura/ocorrencias/*/editar")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.GET, "/sitio/agricultura/*/novo", "/sitio/agricultura/*/*/editar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/agricultura", "/sitio/agricultura/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/sitio/agricultura/cultivos/*/plantios",
+                                "/sitio/agricultura/cultivos/*/acompanhamentos", "/sitio/agricultura/cultivos/*/colheitas",
+                                "/sitio/agricultura/cultivos/*/adubacoes", "/sitio/agricultura/cultivos/*/irrigacoes",
+                                "/sitio/agricultura/cultivos/*/tratamentos", "/sitio/agricultura/cultivos/*/ocorrencias",
+                                "/sitio/agricultura/cultivos/*/tarefas", "/sitio/agricultura/ocorrencias/*",
+                                "/sitio/agricultura/ocorrencias/*/encerrar",
+                                "/sitio/agricultura/ocorrencias/*/tarefa-inspecao").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers("/sitio/agricultura/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/propriedade/editar",
                                 "/sitio/propriedade/*/novo", "/sitio/propriedade/*/*/editar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/propriedade", "/sitio/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")

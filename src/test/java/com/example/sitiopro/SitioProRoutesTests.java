@@ -582,13 +582,6 @@ class SitioProRoutesTests {
         List<String> basesComFluxoPadrao = List.of(
                 "/sitio/suinos",
                 "/sitio/piscicultura",
-                "/sitio/agricultura/areas",
-                "/sitio/agricultura/culturas",
-                "/sitio/agricultura/plantios",
-                "/sitio/agricultura/adubacao",
-                "/sitio/agricultura/irrigacao",
-                "/sitio/agricultura/tratamentos",
-                "/sitio/agricultura/colheitas",
                 "/sitio/agua",
                 "/sitio/agua/reservatorios",
                 "/sitio/agua/bombas",
