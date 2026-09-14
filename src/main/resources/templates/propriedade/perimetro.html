@@ -3,5 +3,7 @@
 <body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside><main class="main-content property-page">
 <div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
 <h1 class="h4">Perímetro da propriedade</h1><div th:replace="~{propriedade/fragments :: tabs}"></div>
-<div th:replace="~{propriedade/fragments :: messages}"></div><section th:replace="~{propriedade/perimetro-fragments :: resumo}"></section>
-<div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>
+<div th:replace="~{propriedade/fragments :: messages}"></div>
+<section th:replace="~{propriedade/perimetro-fragments :: mapa}"></section>
+<section th:replace="~{propriedade/perimetro-fragments :: resumo}"></section>
+<div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block><script defer th:src="@{/js/propriedade.js}"></script></body></html>

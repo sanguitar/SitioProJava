@@ -1,4 +1,21 @@
 <!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"><body>
+<section th:fragment="mapa" class="property-section" th:if="${perimetro != null}">
+    <div class="property-heading"><div><h2>Mapa operacional</h2>
+        <p>Visualização das coordenadas cadastradas, sem cálculo de área jurídica ou oficial.</p></div>
+    </div>
+    <div class="perimeter-map-warning" th:if="${perimetro.statusCrs.name() != 'CONFIRMADO'}">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        CRS/datum não confirmado. O desenho abaixo é apenas uma visualização operacional dos pontos informados.
+    </div>
+    <div class="perimeter-map-shell" data-perimeter-map th:data-perimeter-api="@{/api/v1/propriedade/perimetro}">
+        <svg class="perimeter-map" viewBox="0 0 900 520" role="img" aria-labelledby="perimeter-map-title perimeter-map-desc">
+            <title id="perimeter-map-title">Mapa do perímetro da propriedade</title>
+            <desc id="perimeter-map-desc">Representação visual local dos vértices do perímetro na ordem cadastrada.</desc>
+            <g data-map-layer></g>
+        </svg>
+        <div class="perimeter-map-state" data-map-state>Carregando mapa operacional...</div>
+    </div>
+</section>
 <section th:fragment="resumo" class="property-section" th:if="${perimetro != null}">
     <div class="property-heading"><h2>Perímetro</h2>
         <a sec:authorize="hasRole('ADMIN')" class="btn btn-outline-success" th:href="@{/sitio/propriedade/perimetro/editar}"><i class="fa-solid fa-pen me-2" aria-hidden="true"></i>Editar perímetro</a>

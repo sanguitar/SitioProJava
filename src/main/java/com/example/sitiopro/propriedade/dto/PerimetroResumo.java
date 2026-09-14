@@ -9,6 +9,7 @@ public record PerimetroResumo(Long id, long versao, StatusCrs statusCrs, String 
         String observacao, List<Vertice> vertices, LocalDateTime alteradoEm, String alteradoPor) {
     public PerimetroResumo { vertices = List.copyOf(vertices); }
     public int getQuantidadeVertices() { return vertices.size(); }
+    public PerimetroMapaResumo getMapa() { return PerimetroMapaResumo.de(statusCrs, crs, datum, vertices); }
     public String getStatusGeorreferenciamento() {
         if (vertices.isEmpty()) return "SEM_VERTICES";
         if (vertices.size() < 3) return "EM_CADASTRO";

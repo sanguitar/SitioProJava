@@ -47,6 +47,29 @@ class PerimetroServiceTests {
         assertThat(p.getStatusGeorreferenciamento()).isEqualTo("CRS_NAO_CONFIRMADO");
         assertThat(r.getVertices().getFirst().getOrdem()).isEqualTo(3);
     }
+    @Test void mapaOperacionalVazioNaoFechaPoligonoNemAssumeCrs() {
+        var mapa = PerimetroResumo.vazio().getMapa();
+        assertThat(mapa.formato()).isEqualTo("SITIOPRO_PERIMETRO_OPERACIONAL");
+        assertThat(mapa.vertices()).isEmpty();
+        assertThat(mapa.poligonoFechado()).isEmpty();
+        assertThat(mapa.crsConfirmado()).isFalse();
+        assertThat(mapa.aviso()).contains("Nao representa area juridica");
+    }
+    @ParameterizedTest @CsvSource({"1,0","2,0","3,4","4,5"})
+    void mapaFechaVisualmenteSomenteComTresOuMaisVertices(int totalVertices, int pontosFechados) {
+        var vertices = new VerticePerimetroRequest[totalVertices];
+        for (int i = 0; i < totalVertices; i++) {
+            vertices[i] = vertice(i + 1, String.valueOf(i + 1), String.valueOf(i + 2));
+            vertices[i].setMarco("M" + (i + 1));
+        }
+        var mapa = service.salvar(request(vertices)).getMapa();
+        assertThat(mapa.vertices()).extracting(PerimetroMapaResumo.Ponto::ordem)
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, totalVertices).boxed().toList());
+        assertThat(mapa.poligonoFechado()).hasSize(pontosFechados);
+        if (pontosFechados > 0) {
+            assertThat(mapa.poligonoFechado().getLast()).usingRecursiveComparison().isEqualTo(mapa.vertices().getFirst());
+        }
+    }
     @ParameterizedTest @CsvSource({"90,180","-90,-180","0,0","-8.1234567,-63.1234567"})
     void aceitaLimitesPrecisao(String lat,String lon) {
         assertThat(service.salvar(request(vertice(1,lat,lon))).vertices().getFirst().latitude()).isEqualByComparingTo(lat);

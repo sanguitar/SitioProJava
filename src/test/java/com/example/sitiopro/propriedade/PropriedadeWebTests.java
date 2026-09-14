@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import java.math.BigDecimal;
 import java.util.List;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -65,10 +66,31 @@ class PropriedadeWebTests {
     @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
     void perimetroConsultaMvcApi(String role) throws Exception {
         mvc.perform(get("/sitio/propriedade/perimetro").with(user("leitor").roles(role)))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("NÃO CONFIRMADO")));
+                .andExpect(status().isOk()).andExpect(content().string(containsString("NÃO CONFIRMADO")))
+                .andExpect(content().string(containsString("data-perimeter-map")))
+                .andExpect(content().string(containsString("/js/propriedade.js")));
         mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.statusCrs").value("NAO_CONFIRMADO"))
-                .andExpect(jsonPath("$.quantidadeVertices").value(0));
+                .andExpect(jsonPath("$.quantidadeVertices").value(0))
+                .andExpect(jsonPath("$.mapa.formato").value("SITIOPRO_PERIMETRO_OPERACIONAL"))
+                .andExpect(jsonPath("$.mapa.vertices", hasSize(0)))
+                .andExpect(jsonPath("$.mapa.poligonoFechado", hasSize(0)))
+                .andExpect(jsonPath("$.mapa.crsConfirmado").value(false));
+    }
+    @Test void perimetroApiMapaPreservaOrdemEFechaPoligonoComTresVertices() throws Exception {
+        when(perimetros.obter()).thenReturn(new PerimetroResumo(9L, 0,
+                com.example.sitiopro.propriedade.entity.StatusCrs.NAO_CONFIRMADO, null, null, null,
+                List.of(new PerimetroResumo.Vertice(1, new BigDecimal("-23.1"), new BigDecimal("-45.1"), "A", null),
+                        new PerimetroResumo.Vertice(2, new BigDecimal("-23.2"), new BigDecimal("-45.2"), "B", null),
+                        new PerimetroResumo.Vertice(3, new BigDecimal("-23.3"), new BigDecimal("-45.3"), "C", null)),
+                null, null));
+        mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapa.statusCrs").value("NAO_CONFIRMADO"))
+                .andExpect(jsonPath("$.mapa.vertices[*].ordem", contains(1,2,3)))
+                .andExpect(jsonPath("$.mapa.vertices[0].rotulo").value("1 - A"))
+                .andExpect(jsonPath("$.mapa.poligonoFechado", hasSize(4)))
+                .andExpect(jsonPath("$.mapa.poligonoFechado[3].ordem").value(1));
     }
     @Test void perimetroRestritoAdminECsrf() throws Exception {
         mvc.perform(get("/sitio/propriedade/perimetro/editar").with(user("op").roles("OPERADOR"))).andExpect(status().isForbidden());
