@@ -1,5 +1,6 @@
 <!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><body>
 <nav th:fragment="tabs" class="property-tabs" aria-label="Cadastros da propriedade">
+<a th:href="@{/sitio/propriedade/perimetro}" th:classappend="${cadastro == 'perimetro'} ? 'active'"><i class="fa-solid fa-draw-polygon" aria-hidden="true"></i>Perímetro</a>
 <a th:href="@{/sitio/propriedade}" th:classappend="${cadastro == 'propriedade'} ? 'active'"><i class="fa-solid fa-house" aria-hidden="true"></i>Visão geral</a>
 <a th:href="@{/sitio/propriedade/areas}" th:classappend="${cadastro == 'areas'} ? 'active'"><i class="fa-solid fa-map" aria-hidden="true"></i>Áreas</a>
 <a th:href="@{/sitio/propriedade/talhoes}" th:classappend="${cadastro == 'talhoes'} ? 'active'"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>Talhões</a>

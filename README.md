@@ -715,6 +715,30 @@ POST /api/v1/alertas/{id}/criar-tarefa
 
 `ADMIN` pode administrar todas as tarefas e resolver alertas. `OPERADOR` pode criar tarefas, alterar as não atribuídas, as próprias ou as que criou, e consultar/reconhecer alertas. Todas as mutações MVC/API exigem CSRF. Notificações push, e-mail, WhatsApp e clientes mobile permanecem no roadmap; a API e o resumo operacional já fornecem a base para essas evoluções.
 
+## Propriedade: perímetro cadastral
+
+V20 adiciona um perímetro por propriedade e seus vértices ordenados. As coordenadas usam
+`BigDecimal` / `DECIMAL(10,7)`, com limites de latitude/longitude, ordem positiva e unicidade
+de ordem e coordenadas por perímetro. Não repita o vértice inicial no final da lista.
+O cadastro permite de zero a 500 vértices, inclusive levantamentos ainda incompletos.
+
+- Consulta: `GET /sitio/propriedade/perimetro` e `GET /api/v1/propriedade/perimetro`.
+- Formulário: `GET /sitio/propriedade/perimetro/editar`; gravação: `POST /sitio/propriedade/perimetro`.
+- API: `PUT /api/v1/propriedade/perimetro` substitui atomicamente os metadados e a lista completa.
+- ADMIN altera; ADMIN/OPERADOR consultam. Mutações exigem CSRF. Não há vínculo de propriedade recebido no DTO.
+
+Use a `versao` retornada pelo GET (`-1` enquanto não existe perímetro); atualização obsoleta
+retorna 409. A gravação serializa a criação pelo bloqueio da propriedade principal e mantém
+auditoria de autor/data e versão. Campos do request: `versao`, `statusCrs`, `crs`, `datum`,
+`observacao`, `vertices` (`ordem`, `latitude`, `longitude`, `marco`, `observacao`).
+
+O status do CRS começa em `NAO_CONFIRMADO`, mesmo quando há texto de referência informado.
+`CONFIRMADO` exige a identificação explícita do CRS pelo administrador. Não há inferência
+de SIRGAS 2000/WGS84, transformação de coordenadas, cálculo de área ou certificação jurídica.
+O status do georreferenciamento é derivado da quantidade de vértices e da confirmação do CRS.
+O agregado e sua lista decimal deixam uma fronteira para um futuro adaptador SQL Server Spatial;
+esta etapa não cria tipos `geometry`/`geography`, mapas nem integração QGIS.
+
 ## Agricultura: safras e cultivos
 
 A operação agrícola está em `/sitio/agricultura`. ADMIN administra Safras, Culturas e Cultivos;

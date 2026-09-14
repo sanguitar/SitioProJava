@@ -23,5 +23,7 @@
 <div><dt>Latitude central</dt><dd th:text="${propriedade.latitudeCentral ?: 'Não informada'}"></dd></div>
 <div><dt>Longitude central</dt><dd th:text="${propriedade.longitudeCentral ?: 'Não informada'}"></dd></div>
 <div class="property-full"><dt>Observação</dt><dd th:text="${propriedade.observacao ?: 'Não informada'}"></dd></div>
-</dl></section><div th:replace="~{fragments/ui :: appFooter}"></div></main>
+</dl></section>
+<section th:replace="~{propriedade/perimetro-fragments :: resumo}"></section>
+<div th:replace="~{fragments/ui :: appFooter}"></div></main>
 <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

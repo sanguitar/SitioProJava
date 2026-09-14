@@ -2,6 +2,7 @@ package com.example.sitiopro.propriedade.api;
 
 import com.example.sitiopro.propriedade.dto.*;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
+import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,16 @@ import java.net.URI;
 @RequestMapping("/api/v1/propriedade")
 public class PropriedadeApiController {
     private final PropriedadeService service;
-    public PropriedadeApiController(PropriedadeService service) { this.service = service; }
+    private final PerimetroService perimetros;
+    public PropriedadeApiController(PropriedadeService service, PerimetroService perimetros) {
+        this.service = service; this.perimetros = perimetros;
+    }
+    @GetMapping("/perimetro")
+    public PerimetroResumo perimetro() { return perimetros.obter(); }
+    @PutMapping("/perimetro")
+    public PerimetroResumo salvarPerimetro(@Valid @RequestBody PerimetroRequest request) {
+        return perimetros.salvar(request);
+    }
     @GetMapping("/resumo")
     public PropriedadeResumo resumo() { return service.resumo(); }
     @PutMapping

@@ -28,11 +28,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PropriedadeWebTests {
     @Autowired MockMvc mvc;
     @MockBean PropriedadeService service;
+    @MockBean PerimetroService perimetros;
     @MockBean org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
     @MockBean org.springframework.data.jpa.mapping.JpaMetamodelMappingContext jpaMetamodelMappingContext;
     CadastroFisicoResumo registro = new CadastroFisicoResumo(7L,42L,null,null,null,"Nome cadastrado","OUTRO",
             null,null,null,null,"Observação",true,"ATIVO",0);
     @BeforeEach void dados() {
+        when(perimetros.obter()).thenReturn(PerimetroResumo.vazio());
+        var perimetroForm = new PerimetroRequest(); perimetroForm.setVersao(-1L);
+        when(perimetros.formulario()).thenReturn(perimetroForm);
+        when(perimetros.salvar(any())).thenReturn(PerimetroResumo.vazio());
         when(service.resumo()).thenReturn(new PropriedadeResumo(42L,"Sítio MVC",null,null,null,null,null,null,true,0,0,0,0,0,0));
         var p=new PropriedadeRequest(); p.setNome("Sítio MVC"); p.setVersao(0L);
         when(service.formulario()).thenReturn(p);
@@ -56,6 +61,64 @@ class PropriedadeWebTests {
         when(service.detalharRecursoHidrico(7L)).thenReturn(registro);
         when(service.formularioRecursoHidrico(7L)).thenReturn(new RecursoHidricoRequest());
         when(service.salvarRecursoHidrico(any(),any())).thenReturn(registro);
+    }
+    @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
+    void perimetroConsultaMvcApi(String role) throws Exception {
+        mvc.perform(get("/sitio/propriedade/perimetro").with(user("leitor").roles(role)))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("NÃO CONFIRMADO")));
+        mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles(role)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.statusCrs").value("NAO_CONFIRMADO"))
+                .andExpect(jsonPath("$.quantidadeVertices").value(0));
+    }
+    @Test void perimetroRestritoAdminECsrf() throws Exception {
+        mvc.perform(get("/sitio/propriedade/perimetro/editar").with(user("op").roles("OPERADOR"))).andExpect(status().isForbidden());
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("op").roles("OPERADOR")).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("op").roles("OPERADOR")).with(csrf())
+                .contentType("application/json").content("{\"versao\":-1}")).andExpect(status().isForbidden());
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("admin").roles("ADMIN"))).andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("admin").roles("ADMIN"))
+                .contentType("application/json").content("{\"versao\":-1}")).andExpect(status().isForbidden());
+        verify(perimetros,never()).salvar(any());
+    }
+    @Test void perimetroFormularioAdicionaERemoveSemPersistir() throws Exception {
+        mvc.perform(get("/sitio/propriedade/perimetro/editar").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("name=\"_csrf\"")));
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .param("versao","-1").param("acao","adicionar"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("name=\"vertices[0].latitude\"")));
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .param("versao","-1").param("vertices[0].ordem","1").param("remover","0"))
+                .andExpect(status().isOk()).andExpect(content().string(not(containsString("name=\"vertices[0].latitude\""))));
+        verify(perimetros,never()).salvar(any());
+    }
+    @Test void perimetroDtoEBinderSemMassAssignment() throws Exception {
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType("application/json").content("{\"versao\":-1,\"propriedadeId\":999,\"id\":999}"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .param("versao","-1").param("id","999").param("propriedade.id","999").param("alteradoPor","forjado"))
+                .andExpect(redirectedUrl("/sitio/propriedade/perimetro"));
+        verify(perimetros,times(2)).salvar(argThat(r -> r.getVersao()==-1 && r.getStatusCrs()==com.example.sitiopro.propriedade.entity.StatusCrs.NAO_CONFIRMADO));
+    }
+    @Test void perimetroApiValidaCoordenadasEEnum() throws Exception {
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType("application/json").content("{\"versao\":-1,\"vertices\":[{\"ordem\":1,\"latitude\":91,\"longitude\":0}]}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType("application/json").content("{\"versao\":-1,\"statusCrs\":\"WGS84\"}"))
+                .andExpect(status().isBadRequest());
+        verify(perimetros,never()).salvar(any());
+    }
+    @Test void perimetroErroDeRegraPreservaFormularioEApiRetornaConflito() throws Exception {
+        doThrow(new PropriedadeOperacaoException(null,"Recarregue",org.springframework.http.HttpStatus.CONFLICT))
+                .when(perimetros).salvar(any());
+        mvc.perform(post("/sitio/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .param("versao","0").param("crs","Referencia informada"))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Recarregue")))
+                .andExpect(content().string(containsString("Referencia informada")));
+        mvc.perform(put("/api/v1/propriedade/perimetro").with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType("application/json").content("{\"versao\":0}"))
+                .andExpect(status().isConflict());
     }
     @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
     void ambosConsultamResumoSemSecrets(String role) throws Exception {

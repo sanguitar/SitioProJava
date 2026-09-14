@@ -49,12 +49,79 @@ class PropriedadeSqlServerIntegrationTests {
         r.add("spring.flyway.password", SQLSERVER::getPassword);
     }
     @Autowired PropriedadeService service;
+    @Autowired PerimetroService perimetros;
+    @jakarta.persistence.PersistenceContext jakarta.persistence.EntityManager entityManager;
     @Autowired ConfiguracaoOperacionalService config;
     @Autowired InstalacaoCriacaoService criacoes;
     @Autowired InstalacaoCriacaoRepository instalacoes;
     @Autowired PropriedadeRepository propriedades;
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManagerFactory emf;
+
+    @Test void v20ValidaSemTiposSpatialNemBackfillDeCrs() {
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id WHERE c.object_id IN (OBJECT_ID('propriedade_perimetros'),OBJECT_ID('propriedade_perimetro_vertices')) AND t.name IN ('geometry','geography')", Integer.class)).isZero();
+        assertThat(perimetros.obter().statusCrs()).isEqualTo(StatusCrs.NAO_CONFIRMADO);
+        assertThat(perimetros.obter().vertices()).isEmpty();
+    }
+
+    @Test @Transactional @org.springframework.security.test.context.support.WithMockUser(username="admin-perimetro",roles="ADMIN")
+    void perimetroPersisteOrdemPrecisaoAuditoriaEAtualizaSomenteVertices() {
+        var principal = org.mockito.Mockito.mock(com.example.sitiopro.usuario.security.UsuarioPrincipal.class);
+        org.mockito.Mockito.when(principal.getUsername()).thenReturn("admin-perimetro");
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null,
+                        java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))));
+        var r = PerimetroServiceTests.request(PerimetroServiceTests.vertice(3,"-8.1234567","-63.1234567"),
+                PerimetroServiceTests.vertice(1,"-8.2","-63.2"),PerimetroServiceTests.vertice(2,"-8.3","-63.3"));
+        var salvo = perimetros.salvar(r); entityManager.clear();
+        var lido = perimetros.obter();
+        assertThat(lido.vertices()).extracting(PerimetroResumo.Vertice::ordem).containsExactly(1,2,3);
+        assertThat(lido.vertices().get(2).latitude()).isEqualByComparingTo("-8.1234567");
+        assertThat(lido.statusCrs()).isEqualTo(StatusCrs.NAO_CONFIRMADO);
+        assertThat(lido.alteradoPor()).isEqualTo("admin-perimetro");
+        assertThat(lido.alteradoEm()).isNotNull();
+        var edicao = perimetros.formulario();
+        edicao.getVertices().getFirst().setLatitude(new BigDecimal("-8.9"));
+        var atualizado = perimetros.salvar(edicao); entityManager.clear();
+        assertThat(atualizado.versao()).isGreaterThan(salvo.versao());
+        assertThat(perimetros.obter().vertices().getFirst().latitude()).isEqualByComparingTo("-8.9");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_perimetro_vertices WHERE perimetro_id=?",Integer.class,salvo.id())).isEqualTo(3);
+    }
+
+    @Test @Transactional void perimetroTrocaOrdemRemoveVerticesEConfirmaReferenciaExplicita() {
+        var salvo = perimetros.salvar(PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2"),PerimetroServiceTests.vertice(2,"3","4")));
+        var r = perimetros.formulario(); r.getVertices().get(0).setOrdem(2); r.getVertices().get(1).setOrdem(1);
+        r.setStatusCrs(StatusCrs.CONFIRMADO); r.setCrs("CRS fornecido no levantamento"); r.setDatum("Datum documentado");
+        perimetros.salvar(r); entityManager.clear();
+        assertThat(perimetros.obter().vertices().getFirst().latitude()).isEqualByComparingTo("3");
+        var limpar = perimetros.formulario(); limpar.getVertices().clear();
+        perimetros.salvar(limpar); entityManager.clear();
+        assertThat(perimetros.obter().getQuantidadeVertices()).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_perimetro_vertices WHERE perimetro_id=?",Integer.class,salvo.id())).isZero();
+    }
+
+    @Test @Transactional void versaoAntigaNaoAlteraPerimetro() {
+        var r = PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2"));
+        var salvo = perimetros.salvar(r);
+        assertThatThrownBy(() -> perimetros.salvar(r)).hasMessageContaining("Recarregue");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_perimetro_vertices WHERE perimetro_id=?",Integer.class,salvo.id())).isEqualTo(1);
+    }
+
+    @ParameterizedTest @ValueSource(strings={"duplicata","ordem","latitude","longitude","fk","crs"})
+    @Transactional void constraintsDoPerimetroProtegemSqlDireto(String caso) {
+        var salvo = perimetros.salvar(PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2")));
+        assertThatThrownBy(() -> {
+            switch(caso) {
+                case "duplicata" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (?,2,1,2)",salvo.id());
+                case "ordem" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (?,1,3,4)",salvo.id());
+                case "latitude" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (?,2,91,4)",salvo.id());
+                case "longitude" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (?,2,3,181)",salvo.id());
+                case "fk" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (-999,1,3,4)");
+                default -> jdbc.update("UPDATE propriedade_perimetros SET status_crs='CONFIRMADO',crs=NULL WHERE id=?",salvo.id());
+            }
+        }).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
 
     @Test void v16ValidaEHaUmaPropriedadePrincipalSemDuplicarDadosFisicos() {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='16'", Integer.class)).isEqualTo(1);

@@ -18,6 +18,8 @@
 .property-details dd { margin: 5px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .property-full { grid-column: 1 / -1; }
 .property-form { max-width: 900px; }
+.perimeter-vertex { min-width: 0; padding: 16px 0; border-bottom: 1px solid var(--line-soft); margin-bottom: 16px; }
+.perimeter-vertex legend { font-size: 0.95rem; font-weight: 600; }
 .property-fields > div { min-width: 0; }
 .property-end-actions { display: flex; justify-content: flex-end; padding: 22px 0; margin-top: 20px; border-top: 1px solid var(--line-soft); }
 .property-empty { text-align: center; color: var(--text-muted); padding: 50px 12px; }

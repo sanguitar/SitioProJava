@@ -3,6 +3,7 @@ package com.example.sitiopro.propriedade.web;
 import com.example.sitiopro.propriedade.dto.*;
 import com.example.sitiopro.propriedade.entity.*;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
+import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.propriedade.service.PropriedadeOperacaoException;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -18,10 +19,18 @@ import org.springframework.dao.DataIntegrityViolationException;
 @RequestMapping("/sitio/propriedade")
 public class PropriedadeController {
     private final PropriedadeService service;
-    public PropriedadeController(PropriedadeService service) { this.service = service; }
+    private final PerimetroService perimetros;
+    public PropriedadeController(PropriedadeService service, PerimetroService perimetros) {
+        this.service = service; this.perimetros = perimetros;
+    }
 
     @InitBinder("form")
     void campos(WebDataBinder binder) {
+        if (binder.getTarget() instanceof PerimetroRequest) {
+            binder.setAutoGrowCollectionLimit(500);
+            binder.setAllowedFields("versao", "statusCrs", "crs", "datum", "observacao",
+                    "vertices[*].ordem", "vertices[*].latitude", "vertices[*].longitude", "vertices[*].marco", "vertices[*].observacao");
+        }
         if (binder.getTarget() instanceof PropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "municipio", "uf", "areaTotalHa", "latitudeCentral", "longitudeCentral", "ativo");
         if (binder.getTarget() instanceof AreaPropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "tipo", "areaHa", "ativo");
         if (binder.getTarget() instanceof TalhaoRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "areaHa", "status");
@@ -34,7 +43,53 @@ public class PropriedadeController {
     public String inicio(Model model) {
         base(model, "propriedade");
         model.addAttribute("propriedade", service.resumo());
+        model.addAttribute("perimetro", perimetros.obter());
         return "propriedade/index";
+    }
+
+    @GetMapping("/perimetro")
+    public String perimetro(Model model) {
+        base(model, "perimetro"); model.addAttribute("perimetro", perimetros.obter());
+        return "propriedade/perimetro";
+    }
+
+    @GetMapping("/perimetro/editar")
+    public String editarPerimetro(Model model) {
+        base(model, "perimetro"); model.addAttribute("form", perimetros.formulario());
+        return "propriedade/perimetro-form";
+    }
+
+    @PostMapping("/perimetro")
+    public String salvarPerimetro(@ModelAttribute("form") PerimetroRequest form, BindingResult result,
+            @RequestParam(defaultValue = "salvar") String acao, @RequestParam(required = false) Integer remover,
+            Model model, RedirectAttributes redirect) {
+        base(model, "perimetro");
+        if (result.hasErrors()) return "propriedade/perimetro-form";
+        if ("adicionar".equals(acao)) {
+            if (form.getVertices().size() >= 500) result.reject("perimetro.limite", "Limite de 500 vertices.");
+            else {
+                var v = new VerticePerimetroRequest();
+                int ultima = form.getVertices().stream().map(VerticePerimetroRequest::getOrdem)
+                        .filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0);
+                v.setOrdem(ultima + 1); form.getVertices().add(v);
+            }
+            return "propriedade/perimetro-form";
+        }
+        if (remover != null) {
+            if (remover < 0 || remover >= form.getVertices().size()) result.reject("perimetro.indice", "Vertice inexistente.");
+            else form.getVertices().remove(remover.intValue());
+            return "propriedade/perimetro-form";
+        }
+        try {
+            perimetros.salvar(form);
+            redirect.addFlashAttribute("mensagem", "Perimetro salvo.");
+            return "redirect:/sitio/propriedade/perimetro";
+        } catch (PropriedadeOperacaoException ex) {
+            result.reject("perimetro.invalido", ex.getMessage());
+        } catch (ObjectOptimisticLockingFailureException | DataIntegrityViolationException ex) {
+            result.reject("perimetro.conflito", "Registro alterado ou vertices duplicados. Recarregue os dados.");
+        }
+        return "propriedade/perimetro-form";
     }
 
     @GetMapping("/editar")
@@ -303,6 +358,7 @@ public class PropriedadeController {
         model.addAttribute("cadastro", cadastro);
         model.addAttribute("caminho", caminho(cadastro));
         model.addAttribute("titulo", switch (cadastro) {
+            case "perimetro" -> "Perímetro";
             case "areas" -> "Áreas";
             case "talhoes" -> "Talhões";
             case "piquetes" -> "Piquetes";
