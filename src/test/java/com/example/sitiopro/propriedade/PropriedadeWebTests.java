@@ -68,6 +68,7 @@ class PropriedadeWebTests {
         mvc.perform(get("/sitio/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("NÃO CONFIRMADO")))
                 .andExpect(content().string(containsString("data-perimeter-map")))
+                .andExpect(content().string(containsString("Exportar para QGIS")))
                 .andExpect(content().string(containsString("/js/propriedade.js")));
         mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.statusCrs").value("NAO_CONFIRMADO"))
@@ -98,6 +99,37 @@ class PropriedadeWebTests {
                 .andExpect(jsonPath("$.geoJson.geometry.coordinates[0][0][0]").value(-45.1))
                 .andExpect(jsonPath("$.geoJson.properties.statusCrs").value("NAO_CONFIRMADO"));
     }
+
+    @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
+    void perimetroExportacaoQgisPreservaConteudoOrdemPrecisaoEPermissoes(String role) throws Exception {
+        when(perimetros.obter()).thenReturn(new PerimetroResumo(9L, 0,
+                com.example.sitiopro.propriedade.entity.StatusCrs.CONFIRMADO, "EPSG:4674", "SIRGAS 2000", null,
+                List.of(new PerimetroResumo.Vertice(1, new BigDecimal("-8.346821111"),
+                                new BigDecimal("-63.871070000"), new BigDecimal("90.30"), "DZCZ-M-0205", null),
+                        new PerimetroResumo.Vertice(2, new BigDecimal("-8.350538889"),
+                                new BigDecimal("-63.871139722"), new BigDecimal("89.88"), "DZCZ-M-0168", null),
+                        new PerimetroResumo.Vertice(3, new BigDecimal("-8.350611389"),
+                                new BigDecimal("-63.871590833"), new BigDecimal("88.97"), "DZCZ-M-0167", null),
+                        new PerimetroResumo.Vertice(4, new BigDecimal("-8.346856389"),
+                                new BigDecimal("-63.871454722"), new BigDecimal("90.28"), "DZCZ-M-0170", null)),
+                null, null));
+        mvc.perform(get("/sitio/propriedade/perimetro/exportar-qgis").with(user("leitor").roles(role)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        containsString("perimetro-sirgas-2000-epsg-4674.csv")))
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string("ordem,marco,longitude,latitude,altitude,epsg\r\n"
+                        + "1,DZCZ-M-0205,-63.871070000,-8.346821111,90.30,4674\r\n"
+                        + "2,DZCZ-M-0168,-63.871139722,-8.350538889,89.88,4674\r\n"
+                        + "3,DZCZ-M-0167,-63.871590833,-8.350611389,88.97,4674\r\n"
+                        + "4,DZCZ-M-0170,-63.871454722,-8.346856389,90.28,4674\r\n"));
+    }
+
+    @Test void perimetroExportacaoQgisExigeAutenticacao() throws Exception {
+        mvc.perform(get("/sitio/propriedade/perimetro/exportar-qgis"))
+                .andExpect(status().is3xxRedirection());
+    }
+
     @Test void perimetroRestritoAdminECsrf() throws Exception {
         mvc.perform(get("/sitio/propriedade/perimetro/editar").with(user("op").roles("OPERADOR"))).andExpect(status().isForbidden());
         mvc.perform(post("/sitio/propriedade/perimetro").with(user("op").roles("OPERADOR")).with(csrf())).andExpect(status().isForbidden());

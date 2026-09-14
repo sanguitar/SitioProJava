@@ -6,6 +6,10 @@ import com.example.sitiopro.propriedade.service.PropriedadeService;
 import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.propriedade.service.PropriedadeOperacaoException;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -18,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 @Controller
 @RequestMapping("/sitio/propriedade")
 public class PropriedadeController {
+    private static final int EPSG_SIRGAS_2000 = 4674;
     private final PropriedadeService service;
     private final PerimetroService perimetros;
     public PropriedadeController(PropriedadeService service, PerimetroService perimetros) {
@@ -52,6 +57,16 @@ public class PropriedadeController {
     public String perimetro(Model model) {
         base(model, "perimetro"); model.addAttribute("perimetro", perimetros.obter());
         return "propriedade/perimetro";
+    }
+
+    @GetMapping(value = "/perimetro/exportar-qgis", produces = "text/csv")
+    public ResponseEntity<String> exportarPerimetroQgis() {
+        String csv = csvQgis(perimetros.obter());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("perimetro-sirgas-2000-epsg-4674.csv").build().toString())
+                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+                .body(csv);
     }
 
     @GetMapping("/perimetro/editar")
@@ -91,6 +106,30 @@ public class PropriedadeController {
             result.reject("perimetro.conflito", "Registro alterado ou vertices duplicados. Recarregue os dados.");
         }
         return "propriedade/perimetro-form";
+    }
+
+    private String csvQgis(PerimetroResumo perimetro) {
+        StringBuilder csv = new StringBuilder("ordem,marco,longitude,latitude,altitude,epsg\r\n");
+        for (PerimetroResumo.Vertice vertice : perimetro.vertices()) {
+            csv.append(vertice.ordem()).append(',')
+                    .append(campoCsv(vertice.marco())).append(',')
+                    .append(decimal(vertice.longitude())).append(',')
+                    .append(decimal(vertice.latitude())).append(',')
+                    .append(decimal(vertice.altitudeGeodesicaM())).append(',')
+                    .append(EPSG_SIRGAS_2000).append("\r\n");
+        }
+        return csv.toString();
+    }
+
+    private String decimal(java.math.BigDecimal valor) {
+        return valor == null ? "" : valor.toPlainString();
+    }
+
+    private String campoCsv(String valor) {
+        if (valor == null) return "";
+        String texto = valor.replace("\"", "\"\"");
+        return texto.contains(",") || texto.contains("\"") || texto.contains("\n") || texto.contains("\r")
+                ? "\"" + texto + "\"" : texto;
     }
 
     @GetMapping("/editar")

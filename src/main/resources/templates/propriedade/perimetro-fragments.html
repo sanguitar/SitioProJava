@@ -18,6 +18,7 @@
 </section>
 <section th:fragment="resumo" class="property-section" th:if="${perimetro != null}">
     <div class="property-heading"><h2>Perímetro</h2>
+        <a class="btn btn-outline-secondary" th:href="@{/sitio/propriedade/perimetro/exportar-qgis}"><i class="fa-solid fa-file-csv me-2" aria-hidden="true"></i>Exportar para QGIS</a>
         <a sec:authorize="hasRole('ADMIN')" class="btn btn-outline-success" th:href="@{/sitio/propriedade/perimetro/editar}"><i class="fa-solid fa-pen me-2" aria-hidden="true"></i>Editar perímetro</a>
     </div>
     <dl class="property-details">
