@@ -15,7 +15,7 @@ public record PerimetroMapaResumo(String formato, String aviso, StatusCrs status
     static PerimetroMapaResumo de(StatusCrs statusCrs, String crs, String datum,
             List<PerimetroResumo.Vertice> vertices) {
         List<Ponto> pontos = vertices.stream()
-                .map(v -> new Ponto(v.ordem(), v.latitude(), v.longitude(), rotulo(v)))
+                .map(v -> new Ponto(v.ordem(), v.latitude(), v.longitude(), v.altitudeGeodesicaM(), rotulo(v)))
                 .toList();
         List<Ponto> poligono = new ArrayList<>();
         if (pontos.size() >= 3) {
@@ -34,5 +34,6 @@ public record PerimetroMapaResumo(String formato, String aviso, StatusCrs status
         return vertice.ordem() + " - " + vertice.marco();
     }
 
-    public record Ponto(int ordem, BigDecimal latitude, BigDecimal longitude, String rotulo) {}
+    public record Ponto(int ordem, BigDecimal latitude, BigDecimal longitude, BigDecimal altitudeGeodesicaM,
+            String rotulo) {}
 }

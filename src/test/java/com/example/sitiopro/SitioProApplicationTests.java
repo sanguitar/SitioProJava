@@ -30,6 +30,7 @@ import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoReposit
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
+import com.example.sitiopro.propriedade.repository.PerimetroSpatialRepository;
 import com.example.sitiopro.tarefas.repository.AlertaRepository;
 import com.example.sitiopro.tarefas.repository.EventoTarefaAlertaRepository;
 import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
@@ -63,6 +64,7 @@ class SitioProApplicationTests {
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
+    @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;
     @MockBean
     private ConfiguracaoOperacionalService configuracaoOperacionalService;
 

@@ -54,6 +54,7 @@ import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.dto.ProducaoForm;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.producao.service.ProducaoService;
+import com.example.sitiopro.propriedade.repository.PerimetroSpatialRepository;
 import com.example.sitiopro.tarefas.repository.AlertaRepository;
 import com.example.sitiopro.tarefas.repository.EventoTarefaAlertaRepository;
 import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
@@ -144,6 +145,7 @@ class SitioProSecurityTests {
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
+    @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;
 
     private static final String SENHA_VALIDA = "SenhaMuitoForte123";
 

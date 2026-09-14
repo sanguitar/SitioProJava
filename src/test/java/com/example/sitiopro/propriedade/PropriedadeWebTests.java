@@ -75,7 +75,9 @@ class PropriedadeWebTests {
                 .andExpect(jsonPath("$.mapa.formato").value("SITIOPRO_PERIMETRO_OPERACIONAL"))
                 .andExpect(jsonPath("$.mapa.vertices", hasSize(0)))
                 .andExpect(jsonPath("$.mapa.poligonoFechado", hasSize(0)))
-                .andExpect(jsonPath("$.mapa.crsConfirmado").value(false));
+                .andExpect(jsonPath("$.mapa.crsConfirmado").value(false))
+                .andExpect(jsonPath("$.geoJson.type").value("Feature"))
+                .andExpect(jsonPath("$.geoJson.geometry").value(nullValue()));
     }
     @Test void perimetroApiMapaPreservaOrdemEFechaPoligonoComTresVertices() throws Exception {
         when(perimetros.obter()).thenReturn(new PerimetroResumo(9L, 0,
@@ -90,7 +92,11 @@ class PropriedadeWebTests {
                 .andExpect(jsonPath("$.mapa.vertices[*].ordem", contains(1,2,3)))
                 .andExpect(jsonPath("$.mapa.vertices[0].rotulo").value("1 - A"))
                 .andExpect(jsonPath("$.mapa.poligonoFechado", hasSize(4)))
-                .andExpect(jsonPath("$.mapa.poligonoFechado[3].ordem").value(1));
+                .andExpect(jsonPath("$.mapa.poligonoFechado[3].ordem").value(1))
+                .andExpect(jsonPath("$.geoJson.geometry.type").value("Polygon"))
+                .andExpect(jsonPath("$.geoJson.geometry.coordinates[0]", hasSize(4)))
+                .andExpect(jsonPath("$.geoJson.geometry.coordinates[0][0][0]").value(-45.1))
+                .andExpect(jsonPath("$.geoJson.properties.statusCrs").value("NAO_CONFIRMADO"));
     }
     @Test void perimetroRestritoAdminECsrf() throws Exception {
         mvc.perform(get("/sitio/propriedade/perimetro/editar").with(user("op").roles("OPERADOR"))).andExpect(status().isForbidden());

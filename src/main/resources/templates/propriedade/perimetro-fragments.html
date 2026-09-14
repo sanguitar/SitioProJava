@@ -31,13 +31,22 @@
         <div><dt>CRS</dt><dd th:text="${perimetro.crs ?: 'Não informado'}"></dd></div>
         <div><dt>Confirmação do CRS</dt><dd th:text="${perimetro.statusCrs.name() == 'CONFIRMADO' ? 'Confirmado pelo administrador' : 'NÃO CONFIRMADO'}"></dd></div>
         <div><dt>Datum</dt><dd th:text="${perimetro.datum ?: 'Não informado'}"></dd></div>
+        <div><dt>Sistema geodésico</dt><dd th:text="${perimetro.conferencia.sistemaGeodesico ?: 'Não informado'}"></dd></div>
+        <div><dt>EPSG horizontal</dt><dd th:text="${perimetro.conferencia.crsEpsg ?: 'Não informado'}"></dd></div>
         <div><dt>Observação</dt><dd th:text="${perimetro.observacao ?: 'Não informada'}"></dd></div>
     </dl>
-    <p class="text-muted">Coordenadas cadastrais. Não representam certificação nem área jurídica ou oficial.</p>
+    <dl class="property-details" th:if="${perimetro.conferencia.possuiValoresDocumentais() || perimetro.conferencia.possuiCalculos()}">
+        <div><dt>Área documental</dt><dd th:text="${perimetro.conferencia.areaDocumentalHa == null ? 'Não informada' : #numbers.formatDecimal(perimetro.conferencia.areaDocumentalHa, 1, 4) + ' ha'}"></dd></div>
+        <div><dt>Perímetro documental</dt><dd th:text="${perimetro.conferencia.perimetroDocumentalM == null ? 'Não informado' : #numbers.formatDecimal(perimetro.conferencia.perimetroDocumentalM, 1, 2) + ' m'}"></dd></div>
+        <div><dt>Área calculada GIS</dt><dd th:text="${perimetro.conferencia.areaCalculadaM2 == null ? 'Não calculada' : #numbers.formatDecimal(perimetro.conferencia.areaCalculadaM2, 1, 4) + ' m²'}"></dd></div>
+        <div><dt>Perímetro calculado GIS</dt><dd th:text="${perimetro.conferencia.perimetroCalculadoM == null ? 'Não calculado' : #numbers.formatDecimal(perimetro.conferencia.perimetroCalculadoM, 1, 4) + ' m'}"></dd></div>
+        <div><dt>Geometria SQL Server</dt><dd th:text="${perimetro.conferencia.geometriaValida == null ? 'Não gerada' : (perimetro.conferencia.geometriaValida ? 'Válida' : 'Inválida')}"></dd></div>
+    </dl>
+    <p class="text-muted">Coordenadas cadastrais e cálculos GIS de conferência. Não representam certificação nem área jurídica ou oficial.</p>
     <div class="table-responsive" th:unless="${#lists.isEmpty(perimetro.vertices)}">
         <table class="table property-table"><caption>Vértices em ordem de percurso</caption>
-            <thead><tr><th scope="col">Ordem</th><th scope="col">Latitude</th><th scope="col">Longitude</th><th scope="col">Marco</th><th scope="col">Observação</th></tr></thead>
-            <tbody><tr th:each="v : ${perimetro.vertices}"><td th:text="${v.ordem}"></td><td th:text="${v.latitude}"></td><td th:text="${v.longitude}"></td><td th:text="${v.marco ?: '—'}"></td><td th:text="${v.observacao ?: '—'}"></td></tr></tbody>
+            <thead><tr><th scope="col">Ordem</th><th scope="col">Latitude</th><th scope="col">Longitude</th><th scope="col">Altitude</th><th scope="col">Marco</th><th scope="col">Observação</th></tr></thead>
+            <tbody><tr th:each="v : ${perimetro.vertices}"><td th:text="${v.ordem}"></td><td th:text="${v.latitude}"></td><td th:text="${v.longitude}"></td><td th:text="${v.altitudeGeodesicaM == null ? '—' : v.altitudeGeodesicaM + ' m'}"></td><td th:text="${v.marco ?: '—'}"></td><td th:text="${v.observacao ?: '—'}"></td></tr></tbody>
         </table>
     </div>
 </section>

@@ -12,12 +12,13 @@
         <div><label for="datum" class="form-label">Datum (opcional)</label><input th:field="*{datum}" maxlength="120" class="form-control"></div>
         <div><label for="observacao" class="form-label">Observação</label><textarea th:field="*{observacao}" maxlength="1000" class="form-control" rows="2"></textarea></div>
     </div></section>
-    <section class="property-section"><h2>Vértices</h2><p class="text-muted">Latitude e longitude em graus decimais. Preserve a ordem do percurso e não repita o primeiro ponto no final.</p>
+    <section class="property-section"><h2>Vértices</h2><p class="text-muted">Latitude, longitude e altitude geodésicas. Preserve a ordem do percurso e não repita o primeiro ponto no final.</p>
         <fieldset class="perimeter-vertex" th:each="v, s : *{vertices}"><legend th:text="${'Vértice ' + (s.index + 1)}"></legend><div class="property-fields">
             <div><label th:for="${'vertices' + s.index + '.ordem'}" class="form-label">Ordem</label><input type="number" min="1" max="500" th:field="*{vertices[__${s.index}__].ordem}" class="form-control"></div>
             <div><label th:for="${'vertices' + s.index + '.marco'}" class="form-label">Marco (opcional)</label><input maxlength="120" th:field="*{vertices[__${s.index}__].marco}" class="form-control"></div>
-            <div><label th:for="${'vertices' + s.index + '.latitude'}" class="form-label">Latitude</label><input type="number" min="-90" max="90" step="0.0000001" th:field="*{vertices[__${s.index}__].latitude}" class="form-control"></div>
-            <div><label th:for="${'vertices' + s.index + '.longitude'}" class="form-label">Longitude</label><input type="number" min="-180" max="180" step="0.0000001" th:field="*{vertices[__${s.index}__].longitude}" class="form-control"></div>
+            <div><label th:for="${'vertices' + s.index + '.latitude'}" class="form-label">Latitude</label><input type="number" min="-90" max="90" step="0.000000001" th:field="*{vertices[__${s.index}__].latitude}" class="form-control"></div>
+            <div><label th:for="${'vertices' + s.index + '.longitude'}" class="form-label">Longitude</label><input type="number" min="-180" max="180" step="0.000000001" th:field="*{vertices[__${s.index}__].longitude}" class="form-control"></div>
+            <div><label th:for="${'vertices' + s.index + '.altitudeGeodesicaM'}" class="form-label">Altitude geodésica (m)</label><input type="number" step="0.01" th:field="*{vertices[__${s.index}__].altitudeGeodesicaM}" class="form-control"></div>
             <div class="property-full"><label th:for="${'vertices' + s.index + '.observacao'}" class="form-label">Observação do vértice</label><input maxlength="1000" th:field="*{vertices[__${s.index}__].observacao}" class="form-control"></div>
         </div><button type="submit" name="remover" th:value="${s.index}" class="btn btn-outline-danger btn-sm mt-2" title="Remover vértice" aria-label="Remover vértice" formnovalidate><i class="fa-solid fa-trash" aria-hidden="true"></i></button></fieldset>
         <button type="submit" name="acao" value="adicionar" class="btn btn-outline-secondary" formnovalidate><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>Adicionar vértice</button>

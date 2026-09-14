@@ -58,11 +58,30 @@ class PropriedadeSqlServerIntegrationTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManagerFactory emf;
 
-    @Test void v20ValidaSemTiposSpatialNemBackfillDeCrs() {
+    @Test void v21ConfirmaSirgas2000ComGeographyEValoresDocumentaisSeparados() {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20'", Integer.class)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id WHERE c.object_id IN (OBJECT_ID('propriedade_perimetros'),OBJECT_ID('propriedade_perimetro_vertices')) AND t.name IN ('geometry','geography')", Integer.class)).isZero();
-        assertThat(perimetros.obter().statusCrs()).isEqualTo(StatusCrs.NAO_CONFIRMADO);
-        assertThat(perimetros.obter().vertices()).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='21'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id WHERE c.object_id = OBJECT_ID('propriedade_perimetros') AND c.name = 'poligono_geography' AND t.name = 'geography'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id WHERE c.object_id = OBJECT_ID('propriedade_talhoes') AND c.name = 'geometria_geography' AND t.name = 'geography'", Integer.class)).isEqualTo(1);
+        var p = perimetros.obter();
+        assertThat(p.statusCrs()).isEqualTo(StatusCrs.CONFIRMADO);
+        assertThat(p.crs()).isEqualTo("EPSG:4674");
+        assertThat(p.datum()).isEqualTo("SIRGAS 2000");
+        assertThat(p.conferencia().sistemaGeodesico()).isEqualTo("SIRGAS 2000");
+        assertThat(p.conferencia().crsEpsg()).isEqualTo(4674);
+        assertThat(p.conferencia().areaDocumentalHa()).isEqualByComparingTo("1.8955");
+        assertThat(p.conferencia().perimetroDocumentalM()).isEqualByComparingTo("919.71");
+        assertThat(p.conferencia().areaCalculadaM2()).isEqualByComparingTo("18954.7120");
+        assertThat(p.conferencia().perimetroCalculadoM()).isEqualByComparingTo("919.7012");
+        assertThat(p.conferencia().geometriaValida()).isTrue();
+        assertThat(p.vertices()).extracting(PerimetroResumo.Vertice::ordem).containsExactly(1,2,3,4);
+        assertThat(p.vertices()).extracting(PerimetroResumo.Vertice::marco)
+                .containsExactly("DZCZ-M-0205","DZCZ-M-0168","DZCZ-M-0167","DZCZ-M-0170");
+        assertThat(p.vertices().getFirst().longitude()).isEqualByComparingTo("-63.871070000");
+        assertThat(p.vertices().getFirst().latitude()).isEqualByComparingTo("-8.346821111");
+        assertThat(p.vertices().getFirst().altitudeGeodesicaM()).isEqualByComparingTo("90.30");
+        assertThat(p.getGeoJson().geometry().type()).isEqualTo("Polygon");
+        assertThat(p.getGeoJson().geometry().coordinates().toString()).contains("-63.871070000", "-8.346821111", "90.30");
     }
 
     @Test @Transactional @org.springframework.security.test.context.support.WithMockUser(username="admin-perimetro",roles="ADMIN")
@@ -72,12 +91,14 @@ class PropriedadeSqlServerIntegrationTests {
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null,
                         java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))));
-        var r = PerimetroServiceTests.request(PerimetroServiceTests.vertice(3,"-8.1234567","-63.1234567"),
-                PerimetroServiceTests.vertice(1,"-8.2","-63.2"),PerimetroServiceTests.vertice(2,"-8.3","-63.3"));
+        var r = perimetros.formulario(); r.setStatusCrs(StatusCrs.NAO_CONFIRMADO); r.setCrs(null); r.setDatum(null);
+        r.getVertices().clear();
+        r.getVertices().addAll(java.util.List.of(PerimetroServiceTests.vertice(3,"-8.123456789","-63.123456789"),
+                PerimetroServiceTests.vertice(1,"-8.2","-63.2"),PerimetroServiceTests.vertice(2,"-8.3","-63.3")));
         var salvo = perimetros.salvar(r); entityManager.clear();
         var lido = perimetros.obter();
         assertThat(lido.vertices()).extracting(PerimetroResumo.Vertice::ordem).containsExactly(1,2,3);
-        assertThat(lido.vertices().get(2).latitude()).isEqualByComparingTo("-8.1234567");
+        assertThat(lido.vertices().get(2).latitude()).isEqualByComparingTo("-8.123456789");
         assertThat(lido.statusCrs()).isEqualTo(StatusCrs.NAO_CONFIRMADO);
         assertThat(lido.alteradoPor()).isEqualTo("admin-perimetro");
         assertThat(lido.alteradoEm()).isNotNull();
@@ -90,7 +111,10 @@ class PropriedadeSqlServerIntegrationTests {
     }
 
     @Test @Transactional void perimetroTrocaOrdemRemoveVerticesEConfirmaReferenciaExplicita() {
-        var salvo = perimetros.salvar(PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2"),PerimetroServiceTests.vertice(2,"3","4")));
+        var inicial = perimetros.formulario(); inicial.getVertices().clear();
+        inicial.setStatusCrs(StatusCrs.NAO_CONFIRMADO); inicial.setCrs(null); inicial.setDatum(null);
+        inicial.getVertices().addAll(java.util.List.of(PerimetroServiceTests.vertice(1,"1","2"), PerimetroServiceTests.vertice(2,"3","4")));
+        var salvo = perimetros.salvar(inicial);
         var r = perimetros.formulario(); r.getVertices().get(0).setOrdem(2); r.getVertices().get(1).setOrdem(1);
         r.setStatusCrs(StatusCrs.CONFIRMADO); r.setCrs("CRS fornecido no levantamento"); r.setDatum("Datum documentado");
         perimetros.salvar(r); entityManager.clear();
@@ -102,7 +126,9 @@ class PropriedadeSqlServerIntegrationTests {
     }
 
     @Test @Transactional void versaoAntigaNaoAlteraPerimetro() {
-        var r = PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2"));
+        var r = perimetros.formulario(); r.getVertices().clear();
+        r.setStatusCrs(StatusCrs.NAO_CONFIRMADO); r.setCrs(null); r.setDatum(null);
+        r.getVertices().add(PerimetroServiceTests.vertice(1,"1","2"));
         var salvo = perimetros.salvar(r);
         assertThatThrownBy(() -> perimetros.salvar(r)).hasMessageContaining("Recarregue");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_perimetro_vertices WHERE perimetro_id=?",Integer.class,salvo.id())).isEqualTo(1);
@@ -110,7 +136,7 @@ class PropriedadeSqlServerIntegrationTests {
 
     @ParameterizedTest @ValueSource(strings={"duplicata","ordem","latitude","longitude","fk","crs"})
     @Transactional void constraintsDoPerimetroProtegemSqlDireto(String caso) {
-        var salvo = perimetros.salvar(PerimetroServiceTests.request(PerimetroServiceTests.vertice(1,"1","2")));
+        var salvo = perimetros.obter();
         assertThatThrownBy(() -> {
             switch(caso) {
                 case "duplicata" -> jdbc.update("INSERT INTO propriedade_perimetro_vertices(perimetro_id,ordem,latitude,longitude) VALUES (?,2,1,2)",salvo.id());

@@ -18,11 +18,12 @@ class PerimetroServiceTests {
     static ValidatorFactory factory;
     PropriedadeRepository propriedades = mock(PropriedadeRepository.class);
     PerimetroPropriedadeRepository perimetros = mock(PerimetroPropriedadeRepository.class);
+    PerimetroSpatialRepository spatial = mock(PerimetroSpatialRepository.class);
     PerimetroService service;
     @BeforeAll static void iniciar() { factory = Validation.buildDefaultValidatorFactory(); }
     @AfterAll static void fechar() { factory.close(); }
     @BeforeEach void dados() {
-        service = new PerimetroService(propriedades, perimetros, factory.getValidator());
+        service = new PerimetroService(propriedades, perimetros, spatial, factory.getValidator());
         var p = new Propriedade(); org.springframework.test.util.ReflectionTestUtils.setField(p,"id",1L);
         when(propriedades.findByPrincipalTrue()).thenReturn(Optional.of(p));
         when(propriedades.bloquearPrincipal()).thenReturn(Optional.of(p));
@@ -54,6 +55,7 @@ class PerimetroServiceTests {
         assertThat(mapa.poligonoFechado()).isEmpty();
         assertThat(mapa.crsConfirmado()).isFalse();
         assertThat(mapa.aviso()).contains("Nao representa area juridica");
+        assertThat(PerimetroResumo.vazio().getGeoJson().geometry()).isNull();
     }
     @ParameterizedTest @CsvSource({"1,0","2,0","3,4","4,5"})
     void mapaFechaVisualmenteSomenteComTresOuMaisVertices(int totalVertices, int pontosFechados) {
@@ -70,11 +72,22 @@ class PerimetroServiceTests {
             assertThat(mapa.poligonoFechado().getLast()).usingRecursiveComparison().isEqualTo(mapa.vertices().getFirst());
         }
     }
+    @Test void geoJsonPreservaOrdemUsaLongitudeLatitudeAltitudeEFechaPoligono() {
+        var v1 = vertice(1,"-8.346821111","-63.871070000"); v1.setAltitudeGeodesicaM(new BigDecimal("90.30"));
+        var v2 = vertice(2,"-8.350538889","-63.871139722"); v2.setAltitudeGeodesicaM(new BigDecimal("89.88"));
+        var v3 = vertice(3,"-8.350611389","-63.871590833"); v3.setAltitudeGeodesicaM(new BigDecimal("88.97"));
+        var r = request(v1, v2, v3);
+        var geoJson = service.salvar(r).getGeoJson();
+        assertThat(geoJson.type()).isEqualTo("Feature");
+        assertThat(geoJson.geometry().type()).isEqualTo("Polygon");
+        assertThat(geoJson.geometry().coordinates().toString()).contains("-63.871070000", "-8.346821111", "90.30");
+        assertThat(geoJson.properties()).containsEntry("statusCrs", "NAO_CONFIRMADO");
+    }
     @ParameterizedTest @CsvSource({"90,180","-90,-180","0,0","-8.1234567,-63.1234567"})
     void aceitaLimitesPrecisao(String lat,String lon) {
         assertThat(service.salvar(request(vertice(1,lat,lon))).vertices().getFirst().latitude()).isEqualByComparingTo(lat);
     }
-    @ParameterizedTest @CsvSource({"90.0000001,0","-90.0000001,0","0,180.0000001","0,-180.0000001","1.12345678,0"})
+    @ParameterizedTest @CsvSource({"90.0000001,0","-90.0000001,0","0,180.0000001","0,-180.0000001","1.1234567891,0"})
     void rejeitaCoordenadasInvalidas(String lat,String lon) {
         assertThatThrownBy(() -> service.salvar(request(vertice(1,lat,lon)))).isInstanceOf(PropriedadeOperacaoException.class);
         verify(perimetros,never()).saveAndFlush(any());

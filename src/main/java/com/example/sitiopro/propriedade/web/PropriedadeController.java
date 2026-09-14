@@ -29,7 +29,8 @@ public class PropriedadeController {
         if (binder.getTarget() instanceof PerimetroRequest) {
             binder.setAutoGrowCollectionLimit(500);
             binder.setAllowedFields("versao", "statusCrs", "crs", "datum", "observacao",
-                    "vertices[*].ordem", "vertices[*].latitude", "vertices[*].longitude", "vertices[*].marco", "vertices[*].observacao");
+                    "vertices[*].ordem", "vertices[*].latitude", "vertices[*].longitude",
+                    "vertices[*].altitudeGeodesicaM", "vertices[*].marco", "vertices[*].observacao");
         }
         if (binder.getTarget() instanceof PropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "municipio", "uf", "areaTotalHa", "latitudeCentral", "longitudeCentral", "ativo");
         if (binder.getTarget() instanceof AreaPropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "tipo", "areaHa", "ativo");

@@ -67,8 +67,9 @@ class ConfiguracaoOperacionalSqlServerIntegrationTests {
                 Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM configuracoes_operacionais", Integer.class)).isEqualTo(1);
         var config = service.obter();
-        assertThat(config.nomePropriedade()).isEqualTo("Sítio SQL");
-        assertThat(config.latitude()).isEqualByComparingTo("-8.123456");
+        assertThat(config.nomePropriedade()).isEqualTo("Sítio Guaratinguetá");
+        assertThat(config.latitude()).isNull();
+        assertThat(config.longitude()).isNull();
         assertThat(config.timezone()).isEqualTo("America/Porto_Velho");
         service.inicializar();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM configuracoes_operacionais", Integer.class)).isEqualTo(1);
@@ -90,6 +91,7 @@ class ConfiguracaoOperacionalSqlServerIntegrationTests {
             form.setDiasPadraoIncubacao(23);
             form.setAntecedenciaAlertaEclosaoDias(4);
             form.setLatitude(new BigDecimal("-9.123456"));
+            form.setLongitude(new BigDecimal("-63.654321"));
             service.atualizar(form);
             assertThat(jdbc.queryForObject("SELECT dias_padrao_incubacao FROM configuracoes_operacionais WHERE id=1",
                     Integer.class)).isEqualTo(23);
@@ -124,7 +126,8 @@ class ConfiguracaoOperacionalSqlServerIntegrationTests {
     void sqlRejeitaCoordenadasInvalidasEMultiplosRegistros() {
         assertThatThrownBy(() -> jdbc.update("UPDATE propriedades SET latitude_central=91 WHERE principal=1"))
                 .hasStackTraceContaining("ck_propriedades_latitude");
-        assertThatThrownBy(() -> jdbc.update("UPDATE propriedades SET longitude_central=NULL WHERE principal=1"))
+        assertThatThrownBy(() -> jdbc.update(
+                "UPDATE propriedades SET latitude_central=-8, longitude_central=NULL WHERE principal=1"))
                 .hasStackTraceContaining("ck_propriedades_coordenadas");
         assertThatThrownBy(() -> jdbc.update("UPDATE configuracoes_operacionais SET id=2 WHERE id=1"))
                 .hasStackTraceContaining("ck_config_operacionais_registro_unico");

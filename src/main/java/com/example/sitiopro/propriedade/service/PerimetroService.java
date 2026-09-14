@@ -15,9 +15,11 @@ import java.util.*;
 public class PerimetroService {
     private final PropriedadeRepository propriedades;
     private final PerimetroPropriedadeRepository perimetros;
+    private final PerimetroSpatialRepository spatial;
     private final Validator validator;
-    public PerimetroService(PropriedadeRepository propriedades, PerimetroPropriedadeRepository perimetros, Validator validator) {
-        this.propriedades = propriedades; this.perimetros = perimetros; this.validator = validator;
+    public PerimetroService(PropriedadeRepository propriedades, PerimetroPropriedadeRepository perimetros,
+            PerimetroSpatialRepository spatial, Validator validator) {
+        this.propriedades = propriedades; this.perimetros = perimetros; this.spatial = spatial; this.validator = validator;
     }
     public PerimetroResumo obter() {
         var p = propriedades.findByPrincipalTrue().orElseThrow(this::ausente);
@@ -29,7 +31,8 @@ public class PerimetroService {
         r.setDatum(p.datum()); r.setObservacao(p.observacao());
         for (var v : p.vertices()) {
             var item = new VerticePerimetroRequest(); item.setOrdem(v.ordem()); item.setLatitude(v.latitude());
-            item.setLongitude(v.longitude()); item.setMarco(v.marco()); item.setObservacao(v.observacao());
+            item.setLongitude(v.longitude()); item.setAltitudeGeodesicaM(v.altitudeGeodesicaM());
+            item.setMarco(v.marco()); item.setObservacao(v.observacao());
             r.getVertices().add(item);
         }
         return r;
@@ -46,9 +49,12 @@ public class PerimetroService {
                 "Perimetro alterado. Recarregue os dados antes de salvar.", HttpStatus.CONFLICT);
         if (p == null) { p = new PerimetroPropriedade(); p.setPropriedade(propriedade); }
         var vertices = r.getVertices().stream().sorted(Comparator.comparing(VerticePerimetroRequest::getOrdem))
-                .map(v -> new VerticePerimetro(v.getOrdem(), v.getLatitude(), v.getLongitude(), texto(v.getMarco()), texto(v.getObservacao()))).toList();
+                .map(v -> new VerticePerimetro(v.getOrdem(), v.getLatitude(), v.getLongitude(),
+                        v.getAltitudeGeodesicaM(), texto(v.getMarco()), texto(v.getObservacao()))).toList();
         p.atualizar(r.getStatusCrs(), texto(r.getCrs()), texto(r.getDatum()), texto(r.getObservacao()), vertices);
-        return resumo(perimetros.saveAndFlush(p));
+        var salvo = perimetros.saveAndFlush(p);
+        spatial.atualizarRepresentacao(salvo.getId());
+        return resumo(salvo);
     }
     private void validar(PerimetroRequest r) {
         var erros = validator.validate(r);
@@ -67,10 +73,14 @@ public class PerimetroService {
         }
     }
     private PerimetroResumo resumo(PerimetroPropriedade p) {
+        var conferencia = spatial.buscar(p.getId()).orElseGet(() -> new PerimetroConferenciaResumo(
+                p.getSistemaGeodesico(), p.getCrsEpsg(), p.getAreaDocumentalHa(), p.getPerimetroDocumentalM(),
+                p.getAreaCalculadaM2(), p.getPerimetroCalculadoM(), null, null));
         return new PerimetroResumo(p.getId(), p.getVersao(), p.getStatusCrs(), p.getCrs(), p.getDatum(), p.getObservacao(),
                 p.getVertices().stream().sorted(Comparator.comparingInt(VerticePerimetro::getOrdem))
-                        .map(v -> new PerimetroResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(), v.getMarco(), v.getObservacao())).toList(),
-                p.getAlteradoEm(), p.getAlteradoPor());
+                        .map(v -> new PerimetroResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(),
+                                v.getAltitudeGeodesicaM(), v.getMarco(), v.getObservacao())).toList(),
+                p.getAlteradoEm(), p.getAlteradoPor(), conferencia);
     }
     private String texto(String s) { return StringUtils.hasText(s) ? s.trim() : null; }
     private PropriedadeOperacaoException ausente() {

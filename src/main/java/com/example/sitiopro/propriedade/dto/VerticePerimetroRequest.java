@@ -5,10 +5,12 @@ import java.math.BigDecimal;
 
 public class VerticePerimetroRequest {
     @NotNull @Min(1) @Max(500) private Integer ordem;
-    @NotNull @DecimalMin("-90") @DecimalMax("90") @Digits(integer = 3, fraction = 7)
+    @NotNull @DecimalMin("-90") @DecimalMax("90") @Digits(integer = 3, fraction = 9)
     private BigDecimal latitude;
-    @NotNull @DecimalMin("-180") @DecimalMax("180") @Digits(integer = 3, fraction = 7)
+    @NotNull @DecimalMin("-180") @DecimalMax("180") @Digits(integer = 3, fraction = 9)
     private BigDecimal longitude;
+    @Digits(integer = 6, fraction = 2)
+    private BigDecimal altitudeGeodesicaM;
     @Size(max = 120) private String marco;
     @Size(max = 1000) private String observacao;
     public Integer getOrdem() { return ordem; }
@@ -17,6 +19,8 @@ public class VerticePerimetroRequest {
     public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
     public BigDecimal getLongitude() { return longitude; }
     public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
+    public BigDecimal getAltitudeGeodesicaM() { return altitudeGeodesicaM; }
+    public void setAltitudeGeodesicaM(BigDecimal altitudeGeodesicaM) { this.altitudeGeodesicaM = altitudeGeodesicaM; }
     public String getMarco() { return marco; }
     public void setMarco(String marco) { this.marco = marco; }
     public String getObservacao() { return observacao; }

@@ -6,10 +6,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record PerimetroResumo(Long id, long versao, StatusCrs statusCrs, String crs, String datum,
-        String observacao, List<Vertice> vertices, LocalDateTime alteradoEm, String alteradoPor) {
-    public PerimetroResumo { vertices = List.copyOf(vertices); }
+        String observacao, List<Vertice> vertices, LocalDateTime alteradoEm, String alteradoPor,
+        PerimetroConferenciaResumo conferencia) {
+    public PerimetroResumo {
+        vertices = List.copyOf(vertices);
+        conferencia = conferencia == null ? PerimetroConferenciaResumo.vazio() : conferencia;
+    }
+    public PerimetroResumo(Long id, long versao, StatusCrs statusCrs, String crs, String datum,
+            String observacao, List<Vertice> vertices, LocalDateTime alteradoEm, String alteradoPor) {
+        this(id, versao, statusCrs, crs, datum, observacao, vertices, alteradoEm, alteradoPor,
+                PerimetroConferenciaResumo.vazio());
+    }
     public int getQuantidadeVertices() { return vertices.size(); }
     public PerimetroMapaResumo getMapa() { return PerimetroMapaResumo.de(statusCrs, crs, datum, vertices); }
+    public PerimetroGeoJsonResumo getGeoJson() {
+        return PerimetroGeoJsonResumo.de(statusCrs, crs, datum, conferencia, vertices);
+    }
     public String getStatusGeorreferenciamento() {
         if (vertices.isEmpty()) return "SEM_VERTICES";
         if (vertices.size() < 3) return "EM_CADASTRO";
@@ -18,5 +30,10 @@ public record PerimetroResumo(Long id, long versao, StatusCrs statusCrs, String 
     public static PerimetroResumo vazio() {
         return new PerimetroResumo(null, -1, StatusCrs.NAO_CONFIRMADO, null, null, null, List.of(), null, null);
     }
-    public record Vertice(int ordem, BigDecimal latitude, BigDecimal longitude, String marco, String observacao) {}
+    public record Vertice(int ordem, BigDecimal latitude, BigDecimal longitude, BigDecimal altitudeGeodesicaM,
+            String marco, String observacao) {
+        public Vertice(int ordem, BigDecimal latitude, BigDecimal longitude, String marco, String observacao) {
+            this(ordem, latitude, longitude, null, marco, observacao);
+        }
+    }
 }
