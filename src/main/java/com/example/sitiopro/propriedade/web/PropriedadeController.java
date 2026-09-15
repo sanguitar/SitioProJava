@@ -39,7 +39,9 @@ public class PropriedadeController {
         }
         if (binder.getTarget() instanceof PropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "municipio", "uf", "areaTotalHa", "latitudeCentral", "longitudeCentral", "ativo");
         if (binder.getTarget() instanceof AreaPropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "tipo", "areaHa", "ativo");
-        if (binder.getTarget() instanceof TalhaoRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "areaHa", "status");
+        if (binder.getTarget() instanceof TalhaoRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "areaHa", "status",
+                "vertices[*].ordem", "vertices[*].latitude", "vertices[*].longitude",
+                "vertices[*].altitudeGeodesicaM", "vertices[*].marco", "vertices[*].observacao");
         if (binder.getTarget() instanceof PiqueteRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "areaHa", "status");
         if (binder.getTarget() instanceof EstruturaPropriedadeRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "tipo", "capacidade", "unidadeCapacidade", "ativo");
         if (binder.getTarget() instanceof RecursoHidricoRequest) binder.setAllowedFields("nome", "observacao", "versao", "areaId", "tipo", "capacidadeLitros", "ativo");
@@ -121,6 +123,24 @@ public class PropriedadeController {
         return csv.toString();
     }
 
+    private String csvTalhoesQgis(java.util.List<TalhaoMapaResumo> talhoes) {
+        StringBuilder csv = new StringBuilder("talhao_id,codigo,talhao,ordem,marco,longitude,latitude,altitude,epsg\r\n");
+        for (TalhaoMapaResumo talhao : talhoes) {
+            for (TalhaoMapaResumo.Ponto vertice : talhao.vertices()) {
+                csv.append(talhao.id()).append(',')
+                        .append(campoCsv(talhao.codigo())).append(',')
+                        .append(campoCsv(talhao.nome())).append(',')
+                        .append(vertice.ordem()).append(',')
+                        .append(campoCsv(vertice.rotulo())).append(',')
+                        .append(decimal(vertice.longitude())).append(',')
+                        .append(decimal(vertice.latitude())).append(',')
+                        .append(decimal(vertice.altitudeGeodesicaM())).append(',')
+                        .append(EPSG_SIRGAS_2000).append("\r\n");
+            }
+        }
+        return csv.toString();
+    }
+
     private String decimal(java.math.BigDecimal valor) {
         return valor == null ? "" : valor.toPlainString();
     }
@@ -142,6 +162,24 @@ public class PropriedadeController {
     public String atualizar(@Valid @ModelAttribute("form") PropriedadeRequest form, BindingResult result,
             Model model, RedirectAttributes redirect) {
         return salvar(() -> { service.atualizar(form); return null; }, form, result, model, redirect, "propriedade", null);
+    }
+
+    @GetMapping(value = "/talhoes/exportar-qgis.csv", produces = "text/csv")
+    public ResponseEntity<String> exportarTalhoesQgisCsv() {
+        String csv = csvTalhoesQgis(service.mapaTalhoes());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("talhoes-sirgas-2000-epsg-4674.csv").build().toString())
+                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+                .body(csv);
+    }
+
+    @GetMapping("/talhoes/exportar-qgis.geojson")
+    public ResponseEntity<TalhoesGeoJsonResumo> exportarTalhoesQgisGeoJson() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("talhoes-sirgas-2000-epsg-4674.geojson").build().toString())
+                .body(service.geoJsonTalhoes());
     }
 
     @GetMapping("/areas")
@@ -193,6 +231,8 @@ public class PropriedadeController {
     public String listarTalhao(@RequestParam(defaultValue = "0") int pagina, Model model) {
         base(model, "talhoes");
         model.addAttribute("pagina", service.listarTalhao(pagina, 20));
+        model.addAttribute("geoJsonUrl", "/sitio/propriedade/talhoes/exportar-qgis.geojson");
+        model.addAttribute("csvUrl", "/sitio/propriedade/talhoes/exportar-qgis.csv");
         return "propriedade/lista";
     }
 
@@ -217,14 +257,33 @@ public class PropriedadeController {
 
     @PostMapping("/talhoes")
     public String criarTalhao(@Valid @ModelAttribute("form") TalhaoRequest form, BindingResult result,
+            @RequestParam(defaultValue = "salvar") String acao, @RequestParam(required = false) Integer removerVertice,
             Model model, RedirectAttributes redirect) {
+        if (ajustarVerticesTalhao(form, acao, removerVertice, model, null)) return "propriedade/form";
         return salvar(() -> service.salvarTalhao(null, form), form, result, model, redirect, "talhoes", null);
     }
 
     @PostMapping("/talhoes/{id}")
     public String atualizarTalhao(@PathVariable Long id, @Valid @ModelAttribute("form") TalhaoRequest form,
-            BindingResult result, Model model, RedirectAttributes redirect) {
+            BindingResult result, @RequestParam(defaultValue = "salvar") String acao,
+            @RequestParam(required = false) Integer removerVertice, Model model, RedirectAttributes redirect) {
+        if (ajustarVerticesTalhao(form, acao, removerVertice, model, id)) return "propriedade/form";
         return salvar(() -> service.salvarTalhao(id, form), form, result, model, redirect, "talhoes", id);
+    }
+
+    private boolean ajustarVerticesTalhao(TalhaoRequest form, String acao, Integer removerVertice, Model model, Long id) {
+        if (!"adicionarVertice".equals(acao) && removerVertice == null) return false;
+        formulario(model, "talhoes", id, form);
+        if ("adicionarVertice".equals(acao)) {
+            var vertice = new VerticeTalhaoRequest();
+            int ultima = form.getVertices().stream().map(VerticeTalhaoRequest::getOrdem)
+                    .filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0);
+            vertice.setOrdem(ultima + 1);
+            form.getVertices().add(vertice);
+        } else if (removerVertice >= 0 && removerVertice < form.getVertices().size()) {
+            form.getVertices().remove(removerVertice.intValue());
+        }
+        return true;
     }
 
     @PostMapping("/talhoes/{id}/desativar")

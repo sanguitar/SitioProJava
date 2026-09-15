@@ -6,14 +6,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record PerimetroMapaResumo(String formato, String aviso, StatusCrs statusCrs, boolean crsConfirmado,
-        String crs, String datum, List<Ponto> vertices, List<Ponto> poligonoFechado) {
+        String crs, String datum, List<Ponto> vertices, List<Ponto> poligonoFechado,
+        List<TalhaoMapaResumo> talhoes) {
     public PerimetroMapaResumo {
         vertices = List.copyOf(vertices);
         poligonoFechado = List.copyOf(poligonoFechado);
+        talhoes = List.copyOf(talhoes);
     }
 
     static PerimetroMapaResumo de(StatusCrs statusCrs, String crs, String datum,
-            List<PerimetroResumo.Vertice> vertices) {
+            List<PerimetroResumo.Vertice> vertices, List<TalhaoMapaResumo> talhoes) {
         List<Ponto> pontos = vertices.stream()
                 .map(v -> new Ponto(v.ordem(), v.latitude(), v.longitude(), v.altitudeGeodesicaM(), rotulo(v)))
                 .toList();
@@ -24,7 +26,7 @@ public record PerimetroMapaResumo(String formato, String aviso, StatusCrs status
         }
         return new PerimetroMapaResumo("SITIOPRO_PERIMETRO_OPERACIONAL",
                 "Mapa operacional das coordenadas cadastradas. Nao representa area juridica, distancia oficial ou CRS presumido.",
-                statusCrs, statusCrs == StatusCrs.CONFIRMADO, crs, datum, pontos, poligono);
+                statusCrs, statusCrs == StatusCrs.CONFIRMADO, crs, datum, pontos, poligono, talhoes);
     }
 
     private static String rotulo(PerimetroResumo.Vertice vertice) {

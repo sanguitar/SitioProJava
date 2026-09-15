@@ -15,11 +15,13 @@ import java.util.*;
 public class PerimetroService {
     private final PropriedadeRepository propriedades;
     private final PerimetroPropriedadeRepository perimetros;
+    private final TalhaoRepository talhoes;
     private final PerimetroSpatialRepository spatial;
     private final Validator validator;
     public PerimetroService(PropriedadeRepository propriedades, PerimetroPropriedadeRepository perimetros,
-            PerimetroSpatialRepository spatial, Validator validator) {
-        this.propriedades = propriedades; this.perimetros = perimetros; this.spatial = spatial; this.validator = validator;
+            TalhaoRepository talhoes, PerimetroSpatialRepository spatial, Validator validator) {
+        this.propriedades = propriedades; this.perimetros = perimetros; this.talhoes = talhoes;
+        this.spatial = spatial; this.validator = validator;
     }
     public PerimetroResumo obter() {
         var p = propriedades.findByPrincipalTrue().orElseThrow(this::ausente);
@@ -80,7 +82,18 @@ public class PerimetroService {
                 p.getVertices().stream().sorted(Comparator.comparingInt(VerticePerimetro::getOrdem))
                         .map(v -> new PerimetroResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(),
                                 v.getAltitudeGeodesicaM(), v.getMarco(), v.getObservacao())).toList(),
-                p.getAlteradoEm(), p.getAlteradoPor(), conferencia);
+                p.getAlteradoEm(), p.getAlteradoPor(), conferencia, talhoes(p.getPropriedade().getId()));
+    }
+    private List<TalhaoMapaResumo> talhoes(Long propriedadeId) {
+        return talhoes.findByPropriedadeIdOrderByNomeAsc(propriedadeId).stream()
+                .filter(t -> !t.getVertices().isEmpty())
+                .map(t -> TalhaoMapaResumo.de(t.getId(), t.getCodigo(), t.getNome(), t.getAreaHa(), t.getAreaGisM2(),
+                        t.getAreaGisM2() != null, t.getVertices().stream()
+                                .sorted(Comparator.comparingInt(VerticeTalhao::getOrdem))
+                                .map(v -> new TalhaoMapaResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(),
+                                        v.getAltitudeGeodesicaM(), v.getMarco(), v.getObservacao()))
+                                .toList()))
+                .toList();
     }
     private String texto(String s) { return StringUtils.hasText(s) ? s.trim() : null; }
     private PropriedadeOperacaoException ausente() {

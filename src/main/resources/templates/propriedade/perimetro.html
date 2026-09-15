@@ -1,9 +1,9 @@
 <!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org">
-<head><th:block th:replace="~{fragments/head :: commonHead('Perímetro - Sítio Guaratinguetá')}"></th:block><link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<head><th:block th:replace="~{fragments/head :: commonHead('Perímetro - Sítio Guaratinguetá')}"></th:block><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.2.1/ol.css"><link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
 <body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside><main class="main-content property-page">
 <div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
 <h1 class="h4">Perímetro da propriedade</h1><div th:replace="~{propriedade/fragments :: tabs}"></div>
 <div th:replace="~{propriedade/fragments :: messages}"></div>
 <section th:replace="~{propriedade/perimetro-fragments :: mapa}"></section>
 <section th:replace="~{propriedade/perimetro-fragments :: resumo}"></section>
-<div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block><script defer th:src="@{/js/propriedade.js}"></script></body></html>
+<div th:replace="~{fragments/ui :: appFooter}"></div></main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block><script defer src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script><script defer src="https://cdn.jsdelivr.net/npm/ol@10.2.1/dist/ol.js"></script><script defer th:src="@{/js/propriedade.js}"></script></body></html>

@@ -31,6 +31,7 @@ public class PerimetroPropriedade extends AuditableEntity {
     private List<VerticePerimetro> vertices = new ArrayList<>();
 
     public Long getId() { return id; }
+    public Propriedade getPropriedade() { return propriedade; }
     public void setPropriedade(Propriedade propriedade) { this.propriedade = propriedade; }
     public StatusCrs getStatusCrs() { return statusCrs; }
     public String getCrs() { return crs; }

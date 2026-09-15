@@ -18,12 +18,13 @@ class PerimetroServiceTests {
     static ValidatorFactory factory;
     PropriedadeRepository propriedades = mock(PropriedadeRepository.class);
     PerimetroPropriedadeRepository perimetros = mock(PerimetroPropriedadeRepository.class);
+    TalhaoRepository talhoes = mock(TalhaoRepository.class);
     PerimetroSpatialRepository spatial = mock(PerimetroSpatialRepository.class);
     PerimetroService service;
     @BeforeAll static void iniciar() { factory = Validation.buildDefaultValidatorFactory(); }
     @AfterAll static void fechar() { factory.close(); }
     @BeforeEach void dados() {
-        service = new PerimetroService(propriedades, perimetros, spatial, factory.getValidator());
+        service = new PerimetroService(propriedades, perimetros, talhoes, spatial, factory.getValidator());
         var p = new Propriedade(); org.springframework.test.util.ReflectionTestUtils.setField(p,"id",1L);
         when(propriedades.findByPrincipalTrue()).thenReturn(Optional.of(p));
         when(propriedades.bloquearPrincipal()).thenReturn(Optional.of(p));

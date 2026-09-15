@@ -1,8 +1,11 @@
 package com.example.sitiopro.propriedade.dto;
 
 import com.example.sitiopro.propriedade.entity.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TalhaoRequest {
     @NotBlank @Size(max = 120)
@@ -23,6 +26,9 @@ public class TalhaoRequest {
     @NotNull
     private StatusDivisaoFisica status = StatusDivisaoFisica.ATIVO;
 
+    @Valid
+    private List<@NotNull VerticeTalhaoRequest> vertices = new ArrayList<>();
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getObservacao() { return observacao; }
@@ -35,4 +41,8 @@ public class TalhaoRequest {
     public void setAreaHa(BigDecimal areaHa) { this.areaHa = areaHa; }
     public StatusDivisaoFisica getStatus() { return status; }
     public void setStatus(StatusDivisaoFisica status) { this.status = status; }
+    public List<VerticeTalhaoRequest> getVertices() { return vertices; }
+    public void setVertices(List<VerticeTalhaoRequest> vertices) {
+        this.vertices = vertices == null ? new ArrayList<>() : vertices;
+    }
 }

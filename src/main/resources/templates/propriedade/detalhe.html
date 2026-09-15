@@ -15,6 +15,8 @@
 <div th:if="${registro.tipo}"><dt>Tipo</dt><dd th:text="${#strings.replace(registro.tipo,'_',' ')}"></dd></div>
 <div th:if="${cadastro != 'areas'}"><dt>Área vinculada</dt><dd th:text="${registro.areaNome ?: 'Sem vínculo'}"></dd></div>
 <div th:if="${registro.areaHa != null}"><dt>Área (ha)</dt><dd th:text="${registro.areaHa}"></dd></div>
+<div th:if="${registro.areaGisM2 != null}"><dt>Área GIS calculada</dt><dd th:text="${#numbers.formatDecimal(registro.areaGisM2,1,4) + ' m²'}"></dd></div>
+<div th:if="${cadastro == 'talhoes'}"><dt>Vértices georreferenciados</dt><dd th:text="${registro.quantidadeVertices}"></dd></div>
 <div th:if="${registro.capacidade != null}"><dt>Capacidade</dt><dd th:text="${registro.capacidade + ' ' + registro.unidadeCapacidade}"></dd></div>
 <div th:if="${registro.capacidadeLitros != null}"><dt>Capacidade (L)</dt><dd th:text="${registro.capacidadeLitros}"></dd></div>
 <div class="property-full"><dt>Observação</dt><dd th:text="${registro.observacao ?: 'Não informada'}"></dd></div>

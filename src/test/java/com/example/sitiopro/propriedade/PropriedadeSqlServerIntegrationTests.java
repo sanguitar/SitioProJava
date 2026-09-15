@@ -84,6 +84,45 @@ class PropriedadeSqlServerIntegrationTests {
         assertThat(p.getGeoJson().geometry().coordinates().toString()).contains("-63.871070000", "-8.346821111", "90.30");
     }
 
+    @Test @Transactional void v22TalhaoGeorreferenciadoUsaSirgas2000EPermaneceDentroDoPerimetro() {
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='22'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id WHERE c.object_id = OBJECT_ID('propriedade_talhoes') AND c.name = 'geometria_geography' AND t.name = 'geography'", Integer.class)).isEqualTo(1);
+
+        var r = new TalhaoRequest();
+        r.setNome("Talhão georreferenciado");
+        r.setAreaHa(new BigDecimal("0.1000"));
+        r.getVertices().addAll(java.util.List.of(
+                verticeTalhao(1, "-8.347200000", "-63.871160000", "90.10", "T1"),
+                verticeTalhao(2, "-8.348000000", "-63.871190000", "90.20", "T2"),
+                verticeTalhao(3, "-8.347500000", "-63.871380000", "90.30", "T3")));
+
+        var salvo = service.salvarTalhao(null, r);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(salvo.quantidadeVertices()).isEqualTo(3);
+        assertThat(salvo.areaGisM2()).isNotNull();
+        assertThat(salvo.areaGisM2()).isNotEqualByComparingTo(salvo.areaHa());
+        assertThat(jdbc.queryForObject("SELECT geometria_crs_epsg FROM propriedade_talhoes WHERE id=?",
+                Integer.class, salvo.id())).isEqualTo(4674);
+        assertThat(jdbc.queryForObject("SELECT geometria_geography.STIsValid() FROM propriedade_talhoes WHERE id=?",
+                Boolean.class, salvo.id())).isTrue();
+        assertThat(jdbc.queryForList("SELECT ordem FROM propriedade_talhao_vertices WHERE talhao_id=? ORDER BY ordem",
+                Integer.class, salvo.id())).containsExactly(1, 2, 3);
+        assertThat(perimetros.obter().getMapa().talhoes()).extracting(TalhaoMapaResumo::nome)
+                .contains("Talhão georreferenciado");
+        assertThat(service.geoJsonTalhoes().features().getFirst().geometry().type()).isEqualTo("Polygon");
+
+        var fora = new TalhaoRequest();
+        fora.setNome("Talhão fora");
+        fora.setAreaHa(new BigDecimal("0.1000"));
+        fora.getVertices().addAll(java.util.List.of(
+                verticeTalhao(1, "-8.100000000", "-63.100000000", null, "F1"),
+                verticeTalhao(2, "-8.100100000", "-63.100000000", null, "F2"),
+                verticeTalhao(3, "-8.100000000", "-63.100100000", null, "F3")));
+        assertThatThrownBy(() -> service.salvarTalhao(null, fora)).hasMessageContaining("dentro do perímetro");
+    }
+
     @Test @Transactional @org.springframework.security.test.context.support.WithMockUser(username="admin-perimetro",roles="ADMIN")
     void perimetroPersisteOrdemPrecisaoAuditoriaEAtualizaSomenteVertices() {
         var principal = org.mockito.Mockito.mock(com.example.sitiopro.usuario.security.UsuarioPrincipal.class);
@@ -234,6 +273,17 @@ class PropriedadeSqlServerIntegrationTests {
         assertThat(primeiro.codigo()).isNotEqualTo(segundo.codigo());
         var editado = service.formularioTalhao(primeiro.id()); editado.setNome("Renomeado");
         assertThat(service.salvarTalhao(primeiro.id(),editado).codigo()).isEqualTo(primeiro.codigo());
+    }
+
+    private static VerticeTalhaoRequest verticeTalhao(int ordem, String latitude, String longitude,
+            String altitude, String marco) {
+        var v = new VerticeTalhaoRequest();
+        v.setOrdem(ordem);
+        v.setLatitude(new BigDecimal(latitude));
+        v.setLongitude(new BigDecimal(longitude));
+        if (altitude != null) v.setAltitudeGeodesicaM(new BigDecimal(altitude));
+        v.setMarco(marco);
+        return v;
     }
 
     @Test @Transactional void fkCompostaRejeitaAreaDeOutraPropriedade() {

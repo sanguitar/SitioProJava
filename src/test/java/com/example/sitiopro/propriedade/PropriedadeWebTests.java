@@ -39,6 +39,8 @@ class PropriedadeWebTests {
         var perimetroForm = new PerimetroRequest(); perimetroForm.setVersao(-1L);
         when(perimetros.formulario()).thenReturn(perimetroForm);
         when(perimetros.salvar(any())).thenReturn(PerimetroResumo.vazio());
+        when(service.mapaTalhoes()).thenReturn(List.of());
+        when(service.geoJsonTalhoes()).thenReturn(new TalhoesGeoJsonResumo("FeatureCollection", List.of()));
         when(service.resumo()).thenReturn(new PropriedadeResumo(42L,"Sítio MVC",null,null,null,null,null,null,true,0,0,0,0,0,0));
         var p=new PropriedadeRequest(); p.setNome("Sítio MVC"); p.setVersao(0L);
         when(service.formulario()).thenReturn(p);
@@ -68,7 +70,11 @@ class PropriedadeWebTests {
         mvc.perform(get("/sitio/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("NÃO CONFIRMADO")))
                 .andExpect(content().string(containsString("data-perimeter-map")))
+                .andExpect(content().string(containsString("Centralizar propriedade")))
                 .andExpect(content().string(containsString("Exportar para QGIS")))
+                .andExpect(content().string(containsString("proj4@")))
+                .andExpect(content().string(containsString("ol@")))
+                .andExpect(content().string(containsString("data-ol-map")))
                 .andExpect(content().string(containsString("/js/propriedade.js")));
         mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.statusCrs").value("NAO_CONFIRMADO"))
@@ -94,6 +100,7 @@ class PropriedadeWebTests {
                 .andExpect(jsonPath("$.mapa.vertices[0].rotulo").value("1 - A"))
                 .andExpect(jsonPath("$.mapa.poligonoFechado", hasSize(4)))
                 .andExpect(jsonPath("$.mapa.poligonoFechado[3].ordem").value(1))
+                .andExpect(jsonPath("$.mapa.talhoes", hasSize(0)))
                 .andExpect(jsonPath("$.geoJson.geometry.type").value("Polygon"))
                 .andExpect(jsonPath("$.geoJson.geometry.coordinates[0]", hasSize(4)))
                 .andExpect(jsonPath("$.geoJson.geometry.coordinates[0][0][0]").value(-45.1))
@@ -128,6 +135,57 @@ class PropriedadeWebTests {
     @Test void perimetroExportacaoQgisExigeAutenticacao() throws Exception {
         mvc.perform(get("/sitio/propriedade/perimetro/exportar-qgis"))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test void perimetroApiIncluiTalhoesGeorreferenciadosNoMapa() throws Exception {
+        when(perimetros.obter()).thenReturn(new PerimetroResumo(9L, 0,
+                com.example.sitiopro.propriedade.entity.StatusCrs.CONFIRMADO, "EPSG:4674", "SIRGAS 2000", null,
+                List.of(new PerimetroResumo.Vertice(1, new BigDecimal("-8.346821111"), new BigDecimal("-63.871070000"), "A", null),
+                        new PerimetroResumo.Vertice(2, new BigDecimal("-8.350538889"), new BigDecimal("-63.871139722"), "B", null),
+                        new PerimetroResumo.Vertice(3, new BigDecimal("-8.350611389"), new BigDecimal("-63.871590833"), "C", null)),
+                null, null, PerimetroConferenciaResumo.vazio(), List.of(talhaoMapa())));
+        mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapa.talhoes", hasSize(1)))
+                .andExpect(jsonPath("$.mapa.talhoes[0].nome").value("Talhão A"))
+                .andExpect(jsonPath("$.mapa.talhoes[0].vertices[*].ordem", contains(1,2,3)));
+    }
+
+    @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
+    void talhoesExportacaoQgisCsvEGeoJsonPreservamOrdemPrecisaoEPermissoes(String role) throws Exception {
+        when(service.mapaTalhoes()).thenReturn(List.of(talhaoMapa()));
+        when(service.geoJsonTalhoes()).thenReturn(TalhoesGeoJsonResumo.de(List.of(talhaoMapa())));
+
+        mvc.perform(get("/sitio/propriedade/talhoes/exportar-qgis.csv").with(user("leitor").roles(role)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        containsString("talhoes-sirgas-2000-epsg-4674.csv")))
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string("talhao_id,codigo,talhao,ordem,marco,longitude,latitude,altitude,epsg\r\n"
+                        + "7,TL-0007,Talhão A,1,1 - T1,-63.871160000,-8.347200000,90.10,4674\r\n"
+                        + "7,TL-0007,Talhão A,2,2 - T2,-63.871190000,-8.348000000,90.20,4674\r\n"
+                        + "7,TL-0007,Talhão A,3,3 - T3,-63.871380000,-8.347500000,90.30,4674\r\n"));
+
+        mvc.perform(get("/sitio/propriedade/talhoes/exportar-qgis.geojson").with(user("leitor").roles(role)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        containsString("talhoes-sirgas-2000-epsg-4674.geojson")))
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features[0].geometry.type").value("Polygon"))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[0]", hasSize(4)))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[0][0][0]").value(-63.871160000))
+                .andExpect(jsonPath("$.features[0].properties.epsg").value(4674));
+    }
+
+    private TalhaoMapaResumo talhaoMapa() {
+        return TalhaoMapaResumo.de(7L, "TL-0007", "Talhão A", new BigDecimal("0.1000"),
+                new BigDecimal("1234.5678"), true, List.of(
+                        new TalhaoMapaResumo.Vertice(1, new BigDecimal("-8.347200000"),
+                                new BigDecimal("-63.871160000"), new BigDecimal("90.10"), "T1", null),
+                        new TalhaoMapaResumo.Vertice(2, new BigDecimal("-8.348000000"),
+                                new BigDecimal("-63.871190000"), new BigDecimal("90.20"), "T2", null),
+                        new TalhaoMapaResumo.Vertice(3, new BigDecimal("-8.347500000"),
+                                new BigDecimal("-63.871380000"), new BigDecimal("90.30"), "T3", null)));
     }
 
     @Test void perimetroRestritoAdminECsrf() throws Exception {

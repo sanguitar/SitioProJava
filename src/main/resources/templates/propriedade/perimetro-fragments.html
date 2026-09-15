@@ -1,14 +1,17 @@
 <!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"><body>
 <section th:fragment="mapa" class="property-section" th:if="${perimetro != null}">
-    <div class="property-heading"><div><h2>Mapa operacional</h2>
-        <p>Visualização das coordenadas cadastradas, sem cálculo de área jurídica ou oficial.</p></div>
+    <div class="property-heading"><div><h2>Mapa georreferenciado</h2>
+        <p>Visualização cartográfica em SIRGAS 2000 / EPSG:4674, com transformação apenas para renderização.</p></div>
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-center-property><i class="fa-solid fa-crosshairs me-2" aria-hidden="true"></i>Centralizar propriedade</button>
     </div>
     <div class="perimeter-map-warning" th:if="${perimetro.statusCrs.name() != 'CONFIRMADO'}">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
         CRS/datum não confirmado. O desenho abaixo é apenas uma visualização operacional dos pontos informados.
     </div>
     <div class="perimeter-map-shell" data-perimeter-map th:data-perimeter-api="@{/api/v1/propriedade/perimetro}">
-        <svg class="perimeter-map" viewBox="0 0 900 520" role="img" aria-labelledby="perimeter-map-title perimeter-map-desc">
+        <div class="perimeter-ol-map" data-ol-map role="application" aria-label="Mapa georreferenciado da propriedade"></div>
+        <div class="perimeter-popup" data-map-popup></div>
+        <svg class="perimeter-map perimeter-map-fallback" viewBox="0 0 900 520" role="img" aria-labelledby="perimeter-map-title perimeter-map-desc" data-svg-fallback hidden>
             <title id="perimeter-map-title">Mapa do perímetro da propriedade</title>
             <desc id="perimeter-map-desc">Representação visual local dos vértices do perímetro na ordem cadastrada.</desc>
             <g data-map-layer></g>

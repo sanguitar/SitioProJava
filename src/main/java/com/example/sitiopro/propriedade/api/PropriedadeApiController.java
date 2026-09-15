@@ -56,6 +56,9 @@ public class PropriedadeApiController {
     public PaginaResponse<CadastroFisicoResumo> listarTalhao(@RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamanho) { return service.listarTalhao(pagina, tamanho); }
 
+    @GetMapping("/talhoes/geojson")
+    public TalhoesGeoJsonResumo geoJsonTalhoes() { return service.geoJsonTalhoes(); }
+
     @GetMapping("/talhoes/{id}")
     public CadastroFisicoResumo detalharTalhao(@PathVariable Long id) { return service.detalharTalhao(id); }
 

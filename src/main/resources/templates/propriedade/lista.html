@@ -7,7 +7,11 @@
 <div th:replace="~{fragments/ui :: topbar(${titulo}, 'Propriedade')}"></div>
 
 <header class="property-heading"><div><small class="module-group">Cadastro físico</small><h1 th:text="${titulo}"></h1></div>
-<a sec:authorize="hasRole('ADMIN')" th:href="@{${caminho + '/novo'}}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo cadastro</a></header>
+<div class="property-actions">
+<a th:if="${csvUrl}" th:href="@{${csvUrl}}" class="btn btn-outline-secondary"><i class="fa-solid fa-file-csv me-2"></i>QGIS CSV</a>
+<a th:if="${geoJsonUrl}" th:href="@{${geoJsonUrl}}" class="btn btn-outline-secondary"><i class="fa-solid fa-code me-2"></i>QGIS GeoJSON</a>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{${caminho + '/novo'}}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo cadastro</a>
+</div></header>
 <div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>
 <div class="property-empty" th:if="${pagina.conteudo.isEmpty()}"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><p>Nenhum registro cadastrado.</p></div>
 <div class="table-responsive" th:unless="${pagina.conteudo.isEmpty()}">
@@ -16,6 +20,8 @@
 <td><a th:href="@{${caminho + '/' + r.id}}" th:text="${r.nome}"></a><small th:if="${r.codigo}" th:text="${r.codigo}"></small></td>
 <td><span th:text="${r.tipo == null ? (r.areaNome ?: 'Sem área vinculada') : #strings.replace(r.tipo, '_', ' ')}"></span></td>
 <td><span th:if="${r.areaHa != null}" th:text="${#numbers.formatDecimal(r.areaHa,1,4) + ' ha'}"></span>
+<small th:if="${r.areaGisM2 != null}" th:text="${'GIS ' + #numbers.formatDecimal(r.areaGisM2,1,4) + ' m²'}"></small>
+<small th:if="${r.quantidadeVertices > 0}" th:text="${r.quantidadeVertices + ' vértices'}"></small>
 <span th:if="${r.capacidade != null}" th:text="${r.capacidade + ' ' + r.unidadeCapacidade}"></span>
 <span th:if="${r.capacidadeLitros != null}" th:text="${r.capacidadeLitros + ' L'}"></span>
 <span th:if="${r.areaHa == null and r.capacidade == null and r.capacidadeLitros == null}">Não informada</span></td>

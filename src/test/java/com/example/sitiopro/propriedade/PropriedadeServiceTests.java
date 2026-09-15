@@ -30,6 +30,7 @@ class PropriedadeServiceTests {
     @Mock EstruturaPropriedadeRepository estruturas;
     @Mock RecursoHidricoRepository recursos;
     @Mock InstalacaoCriacaoRepository instalacoes;
+    @Mock TalhaoSpatialRepository talhaoSpatial;
     @Mock EntityManager em;
     static ValidatorFactory factory;
     PropriedadeService service;
@@ -43,7 +44,7 @@ class PropriedadeServiceTests {
         ReflectionTestUtils.setField(principal, "id", 42L);
         lenient().when(propriedades.findByPrincipalTrue()).thenReturn(Optional.of(principal));
         service = new PropriedadeService(propriedades, areas, talhoes, piquetes, estruturas,
-                recursos, instalacoes, factory.getValidator(), em);
+                recursos, instalacoes, talhaoSpatial, factory.getValidator(), em);
     }
 
     @Test void consultaPrincipalSemAssumirIdUm() {

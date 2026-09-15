@@ -30,10 +30,16 @@
 .property-table small { display: block; color: var(--text-muted); }
 .property-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 16px 0; font-size: 0.8rem; }
 .perimeter-map-warning { display: flex; align-items: center; gap: 10px; color: #7a4f00; background: #fff7df; border: 1px solid #f0d28a; padding: 12px 14px; margin-bottom: 14px; font-size: 0.88rem; }
-.perimeter-map-shell { position: relative; min-height: 260px; border: 1px solid var(--line-soft); background: linear-gradient(180deg, #f8fbf7, #eef5ef); overflow: hidden; }
-.perimeter-map { display: block; width: 100%; aspect-ratio: 900 / 520; min-height: 260px; }
+.perimeter-map-shell { position: relative; min-height: 420px; border: 1px solid var(--line-soft); background: linear-gradient(180deg, #f8fbf7, #eef5ef); overflow: hidden; }
+.perimeter-ol-map, .perimeter-map { display: block; width: 100%; aspect-ratio: 900 / 520; min-height: 420px; }
+.perimeter-map-fallback[hidden] { display: none; }
+.perimeter-popup { position: absolute; min-width: 190px; max-width: 280px; background: #fff; border: 1px solid var(--line-soft); box-shadow: 0 12px 28px rgba(16,42,31,.16); padding: 10px 12px; font-size: .78rem; color: var(--text-secondary); transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; display: none; z-index: 2; }
+.perimeter-popup strong { display: block; color: var(--text-primary); margin-bottom: 4px; }
+.perimeter-popup.is-visible { display: block; }
 .perimeter-grid { stroke: rgba(42, 88, 63, 0.12); stroke-width: 1; }
 .perimeter-polygon { fill: rgba(23, 102, 58, 0.16); stroke: none; }
+.talhao-polygon { fill: color-mix(in srgb, var(--talhao-color) 24%, transparent); stroke: var(--talhao-color); stroke-width: 2.5; stroke-linejoin: round; }
+.talhao-label { fill: #102a1f; font-size: 17px; font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 5px; stroke-linejoin: round; }
 .perimeter-line { fill: none; stroke: #17663a; stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
 .perimeter-marker circle { fill: #ffffff; stroke: #17663a; stroke-width: 3; }
 .perimeter-marker text { fill: #173d2a; font-size: 18px; font-weight: 700; paint-order: stroke; stroke: #ffffff; stroke-width: 5px; stroke-linejoin: round; }

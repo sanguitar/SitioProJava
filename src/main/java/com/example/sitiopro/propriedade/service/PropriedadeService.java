@@ -26,12 +26,13 @@ public class PropriedadeService {
     private final EstruturaPropriedadeRepository estruturas;
     private final RecursoHidricoRepository recursos;
     private final InstalacaoCriacaoRepository instalacoes;
+    private final TalhaoSpatialRepository talhaoSpatial;
     private final Validator validator;
     private final EntityManager entityManager;
 
     public PropriedadeService(PropriedadeRepository propriedades, AreaPropriedadeRepository areas,
             TalhaoRepository talhoes, PiqueteRepository piquetes, EstruturaPropriedadeRepository estruturas,
-            RecursoHidricoRepository recursos, InstalacaoCriacaoRepository instalacoes,
+            RecursoHidricoRepository recursos, InstalacaoCriacaoRepository instalacoes, TalhaoSpatialRepository talhaoSpatial,
             Validator validator, EntityManager entityManager) {
         this.propriedades = propriedades;
         this.areas = areas;
@@ -40,6 +41,7 @@ public class PropriedadeService {
         this.estruturas = estruturas;
         this.recursos = recursos;
         this.instalacoes = instalacoes;
+        this.talhaoSpatial = talhaoSpatial;
         this.validator = validator;
         this.entityManager = entityManager;
     }
@@ -231,6 +233,13 @@ public class PropriedadeService {
         r.setAreaId(e.getArea() == null ? null : e.getArea().getId());
         r.setAreaHa(e.getAreaHa());
         r.setStatus(e.getStatus());
+        r.setVertices(e.getVertices().stream().map(v -> {
+            var item = new VerticeTalhaoRequest();
+            item.setOrdem(v.getOrdem()); item.setLatitude(v.getLatitude()); item.setLongitude(v.getLongitude());
+            item.setAltitudeGeodesicaM(v.getAltitudeGeodesicaM()); item.setMarco(v.getMarco());
+            item.setObservacao(v.getObservacao());
+            return item;
+        }).toList());
         return r;
     }
 
@@ -246,9 +255,65 @@ public class PropriedadeService {
         e.setArea(area(r.getAreaId(), p, e.getArea()));
         e.setAreaHa(r.getAreaHa());
         e.setStatus(r.getStatus());
+        e.substituirVertices(verticesTalhao(r));
         talhoes.saveAndFlush(e);
+        talhaoSpatial.validarEAtualizarRepresentacao(e.getId());
         entityManager.refresh(e);
         return resumo(e);
+    }
+
+    public java.util.List<TalhaoMapaResumo> mapaTalhoes() {
+        return talhoes.findByPropriedadeIdOrderByNomeAsc(principal().getId()).stream().map(this::mapaTalhao).toList();
+    }
+
+    public TalhoesGeoJsonResumo geoJsonTalhoes() {
+        return TalhoesGeoJsonResumo.de(mapaTalhoes());
+    }
+
+    private TalhaoMapaResumo mapaTalhao(Talhao e) {
+        return TalhaoMapaResumo.de(e.getId(), e.getCodigo(), e.getNome(), e.getAreaHa(), e.getAreaGisM2(),
+                e.getAreaGisM2() != null, e.getVertices().stream()
+                        .sorted(java.util.Comparator.comparingInt(VerticeTalhao::getOrdem))
+                        .map(v -> new TalhaoMapaResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(),
+                                v.getAltitudeGeodesicaM(), v.getMarco(), v.getObservacao()))
+                        .toList());
+    }
+
+    private java.util.List<VerticeTalhao> verticesTalhao(TalhaoRequest r) {
+        java.util.List<VerticeTalhaoRequest> vertices = r.getVertices() == null ? java.util.List.of() : r.getVertices();
+        java.util.Set<Integer> ordens = new java.util.HashSet<>();
+        java.util.Set<String> coordenadas = new java.util.HashSet<>();
+        java.util.List<VerticeTalhao> resultado = new java.util.ArrayList<>();
+        for (VerticeTalhaoRequest v : vertices.stream()
+                .sorted(java.util.Comparator.comparing(VerticeTalhaoRequest::getOrdem,
+                        java.util.Comparator.nullsLast(Integer::compareTo))).toList()) {
+            if (v.getOrdem() == null || v.getLatitude() == null || v.getLongitude() == null) {
+                continue;
+            }
+            if (v.getLatitude().compareTo(java.math.BigDecimal.valueOf(-90)) < 0
+                    || v.getLatitude().compareTo(java.math.BigDecimal.valueOf(90)) > 0) {
+                throw new PropriedadeOperacaoException("vertices", "Latitude do talhão fora do intervalo permitido.");
+            }
+            if (v.getLongitude().compareTo(java.math.BigDecimal.valueOf(-180)) < 0
+                    || v.getLongitude().compareTo(java.math.BigDecimal.valueOf(180)) > 0) {
+                throw new PropriedadeOperacaoException("vertices", "Longitude do talhão fora do intervalo permitido.");
+            }
+            if (!ordens.add(v.getOrdem())) {
+                throw new PropriedadeOperacaoException("vertices", "Não repita a ordem dos vértices do talhão.");
+            }
+            String chave = v.getLatitude().stripTrailingZeros().toPlainString() + "|"
+                    + v.getLongitude().stripTrailingZeros().toPlainString();
+            if (!coordenadas.add(chave)) {
+                throw new PropriedadeOperacaoException("vertices",
+                        "Coordenadas duplicadas. Não repita o primeiro vértice para fechar o talhão.");
+            }
+            resultado.add(new VerticeTalhao(v.getOrdem(), v.getLatitude(), v.getLongitude(),
+                    v.getAltitudeGeodesicaM(), texto(v.getMarco()), texto(v.getObservacao())));
+        }
+        if (!resultado.isEmpty() && resultado.size() < 3) {
+            throw new PropriedadeOperacaoException("vertices", "Informe pelo menos três vértices para georreferenciar o talhão.");
+        }
+        return resultado;
     }
 
     @Transactional
@@ -266,7 +331,8 @@ public class PropriedadeService {
                 e.getAreaHa(),
                 null, null,
                 null, e.getObservacao(),
-                e.getStatus() == StatusDivisaoFisica.ATIVO, e.getStatus().name(), e.getVersao());
+                e.getStatus() == StatusDivisaoFisica.ATIVO, e.getStatus().name(), e.getVersao(),
+                e.getAreaGisM2(), e.getVertices().size());
     }
 
     public PaginaResponse<CadastroFisicoResumo> listarPiquete(int pagina, int tamanho) {
