@@ -45,6 +45,12 @@
 .agri-table td { max-width: 260px; overflow-wrap: anywhere; vertical-align: middle; }
 .agriculture-page .table-responsive { position: relative; }
 .agri-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 18px 0; font-size: 0.8rem; }
+.agriculture-page .perimeter-map-shell { margin-top: 12px; }
+.agriculture-page .perimeter-popup { pointer-events: auto; }
+.agriculture-page .perimeter-popup hr { border: 0; border-top: 1px solid var(--line-soft); margin: 8px 0; }
+.agriculture-page .perimeter-popup a { color: var(--semantic-success); font-weight: 700; text-decoration: none; }
+.agriculture-page .talhao-polygon.has-crop { fill-opacity: 0.42; stroke-width: 4px; }
+.agriculture-page .talhao-polygon.has-alert { fill: rgba(180, 35, 24, 0.36); stroke: #b42318; stroke-width: 5px; }
 @media (max-width: 760px) {
     .agri-columns, .agri-fields, .agri-details { grid-template-columns: minmax(0, 1fr); }
     .agri-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

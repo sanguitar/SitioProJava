@@ -10,6 +10,9 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public interface CultivoRepository extends JpaRepository<Cultivo, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"safra", "talhao", "cultura"})
+    List<Cultivo> findByPropriedadeIdAndStatusInOrderByDataPlantioDescIdDesc(Long propriedadeId,
+            Collection<StatusCultivo> statuses);
     Page<Cultivo> findByPropriedadeIdOrderByIdDesc(Long propriedadeId, Pageable pagina);
     Optional<Cultivo> findByIdAndPropriedadeId(Long id, Long propriedadeId);
     boolean existsBySafraIdAndStatusIn(Long safraId, Collection<StatusCultivo> statuses);

@@ -5,7 +5,9 @@ import com.example.sitiopro.agricultura.entity.*;
 import com.example.sitiopro.agricultura.repository.*;
 import com.example.sitiopro.agricultura.service.*;
 import com.example.sitiopro.propriedade.entity.*;
+import com.example.sitiopro.propriedade.dto.*;
 import com.example.sitiopro.propriedade.repository.TalhaoRepository;
+import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.integracao.embrapa.agrofit.entity.AgrofitCultura;
@@ -48,6 +50,7 @@ class AgriculturaServiceTests {
     HistoricoOcorrenciaCultivoRepository historicosOcorrencia = mock(HistoricoOcorrenciaCultivoRepository.class);
     TalhaoRepository talhoes = mock(TalhaoRepository.class);
     AgrofitCulturaRepository agrofit = mock(AgrofitCulturaRepository.class);
+    PerimetroService perimetros = mock(PerimetroService.class);
     PropriedadeService propriedades = mock(PropriedadeService.class);
     EstoqueMovimentoService estoque = mock(EstoqueMovimentoService.class);
     TarefaService tarefas = mock(TarefaService.class);
@@ -59,7 +62,7 @@ class AgriculturaServiceTests {
     @BeforeEach void dados() {
         service = new AgriculturaService(safras, culturas, cultivos, plantios, acompanhamentos, colheitas,
                 adubacoes, irrigacoes, tratamentos, ocorrencias, historicosOcorrencia,
-                talhoes, agrofit, propriedades, estoque, tarefas, alertas, ConfiguracaoOperacionalTestFixture.servico(),
+                talhoes, agrofit, perimetros, propriedades, estoque, tarefas, alertas, ConfiguracaoOperacionalTestFixture.servico(),
                 em, VALIDATION.getValidator(), Clock.fixed(Instant.parse("2026-09-03T12:00:00Z"), ZoneOffset.UTC));
         propriedade = id(new Propriedade(), 1); propriedade.setNome("Sitio teste");
         safra = id(new Safra(), 2); safra.setPropriedade(propriedade); safra.setNome("Safra teste");
@@ -174,6 +177,32 @@ class AgriculturaServiceTests {
         var r = service.salvarCultivo(null,cultivoRequest());
         assertThat(r.status()).isEqualTo(StatusCultivo.PLANEJADO); assertThat(r.talhaoId()).isEqualTo(3);
         assertThat(r.previsaoColheita()).isEqualTo(DATA.plusDays(100)); assertThat(r.diasDesdePlantio()).isNull();
+    }
+    @Test void mapaOperacionalReusaGeometriaDoTalhaoEAgregaCultivoOcorrencias() {
+        cultivo.setStatus(StatusCultivo.EM_DESENVOLVIMENTO);
+        var talhaoMapa = TalhaoMapaResumo.de(3L, "TL-0003", "Talhao oficial", new BigDecimal("2.0000"),
+                new BigDecimal("19990.1200"), true, List.of());
+        when(perimetros.obter()).thenReturn(new PerimetroResumo(20L, 0, StatusCrs.CONFIRMADO, "EPSG:4674",
+                "SIRGAS 2000", null, List.of(), null, null, PerimetroConferenciaResumo.vazio(),
+                List.of(talhaoMapa)));
+        when(cultivos.findByPropriedadeIdAndStatusInOrderByDataPlantioDescIdDesc(eq(1L), any())).thenReturn(List.of(cultivo));
+        var media = ocorrenciaAberta(); media.setSeveridade(SeveridadeOcorrencia.MEDIA);
+        var critica = ocorrenciaAberta(); critica.setSeveridade(SeveridadeOcorrencia.CRITICA);
+        when(ocorrencias.findByCultivoPropriedadeIdAndStatusIn(eq(1L), any())).thenReturn(List.of(media, critica));
+
+        var mapa = service.mapaOperacional();
+
+        assertThat(mapa.crs()).isEqualTo("EPSG:4674");
+        assertThat(mapa.talhoes()).hasSize(1);
+        var talhaoOperacional = mapa.talhoes().getFirst();
+        assertThat(talhaoOperacional.id()).isEqualTo(3L);
+        assertThat(talhaoOperacional.areaGisM2()).isEqualByComparingTo("19990.1200");
+        assertThat(talhaoOperacional.cultivoAtivo().id()).isEqualTo(5L);
+        assertThat(talhaoOperacional.cultivoAtivo().cultura()).isEqualTo("Milho");
+        assertThat(talhaoOperacional.cultivoAtivo().safra()).isEqualTo("Safra teste");
+        assertThat(talhaoOperacional.cultivoAtivo().ocorrenciasAbertas()).isEqualTo(2);
+        assertThat(talhaoOperacional.cultivoAtivo().severidadeMaisAlta()).isEqualTo(SeveridadeOcorrencia.CRITICA);
+        assertThat(talhaoOperacional.possuiOcorrenciaRelevante()).isTrue();
     }
     @Test void culturaSemCicloNaoInventaPrevisao() {
         cultura.setCicloDiasEstimado(null);

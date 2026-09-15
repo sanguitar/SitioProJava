@@ -6,6 +6,8 @@ import com.example.sitiopro.agricultura.service.*;
 import com.example.sitiopro.agricultura.web.AgriculturaController;
 import com.example.sitiopro.agricultura.api.AgriculturaApiController;
 import com.example.sitiopro.planejamento.controller.AgriculturaPlanejamentoController;
+import com.example.sitiopro.propriedade.dto.*;
+import com.example.sitiopro.propriedade.entity.StatusCrs;
 import com.example.sitiopro.usuario.security.SecurityConfig;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
 import com.example.sitiopro.estoque.service.EstoqueCatalogoService;
@@ -49,6 +51,7 @@ class AgriculturaWebTests {
             null,null,false,null,"op");
     @BeforeEach void preparar() {
         when(service.painel()).thenReturn(new AgriculturaResumo(safra,1,BigDecimal.ONE,List.of(),List.of(),List.of()));
+        when(service.mapaOperacional()).thenReturn(mapaOperacional());
         when(service.listarSafras(anyInt())).thenReturn(new PaginaResponse<>(List.of(safra),0,20,1,1));
         when(service.listarCulturas(anyInt())).thenReturn(new PaginaResponse<>(List.of(cultura),0,20,1,1));
         when(service.listarCultivos(anyInt())).thenReturn(new PaginaResponse<>(List.of(cultivo),0,20,1,1));
@@ -73,12 +76,33 @@ class AgriculturaWebTests {
         when(fichas.detalhar(5L)).thenReturn(new CultivoDetalhe(cultivo,List.of(),List.of(),List.of(),List.of(),ClimaResumo.naoSincronizado()));
     }
 
+    MapaOperacionalAgriculturaResumo mapaOperacional() {
+        var talhao = TalhaoMapaResumo.de(3L, "TL-0003", "Talhao MVC", BigDecimal.ONE,
+                new BigDecimal("10000.0000"), true, List.of());
+        var cultivoMapa = new CultivoMapaResumo(5L, "Milho", "Safra MVC", BigDecimal.ONE,
+                data, data.plusDays(100), StatusCultivo.EM_DESENVOLVIMENTO, 1, SeveridadeOcorrencia.ALTA);
+        return new MapaOperacionalAgriculturaResumo("SITIOPRO_AGRICULTURA_MAPA_OPERACIONAL", "local",
+                StatusCrs.CONFIRMADO, true, "EPSG:4674", "SIRGAS 2000", List.of(), List.of(),
+                List.of(TalhaoOperacionalMapaResumo.de(talhao, cultivoMapa)));
+    }
+
     @ParameterizedTest @ValueSource(strings={"ADMIN","OPERADOR"})
     void ambosConsultamPainelEMvcApi(String role) throws Exception {
         mvc.perform(get("/sitio/agricultura").with(user("leitor").roles(role))).andExpect(status().isOk())
-                .andExpect(content().string(containsString("Safra MVC")));
+                .andExpect(content().string(containsString("Safra MVC")))
+                .andExpect(content().string(containsString("Mapa operacional")))
+                .andExpect(content().string(containsString("/api/v1/agricultura/mapa")))
+                .andExpect(content().string(containsString("proj4@")))
+                .andExpect(content().string(containsString("data-ol-map")));
         mvc.perform(get("/api/v1/agricultura/resumo").with(user("leitor").roles(role))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.cultivosAtivos").value(1)).andExpect(jsonPath("$.areaCultivadaHa").value(1));
+        mvc.perform(get("/api/v1/agricultura/mapa").with(user("leitor").roles(role))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.formato").value("SITIOPRO_AGRICULTURA_MAPA_OPERACIONAL"))
+                .andExpect(jsonPath("$.crs").value("EPSG:4674"))
+                .andExpect(jsonPath("$.talhoes[0].cultivoAtivo.id").value(5))
+                .andExpect(jsonPath("$.talhoes[0].cultivoAtivo.ocorrenciasAbertas").value(1))
+                .andExpect(jsonPath("$.talhoes[0].cultivoAtivo.severidadeMaisAlta").value("ALTA"))
+                .andExpect(jsonPath("$.talhoes[0].cultivo").doesNotExist());
     }
     @ParameterizedTest @ValueSource(strings={"safras","culturas","cultivos","colheitas","adubacao","irrigacao","tratamentos","ocorrencias"})
     void listasRenderizamParaOperador(String secao) throws Exception {

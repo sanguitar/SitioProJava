@@ -17,6 +17,7 @@ public class AgriculturaApiController {
         this.service = service; this.fichas = fichas;
     }
     @GetMapping("/resumo") public AgriculturaResumo resumo() { return service.painel(); }
+    @GetMapping("/mapa") public MapaOperacionalAgriculturaResumo mapa() { return service.mapaOperacional(); }
     @GetMapping("/cultivos/{id}") public CultivoDetalhe detalhe(@PathVariable Long id) { return fichas.detalhar(id); }
     @GetMapping("/safras")
     public PaginaResponse<SafraResumo> listarSafras(@RequestParam(defaultValue = "0") int pagina) { return service.listarSafras(pagina); }

@@ -41,8 +41,12 @@ async function renderPerimeterMap(container) {
                 tipo: "Talhão",
                 nome: talhao.nome,
                 codigo: talhao.codigo || "",
+                areaCadastralHa: talhao.areaCadastralHa || "",
                 areaGisM2: talhao.areaGisM2 || "",
                 cor: talhao.cor || "#2f80ed",
+                cultivoAtivo: talhao.cultivoAtivo || null,
+                possuiCultivoAtivo: Boolean(talhao.possuiCultivoAtivo || talhao.cultivoAtivo),
+                possuiOcorrenciaRelevante: Boolean(talhao.possuiOcorrenciaRelevante),
             })));
     vertices.forEach((v) => marcadorSource.addFeature(pointFeature(v, "Perímetro")));
     talhoes.forEach((talhao) => (talhao.vertices || []).forEach((v) =>
@@ -126,9 +130,11 @@ function perimeterStyle() {
 
 function talhaoStyle(feature) {
     const color = feature.get("cor") || "#2f80ed";
+    const relevante = feature.get("possuiOcorrenciaRelevante");
+    const ativo = feature.get("possuiCultivoAtivo");
     return new ol.style.Style({
-        stroke: new ol.style.Stroke({ color, width: 2.5 }),
-        fill: new ol.style.Fill({ color: hexToRgba(color, 0.24) }),
+        stroke: new ol.style.Stroke({ color: relevante ? "#b42318" : color, width: relevante ? 4 : ativo ? 3.2 : 2.5 }),
+        fill: new ol.style.Fill({ color: relevante ? "rgba(180, 35, 24, 0.34)" : hexToRgba(color, ativo ? 0.34 : 0.24) }),
     });
 }
 
@@ -184,10 +190,22 @@ function popupHtml(feature) {
     const lon = feature.get("longitude");
     const altitude = feature.get("altitude");
     const area = feature.get("areaGisM2");
+    const areaCadastral = feature.get("areaCadastralHa");
+    const cultivo = feature.get("cultivoAtivo");
     let html = `<strong>${tipo}</strong><div>${nome}</div>`;
     if (lon && lat) html += `<div>Lon ${escapeHtml(lon)}<br>Lat ${escapeHtml(lat)}</div>`;
     if (altitude) html += `<div>Alt ${escapeHtml(altitude)} m</div>`;
+    if (areaCadastral) html += `<div>Área cadastrada ${escapeHtml(areaCadastral)} ha</div>`;
     if (area) html += `<div>Área GIS ${escapeHtml(area)} m²</div>`;
+    if (cultivo) {
+        html += `<hr><strong>Cultivo ativo</strong><div>${escapeHtml(cultivo.cultura || "")}</div>`;
+        html += `<div>Safra ${escapeHtml(cultivo.safra || "")}<br>Status ${escapeHtml(cultivo.status || "")}</div>`;
+        if (cultivo.dataPlantio) html += `<div>Plantio ${escapeHtml(cultivo.dataPlantio)}</div>`;
+        if (cultivo.previsaoColheita) html += `<div>Previsão ${escapeHtml(cultivo.previsaoColheita)}</div>`;
+        html += `<div>Ocorrências abertas ${escapeHtml(cultivo.ocorrenciasAbertas || 0)}</div>`;
+        if (cultivo.severidadeMaisAlta) html += `<div>Severidade ${escapeHtml(cultivo.severidadeMaisAlta)}</div>`;
+        if (cultivo.id) html += `<a href="/sitio/agricultura/cultivos/${encodeURIComponent(cultivo.id)}">Abrir cultivo</a>`;
+    }
     html += "<div>EPSG:4674 SIRGAS 2000</div>";
     return html;
 }
@@ -302,7 +320,7 @@ function drawTalhao(layer, talhao) {
     const points = talhao.pontos.map((p) => `${p.x},${p.y}`).join(" ");
     const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
     polygon.setAttribute("points", points);
-    polygon.setAttribute("class", "talhao-polygon");
+    polygon.setAttribute("class", `talhao-polygon${talhao.cultivoAtivo ? " has-crop" : ""}${talhao.possuiOcorrenciaRelevante ? " has-alert" : ""}`);
     polygon.style.setProperty("--talhao-color", talhao.cor || "#2f80ed");
     layer.appendChild(polygon);
 

@@ -3,7 +3,9 @@ package com.example.sitiopro.agricultura;
 import com.example.sitiopro.agricultura.dto.*;
 import com.example.sitiopro.agricultura.entity.*;
 import com.example.sitiopro.agricultura.service.*;
-import com.example.sitiopro.propriedade.dto.TalhaoRequest;
+import com.example.sitiopro.propriedade.dto.*;
+import com.example.sitiopro.propriedade.entity.StatusCrs;
+import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
 import com.example.sitiopro.estoque.dto.*;
 import com.example.sitiopro.estoque.entity.TipoMovimentoEstoque;
@@ -61,6 +63,7 @@ class AgriculturaSqlServerIntegrationTests {
     @Autowired AgriculturaService service;
     @Autowired AgriculturaFichaService fichas;
     @Autowired PropriedadeService propriedades;
+    @Autowired PerimetroService perimetros;
     @Autowired EstoqueMovimentoService estoque;
     @Autowired EstoqueCatalogoService catalogo;
     @Autowired AgrofitCulturaRepository agrofit;
@@ -75,6 +78,9 @@ class AgriculturaSqlServerIntegrationTests {
     CultivoResumo cultivo() {
         var t=new TalhaoRequest(); t.setNome(nome("Talhao SQL")); t.setAreaHa(new BigDecimal("2.0000"));
         Long talhao=propriedades.salvarTalhao(null,t).id();
+        return cultivo(talhao);
+    }
+    CultivoResumo cultivo(Long talhao) {
         var s=new SafraRequest(); s.setNome(nome("Safra SQL")); s.setAnoInicio(inicio.getYear()); s.setAnoFim(inicio.plusYears(1).getYear());
         s.setDataInicio(inicio.minusDays(10)); s.setStatus(StatusSafra.EM_ANDAMENTO);
         Long safra=service.salvarSafra(null,s).id();
@@ -83,6 +89,31 @@ class AgriculturaSqlServerIntegrationTests {
         var r=new CultivoRequest(); r.setSafraId(safra); r.setCulturaId(cultura); r.setTalhaoId(talhao);
         r.setAreaCultivadaHa(BigDecimal.ONE); r.setDataPlantio(inicio);
         return service.salvarCultivo(null,r);
+    }
+    VerticePerimetroRequest verticePerimetro(int ordem, String latitude, String longitude) {
+        var v=new VerticePerimetroRequest(); v.setOrdem(ordem); v.setLatitude(new BigDecimal(latitude));
+        v.setLongitude(new BigDecimal(longitude)); v.setMarco("P"+ordem); return v;
+    }
+    VerticeTalhaoRequest verticeTalhao(int ordem, String latitude, String longitude) {
+        var v=new VerticeTalhaoRequest(); v.setOrdem(ordem); v.setLatitude(new BigDecimal(latitude));
+        v.setLongitude(new BigDecimal(longitude)); v.setMarco("T"+ordem); return v;
+    }
+    Long talhaoGeorreferenciado() {
+        var p=perimetros.formulario(); p.getVertices().clear(); p.setStatusCrs(StatusCrs.CONFIRMADO);
+        p.setCrs("EPSG:4674"); p.setDatum("SIRGAS 2000");
+        p.getVertices().addAll(List.of(
+                verticePerimetro(1,"-8.000000000","-63.000000000"),
+                verticePerimetro(2,"-8.010000000","-63.000000000"),
+                verticePerimetro(3,"-8.010000000","-63.010000000"),
+                verticePerimetro(4,"-8.000000000","-63.010000000")));
+        perimetros.salvar(p);
+        var t=new TalhaoRequest(); t.setNome(nome("Talhao mapa SQL")); t.setAreaHa(new BigDecimal("1.0000"));
+        t.getVertices().addAll(List.of(
+                verticeTalhao(1,"-8.001000000","-63.001000000"),
+                verticeTalhao(2,"-8.002000000","-63.001000000"),
+                verticeTalhao(3,"-8.002000000","-63.002000000"),
+                verticeTalhao(4,"-8.001000000","-63.002000000")));
+        return propriedades.salvarTalhao(null,t).id();
     }
     PlantioRequest plantio(long versao) {
         var r=new PlantioRequest(); r.setData(inicio); r.setQuantidade(new BigDecimal("10.1250")); r.setUnidade("KG");
@@ -196,6 +227,27 @@ class AgriculturaSqlServerIntegrationTests {
         assertThat(service.painel().alertas()).extracting(AvisoAgricola::cultivoId).contains(c.id());
         service.alterarStatus(c.id(),new StatusCultivoRequest(StatusCultivo.CANCELADO,c.versao()));
         assertThat(service.painel().alertas()).extracting(AvisoAgricola::cultivoId).doesNotContain(c.id());
+    }
+    @Test @Transactional void mapaOperacionalConsultaSqlLocalComTalhaoGeorreferenciado() {
+        var c=cultivo(talhaoGeorreferenciado());
+        service.registrarPlantio(c.id(),plantio(c.versao()));
+        var o=new OcorrenciaRequest(); o.setDataHora(inicio.plusDays(2).atTime(8,30));
+        o.setTipo(TipoOcorrenciaCultivo.PRAGA); o.setSeveridade(SeveridadeOcorrencia.CRITICA);
+        o.setTitulo("Inspecao mapa SQL"); o.setDescricao("Ocorrencia aberta para o mapa operacional.");
+        o.setChaveIdempotencia("mapa-sql-"+UUID.randomUUID()); o.setVersao(service.detalharCultivo(c.id()).versao());
+        service.registrarOcorrencia(c.id(),o);
+
+        var mapa=service.mapaOperacional();
+
+        assertThat(mapa.crs()).isEqualTo("EPSG:4674");
+        assertThat(mapa.talhoes()).anySatisfy(t -> {
+            assertThat(t.id()).isEqualTo(c.talhaoId());
+            assertThat(t.vertices()).hasSize(4);
+            assertThat(t.cultivoAtivo()).isNotNull();
+            assertThat(t.cultivoAtivo().id()).isEqualTo(c.id());
+            assertThat(t.cultivoAtivo().severidadeMaisAlta()).isEqualTo(SeveridadeOcorrencia.CRITICA);
+            assertThat(t.cultivoAtivo().ocorrenciasAbertas()).isEqualTo(1);
+        });
     }
     @Test @Transactional void fichaSemClimaContinuaDisponivel() {
         var c=cultivo(); var ficha=fichas.detalhar(c.id());

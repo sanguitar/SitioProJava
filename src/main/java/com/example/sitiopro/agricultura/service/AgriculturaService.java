@@ -5,6 +5,7 @@ import com.example.sitiopro.agricultura.entity.*;
 import com.example.sitiopro.agricultura.repository.*;
 import com.example.sitiopro.propriedade.entity.*;
 import com.example.sitiopro.propriedade.repository.TalhaoRepository;
+import com.example.sitiopro.propriedade.service.PerimetroService;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
 import com.example.sitiopro.integracao.embrapa.agrofit.entity.AgrofitCultura;
@@ -53,6 +54,7 @@ public class AgriculturaService {
     private final HistoricoOcorrenciaCultivoRepository historicosOcorrencia;
     private final TalhaoRepository talhoes;
     private final AgrofitCulturaRepository agrofit;
+    private final PerimetroService perimetros;
     private final PropriedadeService propriedades;
     private final EstoqueMovimentoService estoque;
     private final TarefaService tarefas;
@@ -67,7 +69,8 @@ public class AgriculturaService {
             AdubacaoCultivoRepository adubacoes, IrrigacaoCultivoRepository irrigacoes,
             TratamentoAgricolaRepository tratamentos, OcorrenciaCultivoRepository ocorrencias,
             HistoricoOcorrenciaCultivoRepository historicosOcorrencia,
-            TalhaoRepository talhoes, AgrofitCulturaRepository agrofit, PropriedadeService propriedades,
+            TalhaoRepository talhoes, AgrofitCulturaRepository agrofit, PerimetroService perimetros,
+            PropriedadeService propriedades,
             EstoqueMovimentoService estoque, TarefaService tarefas, AlertaService alertas,
             ConfiguracaoOperacionalService configuracoes,
             EntityManager em, Validator validator, Clock clock) {
@@ -76,7 +79,7 @@ public class AgriculturaService {
         this.adubacoes = adubacoes; this.irrigacoes = irrigacoes;
         this.tratamentos = tratamentos; this.ocorrencias = ocorrencias;
         this.historicosOcorrencia = historicosOcorrencia;
-        this.talhoes = talhoes; this.agrofit = agrofit; this.propriedades = propriedades;
+        this.talhoes = talhoes; this.agrofit = agrofit; this.perimetros = perimetros; this.propriedades = propriedades;
         this.estoque = estoque; this.tarefas = tarefas; this.alertas = alertas; this.configuracoes = configuracoes;
         this.em = em; this.validator = validator; this.clock = clock;
     }
@@ -537,6 +540,38 @@ public class AgriculturaService {
                 .stream().map(this::resumo).toList());
     }
 
+    public MapaOperacionalAgriculturaResumo mapaOperacional() {
+        Long propriedadeId = principal().getId();
+        var perimetro = perimetros.obter();
+        Map<Long, OcorrenciasTalhao> ocorrenciasPorTalhao = ocorrenciasAbertasPorTalhao(propriedadeId);
+        Map<Long, CultivoMapaResumo> cultivosPorTalhao = new LinkedHashMap<>();
+        for (Cultivo cultivo : cultivos.findByPropriedadeIdAndStatusInOrderByDataPlantioDescIdDesc(propriedadeId, ATIVOS)) {
+            Long talhaoId = cultivo.getTalhao().getId();
+            if (!cultivosPorTalhao.containsKey(talhaoId)) {
+                OcorrenciasTalhao resumo = ocorrenciasPorTalhao.getOrDefault(talhaoId, OcorrenciasTalhao.vazio());
+                cultivosPorTalhao.put(talhaoId, new CultivoMapaResumo(cultivo.getId(),
+                cultivo.getCultura().getNomeComum(), cultivo.getSafra().getNome(), cultivo.getAreaCultivadaHa(),
+                cultivo.getDataPlantio(), cultivo.getPrevisaoColheita(), cultivo.getStatus(),
+                resumo.quantidade(), resumo.severidadeMaisAlta()));
+            }
+        }
+        var talhoesMapa = perimetro.talhoes().isEmpty() ? propriedades.mapaTalhoes() : perimetro.talhoes();
+        var talhoesOperacionais = talhoesMapa.stream()
+                .map(t -> TalhaoOperacionalMapaResumo.de(t, cultivosPorTalhao.get(t.id())))
+                .toList();
+        return MapaOperacionalAgriculturaResumo.de(perimetro.getMapa(), talhoesOperacionais);
+    }
+
+    private Map<Long, OcorrenciasTalhao> ocorrenciasAbertasPorTalhao(Long propriedadeId) {
+        Map<Long, OcorrenciasTalhao> resultado = new HashMap<>();
+        for (OcorrenciaCultivo ocorrencia : ocorrencias.findByCultivoPropriedadeIdAndStatusIn(
+                propriedadeId, OCORRENCIAS_ABERTAS)) {
+            Long talhaoId = ocorrencia.getCultivo().getTalhao().getId();
+            resultado.merge(talhaoId, OcorrenciasTalhao.de(ocorrencia.getSeveridade()), OcorrenciasTalhao::somar);
+        }
+        return resultado;
+    }
+
     private OcorrenciaDetalhe detalhe(OcorrenciaCultivo o) {
         return new OcorrenciaDetalhe(resumo(o),
                 historicosOcorrencia.findByOcorrenciaIdOrderByDataHoraDescIdDesc(o.getId()).stream()
@@ -724,5 +759,32 @@ public class AgriculturaService {
     private OcorrenciaHistoricoResumo resumo(HistoricoOcorrenciaCultivo h) {
         return new OcorrenciaHistoricoResumo(h.getId(), h.getDataHora(), h.getTipo(), h.getSeveridade(),
                 h.getStatus(), h.getDescricao(), h.getCriadoPor());
+    }
+
+    private record OcorrenciasTalhao(long quantidade, SeveridadeOcorrencia severidadeMaisAlta) {
+        static OcorrenciasTalhao vazio() {
+            return new OcorrenciasTalhao(0, null);
+        }
+        static OcorrenciasTalhao de(SeveridadeOcorrencia severidade) {
+            return new OcorrenciasTalhao(1, severidade);
+        }
+        OcorrenciasTalhao somar(OcorrenciasTalhao outra) {
+            return new OcorrenciasTalhao(quantidade + outra.quantidade,
+                    severidadeMaisAlta(severidadeMaisAlta, outra.severidadeMaisAlta));
+        }
+        private static SeveridadeOcorrencia severidadeMaisAlta(SeveridadeOcorrencia atual,
+                SeveridadeOcorrencia candidata) {
+            if (atual == null) return candidata;
+            if (candidata == null) return atual;
+            return rank(candidata) > rank(atual) ? candidata : atual;
+        }
+        private static int rank(SeveridadeOcorrencia severidade) {
+            return switch (severidade) {
+                case BAIXA -> 1;
+                case MEDIA -> 2;
+                case ALTA -> 3;
+                case CRITICA -> 4;
+            };
+        }
     }
 }

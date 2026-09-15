@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head><th:block th:replace="~{fragments/head :: commonHead(${titulo} + ' - Agricultura')}"></th:block>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.2.1/ol.css">
+<link rel="stylesheet" th:href="@{/css/propriedade.css}">
 <link rel="stylesheet" th:href="@{/css/agricultura.css}"></head>
 <body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
 <main class="main-content agriculture-page">
@@ -18,6 +20,23 @@
 <div><dt>Altas ou cr&iacute;ticas</dt><dd th:text="${painel.ocorrenciasAltaCritica}">0</dd></div>
 <div><dt>Cultivos afetados</dt><dd th:text="${painel.cultivosAfetados}">0</dd></div>
 </dl>
+<section class="agri-section property-section">
+    <div class="property-heading"><div><h2>Mapa operacional</h2>
+        <p>Talh&otilde;es oficiais com cultivos ativos e ocorr&ecirc;ncias abertas. EPSG:4674 preservado no banco.</p></div>
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-center-property><i class="fa-solid fa-crosshairs me-2" aria-hidden="true"></i>Centralizar propriedade</button>
+    </div>
+    <div class="perimeter-map-shell" data-perimeter-map th:data-perimeter-api="@{/api/v1/agricultura/mapa}">
+        <div class="perimeter-ol-map" data-ol-map role="application" aria-label="Mapa operacional da agricultura"></div>
+        <div class="perimeter-popup" data-map-popup></div>
+        <svg class="perimeter-map perimeter-map-fallback" viewBox="0 0 900 520" role="img" aria-labelledby="agri-map-title agri-map-desc" data-svg-fallback hidden>
+            <title id="agri-map-title">Mapa operacional dos cultivos</title>
+            <desc id="agri-map-desc">Representa&ccedil;&atilde;o local dos talh&otilde;es e cultivos vinculados.</desc>
+            <g data-map-layer></g>
+        </svg>
+        <div class="perimeter-map-state" data-map-state>Carregando mapa operacional...</div>
+    </div>
+    <p class="text-muted">Cultivo referencia Talh&atilde;o; a geometria n&atilde;o &eacute; duplicada.</p>
+</section>
 <div class="agri-columns">
 <section class="agri-section"><h2>Pr&oacute;ximos trabalhos</h2><div th:replace="~{agricultura/fragments :: tasks(${painel.proximosTrabalhos})}"></div></section>
 <section class="agri-section"><h2>Aten&ccedil;&atilde;o no campo</h2>
@@ -27,4 +46,7 @@
 <section class="agri-section"><h2>Colheitas recentes</h2>
 <p class="agri-empty" th:if="${#lists.isEmpty(painel.colheitasRecentes)}">Nenhuma colheita registrada.</p>
 <a class="agri-record" th:each="c : ${painel.colheitasRecentes}" th:href="@{/sitio/agricultura/cultivos/{id}(id=${c.cultivoId})}"><span><strong th:text="${c.culturaNome}"></strong><small th:text="${#temporals.format(c.data, 'dd/MM/yyyy')}"></small></span><strong th:text="${c.quantidade + ' ' + c.unidade}"></strong></a></section>
-</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+<script defer src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/ol@10.2.1/dist/ol.js"></script>
+<script defer th:src="@{/js/propriedade.js}"></script></body></html>

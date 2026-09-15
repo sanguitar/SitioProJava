@@ -15,6 +15,9 @@ public interface OcorrenciaCultivoRepository extends JpaRepository<OcorrenciaCul
     List<OcorrenciaCultivo> findByCultivoIdOrderByDataHoraDescIdDesc(Long cultivoId);
     @EntityGraph(attributePaths = "referenciasAgrofit")
     Page<OcorrenciaCultivo> findByCultivoPropriedadeIdOrderByDataHoraDescIdDesc(Long propriedadeId, Pageable pagina);
+    @EntityGraph(attributePaths = {"cultivo", "cultivo.talhao"})
+    List<OcorrenciaCultivo> findByCultivoPropriedadeIdAndStatusIn(Long propriedadeId,
+            Collection<StatusOcorrenciaCultivo> status);
     @EntityGraph(attributePaths = "referenciasAgrofit")
     Optional<OcorrenciaCultivo> findByCultivoIdAndChaveIdempotencia(Long cultivoId, String chaveIdempotencia);
     @EntityGraph(attributePaths = "referenciasAgrofit")
