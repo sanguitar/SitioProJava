@@ -27,13 +27,16 @@ public class AvesApiController {
     private final ManejoAvesService manejoService;
     private final IncubacaoAvesService incubacaoService;
     private final IncubacaoAcompanhamentoService acompanhamentoService;
+    private final OvoscopiaIncubacaoAvesService ovoscopiaService;
 
     public AvesApiController(AvesResumoService resumoService, InstalacaoCriacaoService instalacaoService,
             LoteAvesService loteService, ManejoAvesService manejoService, IncubacaoAvesService incubacaoService,
-            IncubacaoAcompanhamentoService acompanhamentoService) {
+            IncubacaoAcompanhamentoService acompanhamentoService,
+            OvoscopiaIncubacaoAvesService ovoscopiaService) {
         this.resumoService = resumoService; this.instalacaoService = instalacaoService;
         this.loteService = loteService; this.manejoService = manejoService; this.incubacaoService = incubacaoService;
         this.acompanhamentoService = acompanhamentoService;
+        this.ovoscopiaService = ovoscopiaService;
     }
 
     @GetMapping("/resumo") @Operation(summary = "Resumo operacional de aves")
@@ -126,6 +129,21 @@ public class AvesApiController {
         return ResponseEntity.created(location(
                 "/api/v1/criacoes/aves/incubacoes/{id}/acompanhamentos/{acompanhamentoId}", id,
                 criado.id())).body(criado);
+    }
+
+    @GetMapping("/incubacoes/{id}/ovoscopias")
+    public java.util.List<OvoscopiaIncubacaoAvesResumo> ovoscopias(@PathVariable Long id) {
+        incubacaoService.detalhar(id);
+        return ovoscopiaService.ovoscopias(id);
+    }
+
+    @PostMapping("/incubacoes/{id}/ovoscopias")
+    public ResponseEntity<OvoscopiaIncubacaoAvesResumo> registrarOvoscopia(@PathVariable Long id,
+            @Valid @RequestBody RegistrarOvoscopiaIncubacaoAvesRequest request, Authentication authentication) {
+        OvoscopiaIncubacaoAvesResumo criada = ovoscopiaService.registrar(id, request, UsuarioAtor.de(authentication));
+        return ResponseEntity.created(location(
+                "/api/v1/criacoes/aves/incubacoes/{id}/ovoscopias/{ovoscopiaId}", id,
+                criada.id())).body(criada);
     }
 
     @PostMapping("/incubacoes/{id}/ajustar-previsao")

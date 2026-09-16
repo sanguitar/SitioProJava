@@ -1,9 +1,12 @@
 package com.example.sitiopro.propriedade.repository;
 
 import com.example.sitiopro.propriedade.service.PropriedadeOperacaoException;
+import com.example.sitiopro.propriedade.dto.VerticeTalhaoRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
+import java.util.List;
 
 @Repository
 public class TalhaoSpatialRepository {
@@ -91,6 +94,74 @@ public class TalhaoSpatialRepository {
             throw new PropriedadeOperacaoException("vertices",
                     "A geometria do talhão deve ficar dentro do perímetro confirmado da propriedade.",
                     HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+    }
+
+    public BigDecimal validarGeometria(Long propriedadeId, List<VerticeTalhaoRequest> vertices) {
+        if (vertices == null || vertices.size() < 3) {
+            throw new PropriedadeOperacaoException("vertices",
+                    "Informe pelo menos três vértices para validar o talhão.", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Integer quantidade = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM dbo.propriedade_perimetros
+                WHERE propriedade_id = ? AND poligono_geography IS NOT NULL
+                """, Integer.class, propriedadeId);
+        if (quantidade == null || quantidade == 0) {
+            throw new PropriedadeOperacaoException("vertices",
+                    "Confirme o perímetro da propriedade antes de importar talhões.", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        BigDecimal area = jdbc.queryForObject("""
+                DECLARE @propriedade_id BIGINT = ?;
+                DECLARE @wkt NVARCHAR(MAX) = ?;
+                DECLARE @g geography = geography::STGeomFromText(@wkt, 4674);
+                IF @g.STIsValid() <> 1
+                BEGIN
+                    SELECT CAST(NULL AS DECIMAL(18,4));
+                    RETURN;
+                END;
+                DECLARE @r geography = @g.ReorientObject();
+                IF @r.STIsValid() = 1 AND @r.STArea() < @g.STArea()
+                    SET @g = @r;
+                DECLARE @perimetro geography = (
+                    SELECT TOP (1) poligono_geography
+                    FROM dbo.propriedade_perimetros
+                    WHERE propriedade_id = @propriedade_id
+                );
+                IF @perimetro IS NULL OR @g.STWithin(@perimetro) <> 1
+                BEGIN
+                    SELECT CAST(-1 AS DECIMAL(18,4));
+                    RETURN;
+                END;
+                SELECT CAST(ROUND(@g.STArea(), 4) AS DECIMAL(18,4));
+                """, BigDecimal.class, propriedadeId, wkt(vertices));
+        if (area == null) {
+            throw new PropriedadeOperacaoException("vertices", "A geometria importada é inválida.",
+                    HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if (area.signum() < 0) {
+            throw new PropriedadeOperacaoException("vertices",
+                    "A geometria do talhão deve ficar dentro do perímetro confirmado da propriedade.",
+                    HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return area;
+    }
+
+    private String wkt(List<VerticeTalhaoRequest> vertices) {
+        StringBuilder wkt = new StringBuilder("POLYGON((");
+        for (int i = 0; i < vertices.size(); i++) {
+            if (i > 0) wkt.append(", ");
+            ponto(wkt, vertices.get(i));
+        }
+        wkt.append(", ");
+        ponto(wkt, vertices.getFirst());
+        return wkt.append("))").toString();
+    }
+
+    private void ponto(StringBuilder wkt, VerticeTalhaoRequest vertice) {
+        wkt.append(vertice.getLongitude().toPlainString()).append(' ')
+                .append(vertice.getLatitude().toPlainString());
+        if (vertice.getAltitudeGeodesicaM() != null) {
+            wkt.append(' ').append(vertice.getAltitudeGeodesicaM().toPlainString());
         }
     }
 }

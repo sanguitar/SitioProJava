@@ -12,9 +12,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -180,6 +182,60 @@ public class PropriedadeController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("talhoes-sirgas-2000-epsg-4674.geojson").build().toString())
                 .body(service.geoJsonTalhoes());
+    }
+
+    @GetMapping("/talhoes/importar-qgis")
+    public String importarTalhoesQgis(Model model) {
+        base(model, "talhoes");
+        model.addAttribute("form", new TalhaoGeoJsonImportacaoRequest());
+        return "propriedade/talhoes-importacao";
+    }
+
+    @PostMapping("/talhoes/importar-qgis/preview")
+    public String previewImportacaoTalhoesQgis(@RequestParam("arquivo") MultipartFile arquivo,
+            Model model) {
+        base(model, "talhoes");
+        TalhaoGeoJsonImportacaoRequest form = new TalhaoGeoJsonImportacaoRequest();
+        try {
+            form.setGeoJson(new String(arquivo.getBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            model.addAttribute("preview", service.previewImportacaoTalhoesGeoJson(form.getGeoJson()));
+        } catch (PropriedadeOperacaoException ex) {
+            model.addAttribute("erro", ex.getMessage());
+        } catch (java.io.IOException ex) {
+            model.addAttribute("erro", "Não foi possível ler o arquivo enviado.");
+        }
+        model.addAttribute("form", form);
+        return "propriedade/talhoes-importacao";
+    }
+
+    @PostMapping("/talhoes/importar-qgis/confirmar")
+    public String confirmarImportacaoTalhoesQgis(@Valid @ModelAttribute("form") TalhaoGeoJsonImportacaoRequest form,
+            BindingResult result, Model model, RedirectAttributes redirect) {
+        base(model, "talhoes");
+        if (result.hasErrors()) {
+            model.addAttribute("erro", "Confirme explicitamente a substituição das geometrias.");
+            model.addAttribute("preview", previewSeguro(form.getGeoJson(), model));
+            return "propriedade/talhoes-importacao";
+        }
+        try {
+            TalhaoGeoJsonImportacaoPreview preview = service.confirmarImportacaoTalhoesGeoJson(form);
+            redirect.addFlashAttribute("mensagem", preview.alterados() + " talhões importados do GeoJSON.");
+            return "redirect:/sitio/propriedade/talhoes";
+        } catch (PropriedadeOperacaoException ex) {
+            model.addAttribute("erro", ex.getMessage());
+            model.addAttribute("preview", previewSeguro(form.getGeoJson(), model));
+            return "propriedade/talhoes-importacao";
+        }
+    }
+
+    private TalhaoGeoJsonImportacaoPreview previewSeguro(String geoJson, Model model) {
+        if (!StringUtils.hasText(geoJson)) return null;
+        try {
+            return service.previewImportacaoTalhoesGeoJson(geoJson);
+        } catch (PropriedadeOperacaoException ex) {
+            model.addAttribute("erro", ex.getMessage());
+            return null;
+        }
     }
 
     @GetMapping("/areas")

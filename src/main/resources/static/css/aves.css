@@ -1222,3 +1222,40 @@
         width: 100%;
     }
 }
+
+.ovoscopy-batch-table {
+    max-height: 420px;
+    overflow: auto;
+    border: 1px solid #d7e5dc;
+    border-radius: 8px;
+}
+
+.ovoscopy-batch-table table {
+    margin-bottom: 0;
+}
+
+.ovoscopy-eggs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.ovoscopy-eggs-grid article {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid #d7e5dc;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.ovoscopy-eggs-grid article.needs-review {
+    border-color: #c78218;
+    background: #fff8e8;
+}
+
+.ovoscopy-eggs-grid span,
+.ovoscopy-eggs-grid small {
+    color: #53645a;
+    font-size: .86rem;
+}

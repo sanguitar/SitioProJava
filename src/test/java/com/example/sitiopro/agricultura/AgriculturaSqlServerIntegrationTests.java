@@ -458,7 +458,7 @@ class AgriculturaSqlServerIntegrationTests {
         Flyway.configure().dataSource(ds).load().migrate();
         assertThat(upgrade.queryForObject("SELECT codigo FROM propriedade_talhoes",String.class)).isEqualTo(codigo);
         assertThat(upgrade.queryForObject("SELECT area_ha FROM propriedade_talhoes",BigDecimal.class)).isEqualByComparingTo("2.1234");
-        assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1",Integer.class)).isEqualTo(22);
+        assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1",Integer.class)).isEqualTo(23);
         assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM agricultura_cultivos",Integer.class)).isZero();
     }
     @Test void upgradeV18ConverteOcorrenciaLegadaSemPerderDados() {
@@ -494,6 +494,6 @@ class AgriculturaSqlServerIntegrationTests {
         assertThat(upgrade.queryForObject("SELECT versao FROM agricultura_ocorrencias WHERE id=?",Long.class,ocorrencia)).isZero();
         assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM agricultura_ocorrencia_historicos WHERE ocorrencia_id=?",Integer.class,ocorrencia))
                 .isEqualTo(1);
-        assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1",Integer.class)).isEqualTo(22);
+        assertThat(upgrade.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1",Integer.class)).isEqualTo(23);
     }
 }

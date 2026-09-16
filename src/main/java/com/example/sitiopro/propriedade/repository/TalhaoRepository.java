@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface TalhaoRepository extends JpaRepository<Talhao, Long> {
     Page<Talhao> findByPropriedadeIdOrderByNomeAsc(Long propriedadeId, Pageable pageable);
     Optional<Talhao> findByIdAndPropriedadeId(Long id, Long propriedadeId);
+    Optional<Talhao> findByPropriedadeIdAndCodigoIgnoreCase(Long propriedadeId, String codigo);
     long countByPropriedadeId(Long propriedadeId);
     boolean existsByPropriedadeIdAndNomeIgnoreCaseAndIdNot(Long propriedadeId, String nome, Long id);
     List<Talhao> findByPropriedadeIdOrderByNomeAsc(Long propriedadeId);

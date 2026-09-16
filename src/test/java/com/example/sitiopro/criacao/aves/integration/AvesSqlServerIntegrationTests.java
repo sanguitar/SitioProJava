@@ -63,15 +63,16 @@ class AvesSqlServerIntegrationTests {
                 SELECT COUNT(*) FROM sys.tables WHERE name IN (
                   'criacao_instalacoes', 'aves_lotes', 'aves_eventos', 'aves_mortalidades',
                   'aves_alimentacoes', 'aves_pesagens', 'aves_posturas', 'aves_transferencias',
-                  'aves_incubacoes', 'aves_incubacao_acompanhamentos', 'criacao_codigo_sequencias')
+                  'aves_incubacoes', 'aves_incubacao_acompanhamentos', 'criacao_codigo_sequencias',
+                  'aves_incubacao_ovos', 'aves_incubacao_ovoscopias', 'aves_incubacao_ovoscopia_itens')
                 """, Integer.class);
         Integer migration = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*) FROM dbo.flyway_schema_history
-                WHERE version IN ('10', '11', '14') AND success = 1
+                WHERE version IN ('10', '11', '14', '23') AND success = 1
                 """, Integer.class);
 
-        assertThat(tabelas).isEqualTo(11);
-        assertThat(migration).isEqualTo(3);
+        assertThat(tabelas).isEqualTo(14);
+        assertThat(migration).isEqualTo(4);
     }
 
     @Test
@@ -147,6 +148,48 @@ class AvesSqlServerIntegrationTests {
         assertThat(chaveTarefa).isEqualTo(1);
         assertThat(checks).isEqualTo(5);
         assertThat(indices).isEqualTo(2);
+    }
+
+    @Test
+    void v23CriaOvoscopiaOperacionalComConstraintsEBackfillDeOvos() {
+        long instalacaoId = criarInstalacao("SQL ovoscopia " + System.nanoTime(), "INCUBADORA");
+        jdbcTemplate.update("""
+                INSERT INTO dbo.aves_incubacoes
+                (codigo, instalacao_id, metodo, especie, data_inicio, quantidade_ovos, data_prevista_eclosao,
+                 status, chave_idempotencia)
+                VALUES (?, ?, 'CHOCADEIRA', 'GALINHA', '2026-09-01', 2, '2026-09-22',
+                        'EM_INCUBACAO', ?)
+                """, "SQL-INC-OVO-" + System.nanoTime(), instalacaoId, "sql-ovoscopia-" + System.nanoTime());
+        Long incubacaoId = jdbcTemplate.queryForObject("""
+                SELECT id FROM dbo.aves_incubacoes WHERE instalacao_id = ?
+                """, Long.class, instalacaoId);
+        jdbcTemplate.update("""
+                INSERT INTO dbo.aves_incubacao_ovos (incubacao_id, numero) VALUES (?, 1), (?, 2)
+                """, incubacaoId, incubacaoId);
+        Long ovoId = jdbcTemplate.queryForObject("""
+                SELECT id FROM dbo.aves_incubacao_ovos WHERE incubacao_id = ? AND numero = 1
+                """, Long.class, incubacaoId);
+        Long segundoOvoId = jdbcTemplate.queryForObject("""
+                SELECT id FROM dbo.aves_incubacao_ovos WHERE incubacao_id = ? AND numero = 2
+                """, Long.class, incubacaoId);
+        jdbcTemplate.update("""
+                INSERT INTO dbo.aves_incubacao_ovoscopias
+                (incubacao_id, data_ovoscopia, dia_incubacao, proxima_verificacao, chave_idempotencia)
+                VALUES (?, '2026-09-08', 8, '2026-09-15', ?)
+                """, incubacaoId, "sql-ovo-chave-" + System.nanoTime());
+        Long ovoscopiaId = jdbcTemplate.queryForObject("""
+                SELECT id FROM dbo.aves_incubacao_ovoscopias WHERE incubacao_id = ?
+                """, Long.class, incubacaoId);
+
+        jdbcTemplate.update("""
+                INSERT INTO dbo.aves_incubacao_ovoscopia_itens (ovoscopia_id, ovo_id, achado, observacao)
+                VALUES (?, ?, 'REAVALIAR', 'Conferir novamente')
+                """, ovoscopiaId, ovoId);
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO dbo.aves_incubacao_ovoscopia_itens (ovoscopia_id, ovo_id, achado)
+                VALUES (?, ?, 'ACHADO_INVALIDO')
+                """, ovoscopiaId, segundoOvoId)).hasStackTraceContaining("ck_aves_inc_ovoscopia_itens_achado");
     }
 
     @Test

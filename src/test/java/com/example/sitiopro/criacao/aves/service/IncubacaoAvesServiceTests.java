@@ -37,6 +37,7 @@ class IncubacaoAvesServiceTests {
     @Mock private RegistroPosturaAvesRepository posturaRepository;
     @Mock private IncubacaoAcompanhamentoService acompanhamentoService;
     @Mock private IncubacaoOperacionalService operacionalService;
+    @Mock private OvoscopiaIncubacaoAvesService ovoscopiaService;
     private IncubacaoAvesService service;
     private ConfiguracaoOperacionalService configuracao;
     private AvesProperties properties;
@@ -48,7 +49,7 @@ class IncubacaoAvesServiceTests {
         configuracao = servico();
         properties = new AvesProperties();
         service = new IncubacaoAvesService(repository, instalacaoService, loteService, alertasService, codigoService,
-                posturaRepository, acompanhamentoService, operacionalService, configuracao, properties,
+                posturaRepository, acompanhamentoService, operacionalService, ovoscopiaService, configuracao, properties,
                 Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneOffset.UTC));
         incubadora = new InstalacaoCriacao(); ReflectionTestUtils.setField(incubadora, "id", 10L);
         incubadora.setNome("Incubadora principal"); incubadora.setTipo(TipoInstalacaoCriacao.INCUBADORA); incubadora.setAtivo(true);
@@ -91,6 +92,7 @@ class IncubacaoAvesServiceTests {
         assertThat(detalhe.especie()).isEqualTo(EspecieAves.GALINHA);
         assertThat(detalhe.dataPrevistaEclosao()).isEqualTo(LocalDate.of(2026, 8, 24));
         verify(codigoService).bloquearIdempotencia("INCUBACAO_AVES", "inc-1");
+        verify(ovoscopiaService).garantirOvos(any(IncubacaoAves.class));
         verify(operacionalService).garantirTarefas(any(IncubacaoAves.class), eq(operador));
         verify(alertasService).avaliar();
     }

@@ -48,6 +48,8 @@
         <article><span>Início</span><strong th:text="${#temporals.format(incubacao.dataInicio, 'dd/MM/yyyy')}">01/09/2026</strong></article>
         <article><span>Eclosão prevista</span><strong th:text="${#temporals.format(incubacao.dataPrevistaEclosao, 'dd/MM/yyyy')}">22/09/2026</strong></article>
         <article><span>Dias decorridos</span><strong th:text="${incubacao.diasDecorridos}">5</strong></article>
+        <article><span>Próxima ovoscopia</span><strong th:text="${incubacao.proximaOvoscopia == null ? '-' : #temporals.format(incubacao.proximaOvoscopia, 'dd/MM/yyyy')}">08/09/2026</strong></article>
+        <article><span>Reavaliar</span><strong th:text="${incubacao.ovosPendentesReavaliacao}">0</strong></article>
         <article th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}"><span>Última temperatura</span><strong th:text="${incubacao.ultimaTemperatura == null ? '-' : #numbers.formatDecimal(incubacao.ultimaTemperatura, 1, 'POINT', 1, 'COMMA') + ' °C'}">37,5 °C</strong></article>
         <article th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}"><span>Última umidade</span><strong th:text="${incubacao.ultimaUmidade == null ? '-' : #numbers.formatDecimal(incubacao.ultimaUmidade, 1, 'POINT', 1, 'COMMA') + '%'}">55%</strong></article>
     </section>
@@ -55,6 +57,7 @@
     <nav class="incubation-quick-actions" th:if="${incubacao.status.name() == 'EM_INCUBACAO'}" aria-label="Ações rápidas">
         <a href="#registrar-verificacao" class="btn btn-success"><i class="fa-solid fa-clipboard-check"></i> Registrar verificação</a>
         <a href="#registrar-ovoscopia" class="btn btn-outline-dark"><i class="fa-solid fa-magnifying-glass"></i> Registrar ovoscopia</a>
+        <a th:href="@{/sitio/criacoes/aves/incubacoes/{id}/ovoscopias/ficha.pdf(id=${incubacao.id})}" class="btn btn-outline-dark"><i class="fa-solid fa-file-pdf"></i> Baixar ficha</a>
         <a th:if="${incubacao.metodo.name() == 'CHOCADEIRA'}" href="#registrar-medicao" class="btn btn-outline-dark"><i class="fa-solid fa-temperature-half"></i> Temperatura / umidade</a>
         <a href="#finalizar-incubacao" class="btn btn-outline-success"><i class="fa-solid fa-flag-checkered"></i> Finalizar</a>
     </nav>
@@ -107,19 +110,36 @@
 
                 <details id="registrar-ovoscopia">
                     <summary><i class="fa-solid fa-magnifying-glass"></i><span>Ovoscopia</span><i class="fa-solid fa-chevron-down"></i></summary>
-                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/acompanhamentos(id=${incubacao.id})}" th:object="${ovoscopiaForm}" method="post">
+                    <form th:action="@{/sitio/criacoes/aves/incubacoes/{id}/ovoscopias(id=${incubacao.id})}" th:object="${ovoscopiaForm}" method="post">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <input type="hidden" name="tipo" th:value="${ovoscopiaForm.tipo}">
-                        <input type="hidden" name="chaveIdempotencia" th:value="${ovoscopiaForm.chaveIdempotencia}">
-                        <label><span>Data e hora</span><input class="form-control" type="datetime-local" name="dataHora" th:value="${#temporals.format(ovoscopiaForm.dataHora, 'yyyy-MM-dd''T''HH:mm')}" required></label>
-                        <div class="incubation-count-grid">
-                            <label><span>Avaliados</span><input class="form-control" type="number" min="0" name="quantidadeAvaliada"></label>
-                            <label><span>Férteis / viáveis</span><input class="form-control" type="number" min="0" name="ovosFerteis"></label>
-                            <label><span>Sem desenvolvimento</span><input class="form-control" type="number" min="0" name="ovosSemDesenvolvimento"></label>
-                            <label><span>Perdas</span><input class="form-control" type="number" min="0" name="perdas"></label>
+                        <input type="hidden" th:field="*{chaveIdempotencia}">
+                        <div class="incubation-count-grid two-fields">
+                            <label><span>Data da ovoscopia</span><input class="form-control" type="date" th:field="*{dataOvoscopia}" required></label>
+                            <label><span>Próxima verificação</span><input class="form-control" type="date" th:field="*{proximaVerificacao}"></label>
                         </div>
-                        <label><span>Observação</span><textarea class="form-control" name="observacao" rows="2"></textarea></label>
-                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-check"></i> Registrar ovoscopia</button>
+                        <label><span>Responsável</span><input class="form-control" th:field="*{responsavel}" maxlength="120"></label>
+                        <div class="ovoscopy-batch-table">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Ovo</th><th>Achado</th><th>Observação</th></tr></thead>
+                                <tbody>
+                                <tr th:each="item, stat : *{itens}">
+                                    <td>
+                                        <input type="hidden" th:field="*{itens[__${stat.index}__].numero}">
+                                        <span th:text="${'Ovo ' + #numbers.formatInteger(item.numero, 2)}">Ovo 01</span>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" th:field="*{itens[__${stat.index}__].achado}" required>
+                                            <option value="">Selecione</option>
+                                            <option th:each="achado : ${achadosOvoscopia}" th:value="${achado}" th:text="${achado.rotulo}">Desenvolvimento</option>
+                                        </select>
+                                    </td>
+                                    <td><input class="form-control form-control-sm" th:field="*{itens[__${stat.index}__].observacao}" maxlength="1000"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <label><span>Observação geral</span><textarea class="form-control" th:field="*{observacaoGeral}" rows="2"></textarea></label>
+                        <button class="btn btn-success" type="submit"><i class="fa-solid fa-check"></i> Registrar ovoscopia por ovo</button>
                     </form>
                 </details>
 
@@ -160,6 +180,17 @@
                         <button class="btn btn-success" type="submit"><i class="fa-solid fa-circle-check"></i> Finalizar e salvar resultado</button>
                     </form>
                 </details>
+            </section>
+
+            <section class="aves-panel">
+                <div class="panel-heading"><h2>Ovos da incubação</h2><span th:text="${#lists.size(incubacao.ovos) + ' ovos'}">20 ovos</span></div>
+                <div class="ovoscopy-eggs-grid" th:if="${!#lists.isEmpty(incubacao.ovos)}">
+                    <article th:each="ovo : ${incubacao.ovos}" th:classappend="${ovo.pendenteReavaliacao} ? ' needs-review'">
+                        <strong th:text="${ovo.rotulo}">Ovo 01</strong>
+                        <span th:text="${ovo.situacaoAtual == null ? 'Sem avaliação' : ovo.situacaoAtual.rotulo}">Sem avaliação</span>
+                        <small th:if="${ovo.ultimaOvoscopiaEm}" th:text="${#temporals.format(ovo.ultimaOvoscopiaEm, 'dd/MM/yyyy')}">08/09/2026</small>
+                    </article>
+                </div>
             </section>
 
             <section class="aves-panel">

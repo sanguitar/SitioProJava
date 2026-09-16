@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import java.math.BigDecimal;
 import java.util.List;
 import static org.hamcrest.Matchers.*;
@@ -41,6 +42,8 @@ class PropriedadeWebTests {
         when(perimetros.salvar(any())).thenReturn(PerimetroResumo.vazio());
         when(service.mapaTalhoes()).thenReturn(List.of());
         when(service.geoJsonTalhoes()).thenReturn(new TalhoesGeoJsonResumo("FeatureCollection", List.of()));
+        when(service.previewImportacaoTalhoesGeoJson(anyString())).thenReturn(previewImportacao());
+        when(service.confirmarImportacaoTalhoesGeoJson(any())).thenReturn(previewImportacao());
         when(service.resumo()).thenReturn(new PropriedadeResumo(42L,"Sítio MVC",null,null,null,null,null,null,true,0,0,0,0,0,0));
         var p=new PropriedadeRequest(); p.setNome("Sítio MVC"); p.setVersao(0L);
         when(service.formulario()).thenReturn(p);
@@ -177,6 +180,33 @@ class PropriedadeWebTests {
                 .andExpect(jsonPath("$.features[0].properties.epsg").value(4674));
     }
 
+    @Test void importacaoQgisDeTalhoesEhAdminComPreviewConfirmacaoECsrf() throws Exception {
+        mvc.perform(get("/sitio/propriedade/talhoes/importar-qgis").with(user("op").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/sitio/propriedade/talhoes/importar-qgis").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Importar GeoJSON do QGIS")))
+                .andExpect(content().string(containsString("name=\"_csrf\"")));
+        var arquivo = new MockMultipartFile("arquivo", "talhoes.geojson", "application/geo+json",
+                "{\"type\":\"FeatureCollection\",\"features\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        mvc.perform(multipart("/sitio/propriedade/talhoes/importar-qgis/preview")
+                .file(arquivo).with(user("admin").roles("ADMIN")).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Preview da importação")))
+                .andExpect(content().string(containsString("Confirmo que revisei")));
+        mvc.perform(post("/sitio/propriedade/talhoes/importar-qgis/confirmar")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .param("geoJson", "{\"type\":\"FeatureCollection\",\"features\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Confirme explicitamente")));
+        mvc.perform(post("/sitio/propriedade/talhoes/importar-qgis/confirmar")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .param("geoJson", "{\"type\":\"FeatureCollection\",\"features\":[]}")
+                .param("confirmado", "true"))
+                .andExpect(redirectedUrl("/sitio/propriedade/talhoes"));
+        verify(service).confirmarImportacaoTalhoesGeoJson(argThat(TalhaoGeoJsonImportacaoRequest::isConfirmado));
+    }
+
     private TalhaoMapaResumo talhaoMapa() {
         return TalhaoMapaResumo.de(7L, "TL-0007", "Talhão A", new BigDecimal("0.1000"),
                 new BigDecimal("1234.5678"), true, List.of(
@@ -186,6 +216,13 @@ class PropriedadeWebTests {
                                 new BigDecimal("-63.871190000"), new BigDecimal("90.20"), "T2", null),
                         new TalhaoMapaResumo.Vertice(3, new BigDecimal("-8.347500000"),
                                 new BigDecimal("-63.871380000"), new BigDecimal("90.30"), "T3", null)));
+    }
+
+    private TalhaoGeoJsonImportacaoPreview previewImportacao() {
+        return new TalhaoGeoJsonImportacaoPreview(List.of(new TalhaoGeoJsonImportacaoPreview.Item(
+                "TL-0007", 7L, "Talhão A", new BigDecimal("0.1000"), new BigDecimal("1000.0000"),
+                new BigDecimal("1234.5678"), 3, 3, true, List.of("Geometria será substituída."), List.of())),
+                1, 1, true);
     }
 
     @Test void perimetroRestritoAdminECsrf() throws Exception {

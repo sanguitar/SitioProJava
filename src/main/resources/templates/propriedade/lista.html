@@ -10,6 +10,7 @@
 <div class="property-actions">
 <a th:if="${csvUrl}" th:href="@{${csvUrl}}" class="btn btn-outline-secondary"><i class="fa-solid fa-file-csv me-2"></i>QGIS CSV</a>
 <a th:if="${geoJsonUrl}" th:href="@{${geoJsonUrl}}" class="btn btn-outline-secondary"><i class="fa-solid fa-code me-2"></i>QGIS GeoJSON</a>
+<a sec:authorize="hasRole('ADMIN')" th:if="${cadastro == 'talhoes'}" th:href="@{/sitio/propriedade/talhoes/importar-qgis}" class="btn btn-outline-success"><i class="fa-solid fa-file-import me-2"></i>Importar QGIS</a>
 <a sec:authorize="hasRole('ADMIN')" th:href="@{${caminho + '/novo'}}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo cadastro</a>
 </div></header>
 <div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>

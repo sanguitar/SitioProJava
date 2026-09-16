@@ -5,6 +5,7 @@ import com.example.sitiopro.propriedade.entity.*;
 import com.example.sitiopro.propriedade.repository.*;
 import com.example.sitiopro.propriedade.service.*;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -44,7 +45,7 @@ class PropriedadeServiceTests {
         ReflectionTestUtils.setField(principal, "id", 42L);
         lenient().when(propriedades.findByPrincipalTrue()).thenReturn(Optional.of(principal));
         service = new PropriedadeService(propriedades, areas, talhoes, piquetes, estruturas,
-                recursos, instalacoes, talhaoSpatial, factory.getValidator(), em);
+                recursos, instalacoes, talhaoSpatial, new ObjectMapper(), factory.getValidator(), em);
     }
 
     @Test void consultaPrincipalSemAssumirIdUm() {
@@ -161,10 +162,60 @@ class PropriedadeServiceTests {
     @Test void talhaoNaoConsultaIdDeOutraPropriedade() {
         assertThatThrownBy(() -> service.detalharTalhao(999L)).hasMessageContaining("nesta propriedade");
     }
+    @Test void previewImportacaoQgisIdentificaTalhaoPorCodigoEAlteracoes() {
+        var e = new Talhao(); e.setPropriedade(principal); e.setNome("Talhão importado"); e.setAreaHa(new BigDecimal("1.5000"));
+        ReflectionTestUtils.setField(e, "id", 7L); ReflectionTestUtils.setField(e, "codigo", "TL-0007");
+        e.substituirVertices(java.util.List.of(new VerticeTalhao(1, new BigDecimal("-8.1"), new BigDecimal("-63.1"), null, null, null),
+                new VerticeTalhao(2, new BigDecimal("-8.2"), new BigDecimal("-63.1"), null, null, null),
+                new VerticeTalhao(3, new BigDecimal("-8.2"), new BigDecimal("-63.2"), null, null, null)));
+        when(talhoes.findByPropriedadeIdAndCodigoIgnoreCase(42L, "TL-0007")).thenReturn(Optional.of(e));
+        when(talhaoSpatial.validarGeometria(eq(42L), any())).thenReturn(new BigDecimal("1234.5678"));
+
+        var preview = service.previewImportacaoTalhoesGeoJson(geoJson("TL-0007"));
+
+        assertThat(preview.valido()).isTrue();
+        assertThat(preview.total()).isEqualTo(1);
+        assertThat(preview.alterados()).isEqualTo(1);
+        assertThat(preview.itens().getFirst().areaGisImportadaM2()).isEqualByComparingTo("1234.5678");
+        assertThat(preview.itens().getFirst().alteracoes()).contains("Geometria será substituída.");
+    }
+    @Test void importacaoQgisRejeitaCrsDiferente() {
+        assertThatThrownBy(() -> service.previewImportacaoTalhoesGeoJson(geoJson("TL-0007").replace("4674", "4326")))
+                .hasMessageContaining("EPSG:4674");
+    }
+    @Test void confirmarImportacaoQgisSubstituiVerticesDeFormaTransacional() {
+        var e = new Talhao(); e.setPropriedade(principal); e.setNome("Talhão importado"); e.setAreaHa(new BigDecimal("1.5000"));
+        ReflectionTestUtils.setField(e, "id", 7L); ReflectionTestUtils.setField(e, "codigo", "TL-0007");
+        when(talhoes.findByPropriedadeIdAndCodigoIgnoreCase(42L, "TL-0007")).thenReturn(Optional.of(e));
+        when(talhoes.findByIdAndPropriedadeId(7L, 42L)).thenReturn(Optional.of(e));
+        when(talhaoSpatial.validarGeometria(eq(42L), any())).thenReturn(new BigDecimal("1234.5678"));
+        when(talhoes.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        var r = new TalhaoGeoJsonImportacaoRequest(); r.setGeoJson(geoJson("TL-0007")); r.setConfirmado(true);
+
+        service.confirmarImportacaoTalhoesGeoJson(r);
+
+        verify(talhoes).saveAndFlush(argThat(t -> t.getVertices().size() == 3));
+        verify(talhaoSpatial).validarEAtualizarRepresentacao(7L);
+    }
     private TalhaoRequest talhao() {
         var r = new TalhaoRequest(); r.setNome("Nome físico");
         r.setAreaHa(new BigDecimal("1.5"));
         return r;
+    }
+
+    private String geoJson(String codigo) {
+        return """
+                {"type":"FeatureCollection","features":[{
+                  "type":"Feature",
+                  "properties":{"codigo":"%s","epsg":4674,"crs":"EPSG:4674","datum":"SIRGAS 2000"},
+                  "geometry":{"type":"Polygon","coordinates":[[
+                    [-63.871160000,-8.347200000,90.10],
+                    [-63.871190000,-8.348000000,90.20],
+                    [-63.871380000,-8.347500000,90.30],
+                    [-63.871160000,-8.347200000,90.10]
+                  ]]}
+                }]}
+                """.formatted(codigo);
     }
 
     @Test void criaPiqueteComPropriedadeDoServidor() {

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: commonHead('Importar Talhões QGIS - Sítio Guaratinguetá')}"></th:block>
+<link rel="stylesheet" th:href="@{/css/propriedade.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content property-page">
+<div th:replace="~{fragments/ui :: topbar('Importar QGIS', 'Propriedade')}"></div>
+<header class="property-heading"><div><small class="module-group">Talhões</small><h1>Importar GeoJSON do QGIS</h1>
+<p>Somente GeoJSON em SIRGAS 2000 / EPSG:4674. A importação substitui apenas a geometria dos Talhões existentes pelo código.</p></div>
+<a class="btn btn-outline-secondary" th:href="@{/sitio/propriedade/talhoes}"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a></header>
+<div th:replace="~{propriedade/fragments :: tabs}"></div><div th:replace="~{propriedade/fragments :: messages}"></div>
+<div class="alert alert-danger" role="alert" th:if="${erro}" th:text="${erro}"></div>
+
+<section class="property-section">
+    <h2>Arquivo GeoJSON</h2>
+    <form th:action="@{/sitio/propriedade/talhoes/importar-qgis/preview}" method="post" enctype="multipart/form-data" class="property-form">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <div class="mb-3">
+            <label class="form-label" for="arquivo">GeoJSON exportado/editado no QGIS</label>
+            <input class="form-control" id="arquivo" name="arquivo" type="file" accept=".geojson,application/geo+json,application/json" required>
+            <div class="form-text">Cada feature deve manter <code>codigo</code>, <code>epsg=4674</code>, <code>crs=EPSG:4674</code> e <code>datum=SIRGAS 2000</code>.</div>
+        </div>
+        <button class="btn btn-success" type="submit"><i class="fa-solid fa-magnifying-glass-location me-2"></i>Gerar preview</button>
+    </form>
+</section>
+
+<section class="property-section" th:if="${preview != null}">
+    <div class="property-heading"><div><h2>Preview da importação</h2>
+        <p th:text="${preview.total + ' feature(s), ' + preview.alterados + ' alteração(ões) detectada(s)'}"></p></div></div>
+    <div class="perimeter-map-warning" th:if="${preview.possuiErros()}">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        Corrija os erros antes de confirmar. Nada foi salvo.
+    </div>
+    <div class="table-responsive">
+        <table class="table property-table">
+            <thead><tr><th>Código</th><th>Talhão</th><th>Área</th><th>Vértices</th><th>Alterações</th><th>Erros</th></tr></thead>
+            <tbody><tr th:each="item : ${preview.itens}">
+                <td th:text="${item.codigo}"></td>
+                <td><span th:text="${item.nome ?: 'Não encontrado'}"></span></td>
+                <td><span th:text="${item.areaGisAtualM2 == null ? 'GIS atual não calculada' : #numbers.formatDecimal(item.areaGisAtualM2,1,4) + ' m²'}"></span>
+                    <small th:text="${item.areaGisImportadaM2 == null ? 'Importada não calculada' : 'Importada ' + #numbers.formatDecimal(item.areaGisImportadaM2,1,4) + ' m²'}"></small></td>
+                <td><span th:text="${item.verticesAtuais + ' atual(is)'}"></span><small th:text="${item.verticesImportados + ' importado(s)'}"></small></td>
+                <td><small th:each="a : ${item.alteracoes}" th:text="${a}"></small></td>
+                <td><small class="text-danger" th:each="e : ${item.erros}" th:text="${e}"></small><span th:if="${#lists.isEmpty(item.erros)}">OK</span></td>
+            </tr></tbody>
+        </table>
+    </div>
+    <form th:if="${!preview.possuiErros()}" th:action="@{/sitio/propriedade/talhoes/importar-qgis/confirmar}" method="post" class="property-form">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <textarea name="geoJson" hidden th:text="${form.geoJson}"></textarea>
+        <div class="form-check my-3">
+            <input class="form-check-input" id="confirmado" name="confirmado" type="checkbox" value="true" required>
+            <label class="form-check-label" for="confirmado">Confirmo que revisei o preview e autorizo substituir a geometria dos Talhões listados.</label>
+        </div>
+        <button class="btn btn-danger" type="submit"><i class="fa-solid fa-check me-2"></i>Confirmar substituição</button>
+    </form>
+</section>
+
+<div th:replace="~{fragments/ui :: appFooter}"></div></main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

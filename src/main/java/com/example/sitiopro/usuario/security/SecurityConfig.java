@@ -125,6 +125,7 @@ public class SecurityConfig {
                         .requestMatchers("/sitio/agricultura/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/propriedade/editar",
                                 "/sitio/propriedade/perimetro/editar",
+                                "/sitio/propriedade/talhoes/importar-qgis",
                                 "/sitio/propriedade/*/novo", "/sitio/propriedade/*/*/editar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/propriedade", "/sitio/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/sitio/propriedade", "/sitio/propriedade/**").hasRole("ADMIN")

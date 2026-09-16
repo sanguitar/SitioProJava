@@ -23,6 +23,8 @@ import com.example.sitiopro.criacao.aves.service.IncubacaoAcompanhamentoService;
 import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
 import com.example.sitiopro.criacao.aves.service.LoteAvesService;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.criacao.aves.service.OvoscopiaIncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.FichaOvoscopiaPdfService;
 import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoResumo;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
@@ -292,6 +294,8 @@ class SitioProSecurityTests {
     @MockBean private ManejoAvesService manejoAvesService;
     @MockBean private IncubacaoAvesService incubacaoAvesService;
     @MockBean private IncubacaoAcompanhamentoService incubacaoAcompanhamentoService;
+    @MockBean private OvoscopiaIncubacaoAvesService ovoscopiaIncubacaoAvesService;
+    @MockBean private FichaOvoscopiaPdfService fichaOvoscopiaPdfService;
     @MockBean private AvesAlertasService avesAlertasService;
 
     @MockBean

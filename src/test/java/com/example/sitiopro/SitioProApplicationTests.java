@@ -11,6 +11,8 @@ import com.example.sitiopro.criacao.aves.repository.EventoLoteAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.IncubacaoAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.LoteAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.MortalidadeAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.OvoIncubacaoAvesRepository;
+import com.example.sitiopro.criacao.aves.repository.OvoscopiaIncubacaoAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.PesagemAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.RegistroPosturaAvesRepository;
 import com.example.sitiopro.criacao.aves.repository.TransferenciaLoteAvesRepository;
@@ -141,6 +143,12 @@ class SitioProApplicationTests {
 
     @MockBean
     private AcompanhamentoIncubacaoAvesRepository acompanhamentoIncubacaoAvesRepository;
+
+    @MockBean
+    private OvoIncubacaoAvesRepository ovoIncubacaoAvesRepository;
+
+    @MockBean
+    private OvoscopiaIncubacaoAvesRepository ovoscopiaIncubacaoAvesRepository;
 
     @MockBean
     private IntegracaoEstadoRepository integracaoEstadoRepository;

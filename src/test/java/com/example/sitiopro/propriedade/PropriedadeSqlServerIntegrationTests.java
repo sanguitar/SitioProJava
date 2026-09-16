@@ -123,6 +123,57 @@ class PropriedadeSqlServerIntegrationTests {
         assertThatThrownBy(() -> service.salvarTalhao(null, fora)).hasMessageContaining("dentro do perímetro");
     }
 
+    @Test @Transactional void importacaoQgisPreviewConfirmaERollbackSemDuplicarTalhao() {
+        var r = new TalhaoRequest();
+        r.setNome("Talhão importação QGIS");
+        r.setAreaHa(new BigDecimal("0.1000"));
+        r.getVertices().addAll(java.util.List.of(
+                verticeTalhao(1, "-8.347200000", "-63.871160000", "90.10", "T1"),
+                verticeTalhao(2, "-8.348000000", "-63.871190000", "90.20", "T2"),
+                verticeTalhao(3, "-8.347500000", "-63.871380000", "90.30", "T3")));
+        var salvo = service.salvarTalhao(null, r);
+        String geoJson = geoJsonTalhao(salvo.codigo(),
+                "-63.871170000,-8.347250000,90.10",
+                "-63.871200000,-8.347900000,90.20",
+                "-63.871360000,-8.347550000,90.30");
+
+        var preview = service.previewImportacaoTalhoesGeoJson(geoJson);
+        assertThat(preview.valido()).isTrue();
+        assertThat(preview.itens().getFirst().codigo()).isEqualTo(salvo.codigo());
+        assertThat(preview.itens().getFirst().areaGisImportadaM2()).isNotNull();
+        var request = new TalhaoGeoJsonImportacaoRequest();
+        request.setGeoJson(geoJson);
+        request.setConfirmado(true);
+        service.confirmarImportacaoTalhoesGeoJson(request);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(service.detalharTalhao(salvo.id()).quantidadeVertices()).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_talhoes WHERE codigo=?",
+                Integer.class, salvo.codigo())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM propriedade_talhao_vertices
+                WHERE talhao_id=? AND latitude=-8.347250000 AND longitude=-63.871170000
+                """, Integer.class, salvo.id())).isEqualTo(1);
+
+        String fora = geoJsonTalhao(salvo.codigo(),
+                "-63.100000000,-8.100000000",
+                "-63.100100000,-8.100000000",
+                "-63.100000000,-8.100100000");
+        var previewInvalido = service.previewImportacaoTalhoesGeoJson(fora);
+        assertThat(previewInvalido.valido()).isFalse();
+        assertThatThrownBy(() -> {
+            var invalido = new TalhaoGeoJsonImportacaoRequest();
+            invalido.setGeoJson(fora);
+            invalido.setConfirmado(true);
+            service.confirmarImportacaoTalhoesGeoJson(invalido);
+        }).hasMessageContaining("Corrija os erros");
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM propriedade_talhao_vertices
+                WHERE talhao_id=? AND latitude=-8.347250000 AND longitude=-63.871170000
+                """, Integer.class, salvo.id())).isEqualTo(1);
+    }
+
     @Test @Transactional @org.springframework.security.test.context.support.WithMockUser(username="admin-perimetro",roles="ADMIN")
     void perimetroPersisteOrdemPrecisaoAuditoriaEAtualizaSomenteVertices() {
         var principal = org.mockito.Mockito.mock(com.example.sitiopro.usuario.security.UsuarioPrincipal.class);
@@ -147,6 +198,22 @@ class PropriedadeSqlServerIntegrationTests {
         assertThat(atualizado.versao()).isGreaterThan(salvo.versao());
         assertThat(perimetros.obter().vertices().getFirst().latitude()).isEqualByComparingTo("-8.9");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM propriedade_perimetro_vertices WHERE perimetro_id=?",Integer.class,salvo.id())).isEqualTo(3);
+    }
+
+    private String geoJsonTalhao(String codigo, String... coordenadas) {
+        StringBuilder pontos = new StringBuilder();
+        for (String coordenada : coordenadas) {
+            if (!pontos.isEmpty()) pontos.append(',');
+            pontos.append('[').append(coordenada).append(']');
+        }
+        pontos.append(",[").append(coordenadas[0]).append(']');
+        return """
+                {"type":"FeatureCollection","features":[{
+                  "type":"Feature",
+                  "properties":{"codigo":"%s","epsg":4674,"crs":"EPSG:4674","datum":"SIRGAS 2000"},
+                  "geometry":{"type":"Polygon","coordinates":[[%s]]}
+                }]}
+                """.formatted(codigo, pontos);
     }
 
     @Test @Transactional void perimetroTrocaOrdemRemoveVerticesEConfirmaReferenciaExplicita() {

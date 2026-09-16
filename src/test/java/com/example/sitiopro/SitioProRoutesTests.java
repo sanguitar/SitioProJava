@@ -9,12 +9,23 @@ import com.example.sitiopro.categoria.model.Categoria;
 import com.example.sitiopro.categoria.service.CategoriaService;
 import com.example.sitiopro.compras.controller.ComprasController;
 import com.example.sitiopro.criacao.aves.dto.AvesResumo;
+import com.example.sitiopro.criacao.aves.dto.IncubacaoAvesDetalhe;
+import com.example.sitiopro.criacao.aves.dto.ItemOvoscopiaIncubacaoAvesRequest;
+import com.example.sitiopro.criacao.aves.dto.OvoIncubacaoAvesResumo;
+import com.example.sitiopro.criacao.aves.dto.RegistrarAcompanhamentoIncubacaoAvesRequest;
+import com.example.sitiopro.criacao.aves.dto.RegistrarOvoscopiaIncubacaoAvesRequest;
+import com.example.sitiopro.criacao.aves.entity.EspecieAves;
+import com.example.sitiopro.criacao.aves.entity.MetodoIncubacaoAves;
+import com.example.sitiopro.criacao.aves.entity.StatusIncubacaoAves;
+import com.example.sitiopro.criacao.aves.entity.TipoAcompanhamentoIncubacaoAves;
 import com.example.sitiopro.criacao.aves.service.AvesResumoService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAcompanhamentoService;
 import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
 import com.example.sitiopro.criacao.aves.service.LoteAvesService;
 import com.example.sitiopro.criacao.aves.service.ManejoAvesService;
+import com.example.sitiopro.criacao.aves.service.OvoscopiaIncubacaoAvesService;
+import com.example.sitiopro.criacao.aves.service.FichaOvoscopiaPdfService;
 import com.example.sitiopro.criacao.aves.web.CriacoesController;
 import com.example.sitiopro.criacao.aves.web.IncubacoesAvesController;
 import com.example.sitiopro.criacao.aves.web.InstalacoesAvesController;
@@ -217,6 +228,8 @@ class SitioProRoutesTests {
     @MockBean private ManejoAvesService manejoAvesService;
     @MockBean private IncubacaoAvesService incubacaoAvesService;
     @MockBean private IncubacaoAcompanhamentoService incubacaoAcompanhamentoService;
+    @MockBean private OvoscopiaIncubacaoAvesService ovoscopiaIncubacaoAvesService;
+    @MockBean private FichaOvoscopiaPdfService fichaOvoscopiaPdfService;
     @MockBean private Clock clock;
 
     @BeforeEach
@@ -548,6 +561,22 @@ class SitioProRoutesTests {
                         org.hamcrest.Matchers.containsString("name=\"codigo\""))));
     }
 
+    @Test
+    void detalheIncubacaoRenderizaOvoscopiaOperacionalEFichaPdf() throws Exception {
+        when(incubacaoAvesService.detalhar(1L)).thenReturn(incubacaoDetalhe());
+        when(ovoscopiaIncubacaoAvesService.novoFormulario(1L)).thenReturn(ovoscopiaForm());
+        when(incubacaoAcompanhamentoService.novo(TipoAcompanhamentoIncubacaoAves.VERIFICACAO_GERAL))
+                .thenReturn(acompanhamentoForm(TipoAcompanhamentoIncubacaoAves.VERIFICACAO_GERAL));
+        when(incubacaoAcompanhamentoService.novo(TipoAcompanhamentoIncubacaoAves.TEMPERATURA_UMIDADE))
+                .thenReturn(acompanhamentoForm(TipoAcompanhamentoIncubacaoAves.TEMPERATURA_UMIDADE));
+
+        mockMvc.perform(get("/sitio/criacoes/aves/incubacoes/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Ovos da incubação")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Registrar ovoscopia por ovo")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ovoscopias/ficha.pdf")));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"novo", "detalhe", "historico"})
     void atalhosAntigosDeConfiguracoesRedirecionamParaTelaUnica(String acao) throws Exception {
@@ -661,6 +690,40 @@ class SitioProRoutesTests {
                 SeveridadeAlerta.ALTA, StatusAlerta.ATIVO, ModuloOrigem.ESTOQUE,
                 TipoAlerta.ESTOQUE_ABAIXO_MINIMO, "ITEM:1", "ESTOQUE:ITEM:1:ABAIXO_MINIMO",
                 agora, agora, null, null, null, Map.of("saldo", 1), null, 0, List.of());
+    }
+
+    private IncubacaoAvesDetalhe incubacaoDetalhe() {
+        LocalDate inicio = LocalDate.of(2026, 9, 1);
+        return new IncubacaoAvesDetalhe(1L, "INC-2026-0001", MetodoIncubacaoAves.CHOCADEIRA,
+                EspecieAves.GALINHA, 1L, "Chocadeira 1", inicio, 2, null,
+                null, null, null, null, inicio.plusDays(21), StatusIncubacaoAves.EM_INCUBACAO,
+                null, null, null, null, null, null, null, null, null, null,
+                21, 6, 15, 7, 28, null, null, null,
+                List.of(new OvoIncubacaoAvesResumo(1L, 1, "Ovo 01", null, null, null, false),
+                        new OvoIncubacaoAvesResumo(2L, 2, "Ovo 02", null, null, null, false)),
+                List.of(), 0, inicio.plusDays(7), List.of(), List.of(), List.of(),
+                0, LocalDateTime.now(), "teste", LocalDateTime.now(), "teste");
+    }
+
+    private RegistrarOvoscopiaIncubacaoAvesRequest ovoscopiaForm() {
+        RegistrarOvoscopiaIncubacaoAvesRequest request = new RegistrarOvoscopiaIncubacaoAvesRequest();
+        request.setDataOvoscopia(LocalDate.of(2026, 9, 7));
+        request.setProximaVerificacao(LocalDate.of(2026, 9, 14));
+        request.setChaveIdempotencia("ovoscopia-web");
+        for (int numero = 1; numero <= 2; numero++) {
+            ItemOvoscopiaIncubacaoAvesRequest item = new ItemOvoscopiaIncubacaoAvesRequest();
+            item.setNumero(numero);
+            request.getItens().add(item);
+        }
+        return request;
+    }
+
+    private RegistrarAcompanhamentoIncubacaoAvesRequest acompanhamentoForm(TipoAcompanhamentoIncubacaoAves tipo) {
+        RegistrarAcompanhamentoIncubacaoAvesRequest request = new RegistrarAcompanhamentoIncubacaoAvesRequest();
+        request.setTipo(tipo);
+        request.setDataHora(LocalDateTime.of(2026, 9, 7, 8, 0));
+        request.setChaveIdempotencia("acomp-" + tipo.name());
+        return request;
     }
 
     private CategoriaEstoque categoriaEstoque(Long id, String nome, boolean ativa) {

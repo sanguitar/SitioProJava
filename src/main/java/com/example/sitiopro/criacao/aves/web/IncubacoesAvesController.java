@@ -4,18 +4,26 @@ import com.example.sitiopro.criacao.aves.dto.AjustarPrevisaoIncubacaoAvesRequest
 import com.example.sitiopro.criacao.aves.dto.CriarIncubacaoAvesRequest;
 import com.example.sitiopro.criacao.aves.dto.FinalizarIncubacaoAvesRequest;
 import com.example.sitiopro.criacao.aves.dto.RegistrarAcompanhamentoIncubacaoAvesRequest;
+import com.example.sitiopro.criacao.aves.dto.RegistrarOvoscopiaIncubacaoAvesRequest;
+import com.example.sitiopro.criacao.aves.entity.AchadoOvoscopiaAves;
 import com.example.sitiopro.criacao.aves.entity.EspecieAves;
 import com.example.sitiopro.criacao.aves.entity.FinalidadeLoteAves;
 import com.example.sitiopro.criacao.aves.entity.MetodoIncubacaoAves;
 import com.example.sitiopro.criacao.aves.entity.SexoLoteAves;
 import com.example.sitiopro.criacao.aves.entity.TipoAcompanhamentoIncubacaoAves;
 import com.example.sitiopro.criacao.aves.service.AvesOperacaoException;
+import com.example.sitiopro.criacao.aves.service.FichaOvoscopiaPdfService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAcompanhamentoService;
 import com.example.sitiopro.criacao.aves.service.IncubacaoAvesService;
 import com.example.sitiopro.criacao.aves.service.InstalacaoCriacaoService;
 import com.example.sitiopro.criacao.aves.service.LoteAvesService;
+import com.example.sitiopro.criacao.aves.service.OvoscopiaIncubacaoAvesService;
 import com.example.sitiopro.tarefas.service.UsuarioAtor;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,15 +47,21 @@ public class IncubacoesAvesController {
 
     private final IncubacaoAvesService service;
     private final IncubacaoAcompanhamentoService acompanhamentoService;
+    private final OvoscopiaIncubacaoAvesService ovoscopiaService;
+    private final FichaOvoscopiaPdfService fichaPdfService;
     private final InstalacaoCriacaoService instalacaoService;
     private final LoteAvesService loteService;
     private final Clock clock;
 
     public IncubacoesAvesController(IncubacaoAvesService service,
             IncubacaoAcompanhamentoService acompanhamentoService,
+            OvoscopiaIncubacaoAvesService ovoscopiaService,
+            FichaOvoscopiaPdfService fichaPdfService,
             InstalacaoCriacaoService instalacaoService, LoteAvesService loteService, Clock clock) {
         this.service = service;
         this.acompanhamentoService = acompanhamentoService;
+        this.ovoscopiaService = ovoscopiaService;
+        this.fichaPdfService = fichaPdfService;
         this.instalacaoService = instalacaoService;
         this.loteService = loteService;
         this.clock = clock;
@@ -109,7 +123,8 @@ public class IncubacoesAvesController {
         model.addAttribute("verificacaoForm",
                 acompanhamentoService.novo(TipoAcompanhamentoIncubacaoAves.VERIFICACAO_GERAL));
         model.addAttribute("ovoscopiaForm",
-                acompanhamentoService.novo(TipoAcompanhamentoIncubacaoAves.OVOSCOPIA));
+                ovoscopiaService.novoFormulario(id));
+        model.addAttribute("achadosOvoscopia", AchadoOvoscopiaAves.values());
         model.addAttribute("medicaoForm",
                 acompanhamentoService.novo(TipoAcompanhamentoIncubacaoAves.TEMPERATURA_UMIDADE));
 
@@ -134,6 +149,35 @@ public class IncubacoesAvesController {
             }
         }
         return redirect(id);
+    }
+
+    @PostMapping("/{id}/ovoscopias")
+    public String registrarOvoscopia(@PathVariable Long id,
+            @Valid @ModelAttribute("ovoscopiaForm") RegistrarOvoscopiaIncubacaoAvesRequest request,
+            BindingResult bindingResult, RedirectAttributes redirect, Authentication authentication) {
+        if (bindingResult.hasErrors()) {
+            redirect.addFlashAttribute("erro", erro(bindingResult));
+        } else {
+            try {
+                ovoscopiaService.registrar(id, request, UsuarioAtor.de(authentication));
+                redirect.addFlashAttribute("mensagem", "Ovoscopia por ovo registrada.");
+            } catch (AvesOperacaoException ex) {
+                redirect.addFlashAttribute("erro", ex.getMessage());
+            }
+        }
+        return redirect(id);
+    }
+
+    @GetMapping("/{id}/ovoscopias/ficha.pdf")
+    public ResponseEntity<byte[]> fichaOvoscopia(@PathVariable Long id) {
+        var ficha = ovoscopiaService.ficha(id);
+        byte[] pdf = fichaPdfService.gerar(ficha);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("ovoscopia-" + ficha.codigoIncubacao() + ".pdf")
+                        .build().toString())
+                .body(pdf);
     }
 
     @PostMapping("/{id}/finalizar")

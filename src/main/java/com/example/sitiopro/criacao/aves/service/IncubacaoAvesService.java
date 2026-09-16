@@ -56,6 +56,7 @@ public class IncubacaoAvesService {
     private final RegistroPosturaAvesRepository posturaRepository;
     private final IncubacaoAcompanhamentoService acompanhamentoService;
     private final IncubacaoOperacionalService operacionalService;
+    private final OvoscopiaIncubacaoAvesService ovoscopiaService;
     private final ConfiguracaoOperacionalService configuracaoOperacionalService;
     private final AvesProperties properties;
     private final Clock clock;
@@ -68,6 +69,7 @@ public class IncubacaoAvesService {
             RegistroPosturaAvesRepository posturaRepository,
             IncubacaoAcompanhamentoService acompanhamentoService,
             IncubacaoOperacionalService operacionalService,
+            OvoscopiaIncubacaoAvesService ovoscopiaService,
             ConfiguracaoOperacionalService configuracaoOperacionalService,
             AvesProperties properties,
             Clock clock) {
@@ -79,6 +81,7 @@ public class IncubacaoAvesService {
         this.posturaRepository = posturaRepository;
         this.acompanhamentoService = acompanhamentoService;
         this.operacionalService = operacionalService;
+        this.ovoscopiaService = ovoscopiaService;
         this.configuracaoOperacionalService = configuracaoOperacionalService;
         this.properties = properties;
         this.clock = clock;
@@ -153,6 +156,7 @@ public class IncubacaoAvesService {
         incubacao.setChaveIdempotencia(chave);
         incubacao = repository.save(incubacao);
 
+        ovoscopiaService.garantirOvos(incubacao);
         operacionalService.garantirTarefas(incubacao, ator);
         alertasService.avaliar();
         registrarLog("criacao.aves.incubation.started", incubacao, request.getQuantidadeOvos(), inicioOperacao);
@@ -332,6 +336,14 @@ public class IncubacaoAvesService {
         AcompanhamentoIncubacaoAvesResumo ultimaMedicao = acompanhamentos.stream()
                 .filter(item -> item.temperatura() != null || item.umidade() != null)
                 .findFirst().orElse(null);
+        var ovos = ovoscopiaService.ovos(incubacao.getId());
+        var ovoscopias = ovoscopiaService.ovoscopias(incubacao.getId());
+        long pendentes = ovos.stream().filter(com.example.sitiopro.criacao.aves.dto.OvoIncubacaoAvesResumo::pendenteReavaliacao).count();
+        LocalDate proximaOvoscopia = ovoscopias.stream()
+                .map(com.example.sitiopro.criacao.aves.dto.OvoscopiaIncubacaoAvesResumo::proximaVerificacao)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(incubacao.getDataInicio().plusDays(properties.getTarefaOvoscopiaDias()));
         Progresso progresso = progresso(incubacao);
         return new IncubacaoAvesDetalhe(
                 incubacao.getId(), incubacao.getCodigo(), incubacao.getMetodo(), incubacao.getEspecie(),
@@ -351,7 +363,8 @@ public class IncubacaoAvesService {
                 progresso.periodo(), progresso.diasDecorridos(), progresso.diasRestantes(), progresso.diaAtual(),
                 progresso.percentual(), ultimaMedicao == null ? null : ultimaMedicao.temperatura(),
                 ultimaMedicao == null ? null : ultimaMedicao.umidade(),
-                ultimaMedicao == null ? null : ultimaMedicao.dataHora(), acompanhamentos,
+                ultimaMedicao == null ? null : ultimaMedicao.dataHora(), ovos, ovoscopias, pendentes,
+                proximaOvoscopia, acompanhamentos,
                 operacionalService.tarefas(incubacao.getId()), operacionalService.alertas(incubacao.getId()),
                 incubacao.getVersao(), incubacao.getCriadoEm(), incubacao.getCriadoPor(),
                 incubacao.getAlteradoEm(), incubacao.getAlteradoPor());

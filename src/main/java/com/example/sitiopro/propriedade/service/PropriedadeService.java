@@ -4,6 +4,8 @@ import com.example.sitiopro.propriedade.dto.*;
 import com.example.sitiopro.propriedade.entity.*;
 import com.example.sitiopro.propriedade.repository.*;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.Validator;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,13 +31,14 @@ public class PropriedadeService {
     private final RecursoHidricoRepository recursos;
     private final InstalacaoCriacaoRepository instalacoes;
     private final TalhaoSpatialRepository talhaoSpatial;
+    private final ObjectMapper objectMapper;
     private final Validator validator;
     private final EntityManager entityManager;
 
     public PropriedadeService(PropriedadeRepository propriedades, AreaPropriedadeRepository areas,
             TalhaoRepository talhoes, PiqueteRepository piquetes, EstruturaPropriedadeRepository estruturas,
             RecursoHidricoRepository recursos, InstalacaoCriacaoRepository instalacoes, TalhaoSpatialRepository talhaoSpatial,
-            Validator validator, EntityManager entityManager) {
+            ObjectMapper objectMapper, Validator validator, EntityManager entityManager) {
         this.propriedades = propriedades;
         this.areas = areas;
         this.talhoes = talhoes;
@@ -42,6 +47,7 @@ public class PropriedadeService {
         this.recursos = recursos;
         this.instalacoes = instalacoes;
         this.talhaoSpatial = talhaoSpatial;
+        this.objectMapper = objectMapper;
         this.validator = validator;
         this.entityManager = entityManager;
     }
@@ -270,14 +276,231 @@ public class PropriedadeService {
         return TalhoesGeoJsonResumo.de(mapaTalhoes());
     }
 
+    public TalhaoGeoJsonImportacaoPreview previewImportacaoTalhoesGeoJson(String geoJson) {
+        Propriedade p = principal();
+        List<GeoJsonTalhaoImportado> importados = lerTalhoesGeoJson(geoJson);
+        List<TalhaoGeoJsonImportacaoPreview.Item> itens = new ArrayList<>();
+        for (GeoJsonTalhaoImportado importado : importados) {
+            itens.add(previewItem(p.getId(), importado));
+        }
+        long alterados = itens.stream().filter(TalhaoGeoJsonImportacaoPreview.Item::alterado).count();
+        boolean valido = !itens.isEmpty() && itens.stream().allMatch(TalhaoGeoJsonImportacaoPreview.Item::valido);
+        return new TalhaoGeoJsonImportacaoPreview(itens, itens.size(), Math.toIntExact(alterados), valido);
+    }
+
+    @Transactional
+    public TalhaoGeoJsonImportacaoPreview confirmarImportacaoTalhoesGeoJson(TalhaoGeoJsonImportacaoRequest request) {
+        validar(request);
+        TalhaoGeoJsonImportacaoPreview preview = previewImportacaoTalhoesGeoJson(request.getGeoJson());
+        if (preview.possuiErros()) {
+            throw new PropriedadeOperacaoException("geoJson",
+                    "Corrija os erros do preview antes de confirmar a importação.", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Propriedade p = principalAtiva();
+        List<GeoJsonTalhaoImportado> importados = lerTalhoesGeoJson(request.getGeoJson());
+        for (GeoJsonTalhaoImportado importado : importados) {
+            Talhao talhao = talhoes.findByPropriedadeIdAndCodigoIgnoreCase(p.getId(), importado.codigo())
+                    .orElseThrow(() -> new PropriedadeOperacaoException("geoJson",
+                            "Talhão não encontrado para o código " + importado.codigo() + ".",
+                            HttpStatus.UNPROCESSABLE_ENTITY));
+            TalhaoRequest atual = formularioTalhao(talhao.getId());
+            atual.setVertices(importado.vertices());
+            salvarTalhao(talhao.getId(), atual);
+        }
+        return previewImportacaoTalhoesGeoJson(request.getGeoJson());
+    }
+
     private TalhaoMapaResumo mapaTalhao(Talhao e) {
         return TalhaoMapaResumo.de(e.getId(), e.getCodigo(), e.getNome(), e.getAreaHa(), e.getAreaGisM2(),
                 e.getAreaGisM2() != null, e.getVertices().stream()
                         .sorted(java.util.Comparator.comparingInt(VerticeTalhao::getOrdem))
                         .map(v -> new TalhaoMapaResumo.Vertice(v.getOrdem(), v.getLatitude(), v.getLongitude(),
                                 v.getAltitudeGeodesicaM(), v.getMarco(), v.getObservacao()))
-                        .toList());
+                .toList());
     }
+
+    private TalhaoGeoJsonImportacaoPreview.Item previewItem(Long propriedadeId, GeoJsonTalhaoImportado importado) {
+        List<String> erros = new ArrayList<>();
+        Talhao talhao = talhoes.findByPropriedadeIdAndCodigoIgnoreCase(propriedadeId, importado.codigo()).orElse(null);
+        BigDecimal areaImportada = null;
+        if (talhao == null) {
+            erros.add("Talhão não encontrado para o código informado.");
+        }
+        try {
+            validarVerticesImportados(importado.vertices());
+            areaImportada = talhaoSpatial.validarGeometria(propriedadeId, importado.vertices());
+        } catch (PropriedadeOperacaoException ex) {
+            erros.add(ex.getMessage());
+        }
+        List<String> alteracoes = new ArrayList<>();
+        boolean alterado = false;
+        if (talhao != null) {
+            alterado = geometriaAlterada(talhao, importado.vertices());
+            if (alterado) {
+                alteracoes.add("Geometria será substituída.");
+            } else {
+                alteracoes.add("Geometria sem alterações detectadas.");
+            }
+            if (areaImportada != null && (talhao.getAreaGisM2() == null
+                    || talhao.getAreaGisM2().compareTo(areaImportada) != 0)) {
+                alteracoes.add("Área GIS será recalculada.");
+            }
+        }
+        return new TalhaoGeoJsonImportacaoPreview.Item(importado.codigo(),
+                talhao == null ? null : talhao.getId(),
+                talhao == null ? null : talhao.getNome(),
+                talhao == null ? null : talhao.getAreaHa(),
+                talhao == null ? null : talhao.getAreaGisM2(),
+                areaImportada,
+                talhao == null ? 0 : talhao.getVertices().size(),
+                importado.vertices().size(),
+                alterado,
+                alteracoes,
+                erros);
+    }
+
+    private void validarVerticesImportados(List<VerticeTalhaoRequest> vertices) {
+        TalhaoRequest request = new TalhaoRequest();
+        request.setNome("Preview importação QGIS");
+        request.setAreaHa(BigDecimal.ONE);
+        request.setVertices(vertices);
+        verticesTalhao(request);
+    }
+
+    private boolean geometriaAlterada(Talhao talhao, List<VerticeTalhaoRequest> importados) {
+        List<VerticeTalhao> atuais = talhao.getVertices().stream()
+                .sorted(java.util.Comparator.comparingInt(VerticeTalhao::getOrdem)).toList();
+        if (atuais.size() != importados.size()) return true;
+        for (int i = 0; i < atuais.size(); i++) {
+            VerticeTalhao atual = atuais.get(i);
+            VerticeTalhaoRequest novo = importados.get(i);
+            if (atual.getOrdem() != novo.getOrdem()
+                    || atual.getLatitude().compareTo(novo.getLatitude()) != 0
+                    || atual.getLongitude().compareTo(novo.getLongitude()) != 0
+                    || comparar(atual.getAltitudeGeodesicaM(), novo.getAltitudeGeodesicaM()) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int comparar(BigDecimal a, BigDecimal b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return -1;
+        if (b == null) return 1;
+        return a.compareTo(b);
+    }
+
+    private List<GeoJsonTalhaoImportado> lerTalhoesGeoJson(String geoJson) {
+        if (!StringUtils.hasText(geoJson)) {
+            throw new PropriedadeOperacaoException("geoJson", "Envie um arquivo GeoJSON.");
+        }
+        try {
+            JsonNode raiz = objectMapper.readTree(geoJson);
+            List<JsonNode> features = features(raiz);
+            if (features.isEmpty()) {
+                throw new PropriedadeOperacaoException("geoJson", "GeoJSON sem features de talhão.");
+            }
+            List<GeoJsonTalhaoImportado> resultado = new ArrayList<>();
+            java.util.Set<String> codigos = new java.util.HashSet<>();
+            for (JsonNode feature : features) {
+                GeoJsonTalhaoImportado importado = feature(feature);
+                if (!codigos.add(importado.codigo().toUpperCase(java.util.Locale.ROOT))) {
+                    throw new PropriedadeOperacaoException("geoJson",
+                            "GeoJSON possui código de talhão duplicado: " + importado.codigo() + ".");
+                }
+                resultado.add(importado);
+            }
+            return resultado;
+        } catch (IOException ex) {
+            throw new PropriedadeOperacaoException("geoJson", "Arquivo GeoJSON inválido.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private List<JsonNode> features(JsonNode raiz) {
+        String tipo = textoJson(raiz.path("type"));
+        if ("FeatureCollection".equalsIgnoreCase(tipo)) {
+            List<JsonNode> resultado = new ArrayList<>();
+            raiz.path("features").forEach(resultado::add);
+            return resultado;
+        }
+        if ("Feature".equalsIgnoreCase(tipo)) {
+            return List.of(raiz);
+        }
+        throw new PropriedadeOperacaoException("geoJson", "Envie um GeoJSON FeatureCollection ou Feature.");
+    }
+
+    private GeoJsonTalhaoImportado feature(JsonNode feature) {
+        JsonNode propriedades = feature.path("properties");
+        validarCrs(propriedades);
+        String codigo = textoJson(propriedades.path("codigo"));
+        if (!StringUtils.hasText(codigo)) {
+            throw new PropriedadeOperacaoException("geoJson", "Cada feature deve informar properties.codigo.");
+        }
+        JsonNode geometria = feature.path("geometry");
+        if (!"Polygon".equalsIgnoreCase(textoJson(geometria.path("type")))) {
+            throw new PropriedadeOperacaoException("geoJson", "Somente geometria Polygon é aceita para Talhões.");
+        }
+        JsonNode anel = geometria.path("coordinates").path(0);
+        if (!anel.isArray()) {
+            throw new PropriedadeOperacaoException("geoJson", "Polygon sem anel externo válido.");
+        }
+        List<VerticeTalhaoRequest> vertices = new ArrayList<>();
+        int ordem = 1;
+        for (JsonNode coordenada : anel) {
+            if (!coordenada.isArray() || coordenada.size() < 2) {
+                throw new PropriedadeOperacaoException("geoJson", "Coordenada GeoJSON inválida.");
+            }
+            BigDecimal longitude = decimal(coordenada.get(0));
+            BigDecimal latitude = decimal(coordenada.get(1));
+            BigDecimal altitude = coordenada.size() >= 3 ? decimal(coordenada.get(2)) : null;
+            if (!vertices.isEmpty() && mesmaCoordenada(vertices.getFirst(), latitude, longitude, altitude)
+                    && ordem == anel.size()) {
+                continue;
+            }
+            VerticeTalhaoRequest vertice = new VerticeTalhaoRequest();
+            vertice.setOrdem(ordem++);
+            vertice.setLatitude(latitude);
+            vertice.setLongitude(longitude);
+            vertice.setAltitudeGeodesicaM(altitude);
+            vertices.add(vertice);
+        }
+        return new GeoJsonTalhaoImportado(codigo.trim(), vertices);
+    }
+
+    private boolean mesmaCoordenada(VerticeTalhaoRequest vertice, BigDecimal latitude,
+            BigDecimal longitude, BigDecimal altitude) {
+        return vertice.getLatitude().compareTo(latitude) == 0
+                && vertice.getLongitude().compareTo(longitude) == 0
+                && comparar(vertice.getAltitudeGeodesicaM(), altitude) == 0;
+    }
+
+    private void validarCrs(JsonNode propriedades) {
+        String epsg = textoJson(propriedades.path("epsg"));
+        String crs = textoJson(propriedades.path("crs"));
+        String datum = textoJson(propriedades.path("datum"));
+        boolean epsgOk = "4674".equals(epsg);
+        boolean crsOk = "EPSG:4674".equalsIgnoreCase(crs);
+        boolean datumOk = "SIRGAS 2000".equalsIgnoreCase(datum);
+        if (!epsgOk || !crsOk || !datumOk) {
+            throw new PropriedadeOperacaoException("geoJson",
+                    "GeoJSON deve declarar properties.epsg=4674, properties.crs=EPSG:4674 e properties.datum=SIRGAS 2000.");
+        }
+    }
+
+    private BigDecimal decimal(JsonNode node) {
+        if (node == null || !node.isNumber()) {
+            throw new PropriedadeOperacaoException("geoJson", "Coordenada GeoJSON deve ser numérica.");
+        }
+        return node.decimalValue();
+    }
+
+    private String textoJson(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        return node.asText();
+    }
+
+    private record GeoJsonTalhaoImportado(String codigo, List<VerticeTalhaoRequest> vertices) {}
 
     private java.util.List<VerticeTalhao> verticesTalhao(TalhaoRequest r) {
         java.util.List<VerticeTalhaoRequest> vertices = r.getVertices() == null ? java.util.List.of() : r.getVertices();
