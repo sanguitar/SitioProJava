@@ -145,26 +145,61 @@ FLYWAY_USERNAME=sitiopro_migration
 FLYWAY_PASSWORD=sua_senha_flyway
 ```
 
-## Produção simples
+## Produção com HTTPS
 
-Para validar a configuração base sem o override de desenvolvimento:
+O `docker-compose.yml` e o override automático `docker-compose.override.yml` mantêm o ambiente DEV
+simples, com HTTP local, SQL Server publicado e certificado autoassinado aceito somente localmente.
+Produção usa explicitamente `docker-compose.prod.yml`; não reutilize o override de desenvolvimento.
 
-```powershell
-docker compose -f docker-compose.yml --env-file .env config
+Antes de subir produção, configure no `.env` o perfil e os caminhos absolutos para um certificado e
+uma chave TLS válidos, mantidos fora do repositório:
+
+```text
+SPRING_PROFILES_ACTIVE=prod
+NGINX_TLS_CERTIFICATE_PATH=/caminho/seguro/fullchain.pem
+NGINX_TLS_PRIVATE_KEY_PATH=/caminho/seguro/privkey.pem
+SQLSERVER_TLS_CERTIFICATE_PATH=/caminho/seguro/sqlserver.crt
+SQLSERVER_TLS_PRIVATE_KEY_PATH=/caminho/seguro/sqlserver.key
+SESSION_COOKIE_SECURE=true
 ```
 
-Para subir somente com Nginx publicado:
+Valide a composição sem iniciar containers:
 
 ```powershell
-docker compose -f docker-compose.yml --env-file .env up --build -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env config
 ```
 
-TLS, Certbot e renovação de certificados ainda não fazem parte desta etapa.
+Suba produção sem o override DEV:
 
-Antes de expor uma instalação fora da rede local, termine o TLS no proxy e configure
-`SESSION_COOKIE_SECURE=true`, `DB_ENCRYPT=true` e a validação de certificado adequada ao ambiente.
-Mantenha `JPA_DDL_AUTO=validate`, `JPA_SHOW_SQL=false` e o bootstrap do administrador desabilitado
-depois do primeiro acesso.
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up --build -d
+```
+
+O Nginx mantém `/nginx-health` em HTTP para o healthcheck interno e redireciona as demais requisições
+HTTP para HTTPS com status `308`. Em HTTPS ele aceita TLS 1.2/1.3, envia HSTS e headers de proteção,
+encaminha os headers `X-Forwarded-*` controlados pelo proxy e preserva o request ID. O domínio não é
+fixado no arquivo: DNS e certificado são responsabilidades do ambiente. Renove o certificado com a
+ferramenta do emissor e recrie/recarregue o container Nginx depois da renovação.
+
+O perfil `prod` força cookie de sessão `Secure`, `HttpOnly`, `SameSite=Lax`, timeout de 30 minutos e
+tracking apenas por cookie. A aplicação usa os headers do proxy para reconhecer o esquema HTTPS.
+
+Para SQL Server, o perfil `prod` força `encrypt=true`, que cifra a conexão, e
+`trustServerCertificate=false`, que exige validação da
+cadeia e do hostname do certificado. O nome usado em `DB_HOST` deve existir no CN/SAN do certificado
+apresentado pelo SQL Server, e a autoridade emissora deve estar no truststore da JVM. Um certificado
+autoassinado do container DEV não satisfaz esse requisito; instale no SQL Server um certificado
+emitido por CA confiável e disponibilize a CA à JVM antes de usar o perfil `prod`. Não troque
+`DB_TRUST_SERVER_CERTIFICATE` para `true` como atalho em produção.
+O override monta o certificado e a chave no SQL Server e aplica
+`infra/sqlserver/mssql.prod.conf`, que força TLS 1.2 nas conexões. Restrinja a leitura da chave ao
+usuário do container. Se a CA for interna, importe apenas a CA pública no truststore da imagem/JVM
+da aplicação; nunca copie a chave privada para a aplicação.
+
+Mantenha `JPA_DDL_AUTO=validate`, `JPA_SHOW_SQL=false`, o bootstrap do administrador desabilitado
+depois do primeiro acesso e as portas da aplicação/SQL Server sem publicação externa. O Actuator
+expõe apenas health, info e metrics; health público não mostra detalhes, info/metrics exigem ADMIN e
+os demais endpoints são negados pelo Spring Security.
 
 ## Backup e restauração do SQL Server
 
@@ -366,6 +401,11 @@ SPRING_PROFILES_ACTIVE
 SERVER_PORT
 SERVER_FORWARD_HEADERS_STRATEGY
 NGINX_HTTP_PORT
+NGINX_HTTPS_PORT
+NGINX_TLS_CERTIFICATE_PATH
+NGINX_TLS_PRIVATE_KEY_PATH
+SQLSERVER_TLS_CERTIFICATE_PATH
+SQLSERVER_TLS_PRIVATE_KEY_PATH
 DB_HOST
 DB_PORT
 DB_NAME
@@ -382,6 +422,8 @@ JPA_SHOW_SQL
 FLYWAY_ENABLED
 FLYWAY_BASELINE_ON_MIGRATE
 SESSION_COOKIE_SECURE
+SESSION_COOKIE_SAME_SITE
+SESSION_TIMEOUT
 SITIOPRO_INITIAL_ADMIN_ENABLED
 SITIOPRO_INITIAL_ADMIN_LOGIN
 SITIOPRO_INITIAL_ADMIN_PASSWORD

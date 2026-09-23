@@ -17,6 +17,8 @@ infra/observability/**/*.pem
 infra/observability/**/enrollment-token*
 infra/observability/**/service-token*
 infra/observability/**/api-key*
+infra/nginx/tls/
+infra/sqlserver/tls/
 
 ### STS ###
 .apt_generated

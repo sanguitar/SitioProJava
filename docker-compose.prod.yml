@@ -1,0 +1,28 @@
+services:
+  nginx:
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_TLS_CERTIFICATE_PATH:?Defina NGINX_TLS_CERTIFICATE_PATH no arquivo .env}:/etc/nginx/tls/tls.crt:ro
+      - ${NGINX_TLS_PRIVATE_KEY_PATH:?Defina NGINX_TLS_PRIVATE_KEY_PATH no arquivo .env}:/etc/nginx/tls/tls.key:ro
+      - nginx_logs:/var/log/nginx
+
+  sqlserver:
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./infra/sqlserver/mssql.prod.conf:/var/opt/mssql/mssql.conf:ro
+      - ${SQLSERVER_TLS_CERTIFICATE_PATH:?Defina SQLSERVER_TLS_CERTIFICATE_PATH no arquivo .env}:/var/opt/mssql/secrets/sitiopro-sqlserver.crt:ro
+      - ${SQLSERVER_TLS_PRIVATE_KEY_PATH:?Defina SQLSERVER_TLS_PRIVATE_KEY_PATH no arquivo .env}:/var/opt/mssql/secrets/sitiopro-sqlserver.key:ro
+
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SITIOPRO_ENVIRONMENT: prod
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: lax
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-30m}
+      DB_ENCRYPT: "true"
+      DB_TRUST_SERVER_CERTIFICATE: "false"
