@@ -40,7 +40,7 @@ public class SistemaSaudeService {
                 statusAplicacao(),
                 statusComponente("db"),
                 Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()),
-                environment.getProperty("info.app.version", "0.0.1-SNAPSHOT"),
+                environment.getProperty("info.app.version", "1.0.0-rc1"),
                 observabilityProperties.getEnvironment(),
                 statusObservabilidade(),
                 RequestCorrelation.currentRequestId());

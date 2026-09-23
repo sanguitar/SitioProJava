@@ -32,6 +32,8 @@ springdoc:
     - /api/v1/alertas/**
     - /api/v1/painel/**
     - /api/v1/criacoes/**
+    - /api/v1/propriedade/**
+    - /api/v1/agricultura/**
   swagger-ui:
     path: /swagger-ui.html
 
@@ -70,7 +72,7 @@ management:
 info:
   app:
     name: Sítio Guaratinguetá
-    version: ${SITIOPRO_APP_VERSION:0.0.1-SNAPSHOT}
+    version: ${SITIOPRO_APP_VERSION:1.0.0-rc1}
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:

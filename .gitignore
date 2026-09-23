@@ -7,6 +7,7 @@ target/
 ### Environment ###
 .env
 *.log
+backups/
 infra/observability/**/secrets/
 infra/observability/**/*.key
 infra/observability/**/*.p12

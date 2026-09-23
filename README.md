@@ -2,6 +2,8 @@
 
 Aplicação Spring Boot monolítica modular para gestão rural, com telas Thymeleaf em `/sitio/**`, FIPE/cache, frota, abastecimentos, categorias e produção.
 
+Versão candidata atual: `1.0.0-rc1`.
+
 ## Requisitos
 
 - Java 21
@@ -33,7 +35,7 @@ Crie o arquivo local de ambiente a partir do exemplo:
 Copy-Item .env.example .env
 ```
 
-Revise as senhas locais no `.env` antes de subir: `MSSQL_SA_PASSWORD` para administração/bootstrap do SQL Server, `FLYWAY_PASSWORD` para migrations e `DB_PASSWORD` para o usuário técnico da aplicação. Depois suba tudo:
+Revise as senhas locais no `.env` antes de subir: `MSSQL_SA_PASSWORD` para administração/bootstrap do SQL Server, `FLYWAY_PASSWORD` para migrations e `DB_PASSWORD` para o usuário técnico da aplicação. Os valores de `.env.example` são apenas fictícios e não devem ser reutilizados. Depois suba tudo:
 
 ```powershell
 docker compose up --build -d
@@ -105,6 +107,8 @@ GET|POST /api/v1/criacoes/aves/lotes
 POST /api/v1/criacoes/aves/lotes/{id}/alimentacoes|mortalidades|pesagens|posturas|transferencias
 GET|POST /api/v1/criacoes/aves/incubacoes
 POST /api/v1/criacoes/aves/incubacoes/{id}/finalizar
+GET|POST /api/v1/criacoes/aves/incubacoes/{id}/ovoscopias
+GET /sitio/criacoes/aves/incubacoes/{id}/ovoscopias/ficha.pdf
 ```
 
 `ADMIN` cadastra e edita instalações e lotes, encerra lotes e cancela incubação. `OPERADOR` consulta e registra o manejo normal, inclusive incubação. Todas as mutações continuam protegidas por sessão e CSRF. SQL Server é a única fonte de verdade; Redis e Elastic não participam das regras e podem permanecer desligados. O roadmap preserva extensões naturais para Suínos e Peixes, sem antecipar campos, tabelas ou regras desses domínios.
@@ -156,6 +160,55 @@ docker compose -f docker-compose.yml --env-file .env up --build -d
 ```
 
 TLS, Certbot e renovação de certificados ainda não fazem parte desta etapa.
+
+Antes de expor uma instalação fora da rede local, termine o TLS no proxy e configure
+`SESSION_COOKIE_SECURE=true`, `DB_ENCRYPT=true` e a validação de certificado adequada ao ambiente.
+Mantenha `JPA_DDL_AUTO=validate`, `JPA_SHOW_SQL=false` e o bootstrap do administrador desabilitado
+depois do primeiro acesso.
+
+## Backup e restauração do SQL Server
+
+O volume `sqlserver_data` é persistente, mas não substitui backup. Faça o backup lógico com a
+aplicação em operação; o SQL Server produz um arquivo consistente. Os exemplos abaixo usam a senha
+já disponível apenas dentro do container e não a imprimem no terminal.
+
+Crie um backup e copie-o para uma pasta local ignorada pelo Git:
+
+```powershell
+New-Item -ItemType Directory -Force backups | Out-Null
+docker compose exec sqlserver /bin/bash -lc 'mkdir -p /var/opt/mssql/backup && /opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "BACKUP DATABASE [sitio_db] TO DISK = N''/var/opt/mssql/backup/sitio_db_rc1.bak'' WITH COPY_ONLY, INIT, CHECKSUM, STATS = 10"'
+docker compose exec sqlserver /bin/bash -lc '/opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "RESTORE VERIFYONLY FROM DISK = N''/var/opt/mssql/backup/sitio_db_rc1.bak'' WITH CHECKSUM"'
+docker cp sitiopro-sqlserver:/var/opt/mssql/backup/sitio_db_rc1.bak ./backups/sitio_db_rc1.bak
+```
+
+Guarde pelo menos uma cópia fora da máquina do Docker e proteja o arquivo como dado confidencial.
+Teste periodicamente a restauração em um banco separado, nunca por cima do banco principal:
+
+```powershell
+docker cp ./backups/sitio_db_rc1.bak sitiopro-sqlserver:/var/opt/mssql/backup/sitio_db_rc1.bak
+docker compose exec sqlserver /bin/bash -lc '/opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d master -Q "RESTORE FILELISTONLY FROM DISK = N''/var/opt/mssql/backup/sitio_db_rc1.bak''"'
+docker compose exec sqlserver /bin/bash -lc '/opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d master -Q "IF DB_ID(N''sitio_db_restore_test'') IS NOT NULL THROW 50001, ''Banco temporario ja existe'', 1; RESTORE DATABASE [sitio_db_restore_test] FROM DISK = N''/var/opt/mssql/backup/sitio_db_rc1.bak'' WITH MOVE N''sitio_db'' TO N''/var/opt/mssql/data/sitio_db_restore_test.mdf'', MOVE N''sitio_db_log'' TO N''/var/opt/mssql/data/sitio_db_restore_test_log.ldf'', CHECKSUM, RECOVERY, STATS = 10"'
+docker compose exec sqlserver /bin/bash -lc '/opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d master -Q "DBCC CHECKDB ([sitio_db_restore_test]) WITH NO_INFOMSGS, ALL_ERRORMSGS; SELECT MAX(TRY_CONVERT(INT, version)) AS flyway_version FROM [sitio_db_restore_test].dbo.flyway_schema_history WHERE success = 1"'
+```
+
+Use os nomes lógicos retornados por `RESTORE FILELISTONLY` para restaurar como um banco de teste com
+`MOVE` para arquivos novos. Valide login, Flyway, contagens essenciais e os fluxos críticos antes de
+considerar o backup recuperável.
+
+Depois do ensaio, pare qualquer instância temporária da aplicação e remova somente o banco de teste:
+
+```powershell
+docker compose exec sqlserver /bin/bash -lc '/opt/mssql-tools18/bin/sqlcmd -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d master -Q "IF DB_ID(N''sitio_db_restore_test'') IS NOT NULL BEGIN ALTER DATABASE [sitio_db_restore_test] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [sitio_db_restore_test]; END"'
+```
+
+O arquivo no host fica em `./backups/`, que é ignorado pelo Git. A cópia dentro de
+`/var/opt/mssql/backup/` pode ser removida depois de confirmar a cópia externa. Nunca reutilize os caminhos
+`.mdf`/`.ldf` do banco principal no `MOVE` e nunca execute o restore de teste com o nome `sitio_db`.
+
+Para uma restauração real, pare primeiro `app` e `nginx`, preserve um backup do estado atual, restaure
+o arquivo a partir de `master` e só então suba novamente os serviços. `WITH REPLACE` só deve ser usado
+após confirmar o arquivo, o banco de destino e os caminhos retornados por `RESTORE FILELISTONLY`.
+Nunca execute `docker compose down -v`: esse comando remove o volume persistente do SQL Server.
 
 ## Observabilidade
 
@@ -865,6 +918,19 @@ V7__create_external_integrations_schema.sql
 V8__align_climate_integer_columns.sql
 V9__create_tasks_and_alerts.sql
 V10__create_criacoes_aves_schema.sql
+V11__create_operational_code_sequences.sql
+V12__link_producao_to_estoque_categories.sql
+V13__add_commercial_packaging_to_purchase_items.sql
+V14__incubation_operational_readiness.sql
+V15__create_operational_settings.sql
+V16__create_property_foundation.sql
+V17__create_agriculture_foundation.sql
+V18__add_agriculture_field_operations.sql
+V19__evolve_agriculture_phytosanitary_occurrences.sql
+V20__create_property_perimeter.sql
+V21__confirm_sirgas2000_property_spatial.sql
+V22__add_georeferenced_talhoes.sql
+V23__add_aves_ovoscopia_operacional.sql
 ```
 
 Regras:

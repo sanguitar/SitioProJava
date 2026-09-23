@@ -2,7 +2,7 @@
 <configuration>
     <springProperty scope="context" name="SERVICE_NAME" source="sitiopro.observability.service-name" defaultValue="sitioguaratingueta"/>
     <springProperty scope="context" name="SERVICE_ENVIRONMENT" source="sitiopro.observability.environment" defaultValue="dev"/>
-    <springProperty scope="context" name="SERVICE_VERSION" source="info.app.version" defaultValue="0.0.1-SNAPSHOT"/>
+    <springProperty scope="context" name="SERVICE_VERSION" source="info.app.version" defaultValue="1.0.0-rc1"/>
 
     <property name="SITIOPRO_LOG_FILE" value="${SITIOPRO_LOG_FILE:-${java.io.tmpdir}/sitiopro/app.ecs.json}"/>
     <property name="SITIOPRO_LOG_LEVEL" value="${SITIOPRO_LOG_LEVEL:-INFO}"/>

@@ -10,9 +10,9 @@
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>sitiopro</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-rc1</version>
 	<name>sitiopro</name>
-	<description>Projeto Sitio Porto Velho</description>
+	<description>ERP rural do Sítio Guaratinguetá</description>
 	<properties>
 		<java.version>21</java.version>
 		<mssql-jdbc.version>13.4.0.jre11</mssql-jdbc.version>

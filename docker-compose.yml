@@ -160,6 +160,7 @@ services:
       start_period: 10s
 
   app:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile

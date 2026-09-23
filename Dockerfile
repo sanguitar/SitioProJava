@@ -29,7 +29,7 @@ RUN groupadd --system spring \
 RUN mkdir -p /var/log/sitiopro \
     && chown -R spring:spring /var/log/sitiopro
 
-COPY --from=build /workspace/target/sitiopro-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /workspace/target/sitiopro-*.jar app.jar
 
 USER spring:spring
 

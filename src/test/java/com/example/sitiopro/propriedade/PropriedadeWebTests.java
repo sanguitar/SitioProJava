@@ -78,6 +78,7 @@ class PropriedadeWebTests {
                 .andExpect(content().string(containsString("proj4@")))
                 .andExpect(content().string(containsString("ol@")))
                 .andExpect(content().string(containsString("data-ol-map")))
+                .andExpect(content().string(containsString("data-svg-fallback")))
                 .andExpect(content().string(containsString("/js/propriedade.js")));
         mvc.perform(get("/api/v1/propriedade/perimetro").with(user("leitor").roles(role)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.statusCrs").value("NAO_CONFIRMADO"))

@@ -41,3 +41,15 @@
     font-weight: 700;
     margin: 0 0 10px;
 }
+
+.user-actions {
+    white-space: nowrap;
+}
+
+.user-action-button {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+}

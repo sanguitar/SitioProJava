@@ -228,7 +228,7 @@ async function renderSvgFallback(container, preloadedData) {
     const target = container.querySelector("[data-ol-map]");
     if (target) target.hidden = true;
     const svg = container.querySelector("[data-svg-fallback]");
-    if (svg) svg.hidden = false;
+    if (svg) svg.removeAttribute("hidden");
 
     const mapa = data.mapa || {};
     const vertices = Array.isArray(mapa.vertices) ? mapa.vertices : [];
