@@ -6,12 +6,14 @@ import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoRequest;
 import com.example.sitiopro.criacao.core.entity.InstalacaoCriacao;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
+import com.example.sitiopro.criacao.suinos.repository.LoteSuinosRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Optional;
 
@@ -24,11 +26,15 @@ import static org.mockito.Mockito.*;
 class InstalacaoCriacaoServiceTests {
     @Mock private InstalacaoCriacaoRepository repository;
     @Mock private LoteAvesRepository loteRepository;
+    @Mock private LoteSuinosRepository loteSuinosRepository;
+    @Mock private ObjectProvider<LoteSuinosRepository> loteSuinosProvider;
     private InstalacaoCriacaoService service;
 
     @BeforeEach
     void preparar() {
-        service = new InstalacaoCriacaoService(repository, loteRepository,
+        lenient().when(loteSuinosRepository.somarOcupacao(any(), any(), any())).thenReturn(0L);
+        lenient().when(loteSuinosProvider.getIfAvailable()).thenReturn(loteSuinosRepository);
+        service = new InstalacaoCriacaoService(repository, loteRepository, loteSuinosProvider,
                 org.mockito.Mockito.mock(com.example.sitiopro.propriedade.service.PropriedadeService.class));
     }
 

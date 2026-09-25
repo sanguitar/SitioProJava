@@ -165,13 +165,13 @@ public final class PlanejamentoCatalogo {
                 "Detalhe de postura, ração e sanidade",
                 "Histórico de produção de ovos"));
 
-        adicionar(modulos, modulo("Criações", "Suínos", "/sitio/suinos", "suinos", "suinos.css",
-                "domain-suinos", "fa-bacon", StatusPlanejamento.PLANEJADO,
-                "Controle de lotes suínos, reprodução, alimentação, pesagem e saída.",
-                "Listagem por lote, fase e baia",
-                "Cadastro de animais, matrizes e lotes",
-                "Detalhe com pesagens, consumo e sanidade",
-                "Histórico reprodutivo e produtivo"));
+        adicionar(modulos, modulo("Criações", "Suínos", "/sitio/criacoes/suinos", "suinos", "suinos.css",
+                "domain-suinos", "fa-bacon", StatusPlanejamento.FUNCIONAL,
+                "Controle operacional de lotes, alimentação, pesagem e movimentações.",
+                "Listagem por lote, fase e instalação",
+                "Cadastro de lotes com código automático",
+                "Detalhe com quantidade, peso e consumo",
+                "Histórico de entradas, perdas e transferências"));
 
         adicionar(modulos, modulo("Criações", "Piscicultura", "/sitio/piscicultura", "piscicultura",
                 "piscicultura.css", "domain-piscicultura", "fa-fish", StatusPlanejamento.PLANEJADO,
@@ -572,7 +572,7 @@ public final class PlanejamentoCatalogo {
                 item("/sitio/aves/chocadeira"),
                 item("/sitio/aves/pinteiro"),
                 item("/sitio/aves/galinheiro"),
-                item("/sitio/suinos"),
+                item("/sitio/criacoes/suinos"),
                 item("/sitio/piscicultura"),
                 item("/sitio/agricultura/areas"),
                 item("/sitio/agricultura/culturas"),
@@ -634,7 +634,7 @@ public final class PlanejamentoCatalogo {
         redirecionarFluxo(redirecionamentos, "/criacoes/aves/chocadeira", "/sitio/aves/chocadeira");
         redirecionarFluxo(redirecionamentos, "/criacoes/aves/pinteiro", "/sitio/aves/pinteiro");
         redirecionarFluxo(redirecionamentos, "/criacoes/aves/galinheiro", "/sitio/aves/galinheiro");
-        redirecionarFluxo(redirecionamentos, "/criacoes/suinos", "/sitio/suinos");
+        redirecionarFluxo(redirecionamentos, "/criacoes/suinos", "/sitio/criacoes/suinos");
         redirecionarFluxo(redirecionamentos, "/criacoes/piscicultura", "/sitio/piscicultura");
 
         redirecionarFluxo(redirecionamentos, "/agricultura/areas-talhoes", "/sitio/agricultura/areas");

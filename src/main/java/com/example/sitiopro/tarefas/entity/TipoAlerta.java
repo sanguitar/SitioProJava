@@ -10,6 +10,9 @@ public enum TipoAlerta {
     CRIACAO_MORTALIDADE_ALTA("Mortalidade elevada no lote"),
     CRIACAO_INCUBACAO_ECLOSAO_PROXIMA("Eclosão próxima"),
     CRIACAO_INCUBACAO_ATRASADA("Incubação atrasada"),
+    CRIACAO_SUINOS_CHECAGEM_PENDENTE("Checagem de gestação suína pendente"),
+    CRIACAO_SUINOS_PARTO_ATRASADO("Parto suíno previsto em atraso"),
+    CRIACAO_SUINOS_PROCEDIMENTO_SANITARIO_VENCIDO("Procedimento sanitário suíno vencido"),
     AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante");
 
     private final String rotulo;

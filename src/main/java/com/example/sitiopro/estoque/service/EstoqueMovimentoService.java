@@ -86,6 +86,28 @@ public class EstoqueMovimentoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoCriacaoSuinos(MovimentoEstoqueRequest request,
+            Long eventoId, Long loteSuinosId) {
+        if (eventoId == null || loteSuinosId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_CRIACAO_OBRIGATORIA",
+                    "Informe a alimentação e o lote de suínos de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "criacoes", eventoId,
+                "Alimentação do lote de suínos #" + loteSuinosId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoSanidadeSuinos(MovimentoEstoqueRequest request,
+            Long registroSanitarioId, String alvo) {
+        if (registroSanitarioId == null || !StringUtils.hasText(alvo)) {
+            throw new EstoqueOperacaoException("ORIGEM_SANITARIA_OBRIGATORIA",
+                    "Informe o registro sanitário e seu alvo de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "criacoes",
+                registroSanitarioId, limitarOrigem("Sanidade suína de " + alvo.trim()));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public MovimentoEstoque registrarConsumoAgricultura(MovimentoEstoqueRequest request, Long cultivoId) {
         if (cultivoId == null) {
             throw new EstoqueOperacaoException("CULTIVO_OBRIGATORIO", "Informe o cultivo de origem.");

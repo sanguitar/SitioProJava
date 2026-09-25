@@ -28,6 +28,13 @@ import com.example.sitiopro.criacao.aves.service.FichaOvoscopiaPdfService;
 import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoResumo;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.service.CodigoCriacaoService;
+import com.example.sitiopro.criacao.suinos.service.SuinosService;
+import com.example.sitiopro.criacao.suinos.service.SuinosReproducaoService;
+import com.example.sitiopro.criacao.suinos.service.SuinosAlertasService;
+import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeService;
+import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
+import com.example.sitiopro.criacao.suinos.dto.SanidadeSuinosResumo;
+import com.example.sitiopro.criacao.suinos.dto.ReproducaoSuinosResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
@@ -145,6 +152,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class SitioProSecurityTests {
+    @MockBean private SuinosService suinosService;
+    @MockBean private SuinosReproducaoService suinosReproducaoService;
+    @MockBean private SuinosAlertasService suinosAlertasService;
+    @MockBean private SuinosSanidadeService suinosSanidadeService;
+    @MockBean private SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -350,6 +362,19 @@ class SitioProSecurityTests {
         when(alertaService.resolver(eq(1L), any())).thenReturn(alertaDetalhe());
         when(resumoOperacionalService.resumo()).thenReturn(new TarefaResumoOperacional(0, 0, 0, 0, 0));
         when(avesResumoService.resumo()).thenReturn(new AvesResumo(0, 0, 0, 0, 0, 0, 0, LocalDateTime.now()));
+        when(suinosService.dashboard()).thenReturn(
+                new com.example.sitiopro.criacao.suinos.dto.SuinosDashboardResumo(
+                        0, 0, null, BigDecimal.ZERO, 0, 0, 0));
+        when(suinosService.listar(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(suinosSanidadeService.resumoOperacional()).thenReturn(new SanidadeSuinosResumo(0, 0, 0));
+        when(suinosSanidadeService.listar(any(), any())).thenReturn(List.of());
+        when(suinosReproducaoService.resumoOperacional()).thenReturn(
+                new ReproducaoSuinosResumo(0, 0, 0, 0, 0, 0));
+        when(suinosReproducaoService.listarAnimais()).thenReturn(List.of());
+        when(suinosReproducaoService.listarCiclos()).thenReturn(List.of());
+        when(suinosReproducaoService.listarMatrizes()).thenReturn(List.of());
+        when(suinosReproducaoService.listarReprodutores()).thenReturn(List.of());
         when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
                 1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
                 100, 0, true, 0, null, null, null, null));
@@ -1144,7 +1169,122 @@ class SitioProSecurityTests {
                 .andExpect(jsonPath("$.paths['/api/v1/admin/integracoes']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/lotes']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/incubacoes']").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/aves/incubacoes']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/lotes']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/ciclos']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/animais/{id}/historico']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/sanidade']").exists());
+    }
+
+    @Test
+    void suinosPermiteConsultaAoOperadorMasCadastroSomenteAoAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/criacoes/suinos/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/criacoes/suinos/lotes")
+                        .with(user("operador").roles("OPERADOR"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paginasMvcDeSuinosRenderizamParaOperadorEFormularioExigeAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/suinos")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Lotes ativos")));
+        mockMvc.perform(get("/sitio/criacoes/suinos/lotes")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/sitio/criacoes/suinos/lotes/novo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/criacoes/suinos/lotes/novo")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("código SU será gerado")));
+    }
+
+    @Test
+    void operacaoDeSuinosExigeCsrfEPermiteOperador() throws Exception {
+        String body = """
+                {"dataEvento":"2026-09-24T08:00:00","chaveIdempotencia":"entrada-1","quantidade":2}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/suinos/lotes/1/entradas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/criacoes/suinos/lotes/1/entradas")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void reproducaoSuinosPermiteConsultaAoOperadorMasIdentificacaoSomenteAoAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/criacoes/suinos/reproducao/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matrizesAtivas").value(0));
+
+        String animal = """
+                {"loteId":1,"tipo":"MATRIZ","chaveIdempotencia":"animal-web-1"}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/suinos/reproducao/animais")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(animal))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paginasMvcDeReproducaoSuinosRespeitamPerfis() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/suinos/reproducao")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Reprodução de suínos")));
+        mockMvc.perform(get("/sitio/criacoes/suinos/reproducao/animais/novo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/criacoes/suinos/reproducao/animais/novo")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operacaoReprodutivaExigeCsrfEPermiteOperador() throws Exception {
+        String checagem = """
+                {"dataChecagem":"2026-09-24","gestacaoConfirmada":true}
+                """;
+        mockMvc.perform(post("/api/v1/criacoes/suinos/reproducao/ciclos/1/checagem")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(checagem))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/suinos/reproducao/ciclos/1/checagem")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(checagem))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void sanidadeSuinosPermiteAdminEOperadorEExigeCsrf() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/suinos/sanidade")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Histórico sanitário")));
+        mockMvc.perform(get("/api/v1/criacoes/suinos/sanidade")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/criacoes/suinos/sanidade/1/concluir-proxima-acao")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/suinos/sanidade/1/concluir-proxima-acao")
+                        .with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isOk());
     }
 
     @Test

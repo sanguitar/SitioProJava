@@ -2,3 +2,40 @@
     --module-color: var(--brand-earth);
     --module-accent: var(--brand-leaf);
 }
+.suinos-page { color: var(--text-main); }
+.suinos-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; margin:1rem 0 1.25rem; }
+.suinos-heading h1 { margin:.15rem 0; font-size:2rem; }
+.suinos-heading p,.suinos-heading small { margin:0; color:var(--text-muted); }
+.suinos-heading>div:last-child { display:flex; gap:.5rem; flex-wrap:wrap; }
+.suinos-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:.75rem; margin-bottom:1rem; }
+.suinos-metrics article,.suinos-panel { border:1px solid var(--border-color); border-radius:8px; background:var(--surface); padding:1rem; }
+.suinos-metrics span,.suinos-metrics small { display:block; color:var(--text-muted); font-size:.8rem; }
+.suinos-metrics strong { display:block; margin:.3rem 0; font-size:1.35rem; }
+.panel-title { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.8rem; }
+.panel-title h2 { margin:0; font-size:1.05rem; }
+.suinos-list>a,.suinos-related a { display:flex; justify-content:space-between; gap:1rem; padding:.75rem 0; border-bottom:1px solid var(--border-color); color:inherit; text-decoration:none; }
+.suinos-list span { display:block; color:var(--text-muted); font-size:.85rem; }
+.suinos-row { display:flex; justify-content:space-between; gap:1rem; padding:.75rem 0; border-bottom:1px solid var(--border-color); }
+.suinos-row span { display:block; color:var(--text-muted); font-size:.85rem; }
+.suinos-definition { display:grid; grid-template-columns:minmax(130px,auto) 1fr; gap:.65rem 1rem; margin:0; }
+.suinos-definition dt { color:var(--text-muted); font-weight:600; }
+.suinos-definition dd { margin:0; }
+.suinos-filters { display:grid; grid-template-columns:minmax(220px,1fr) 220px auto; gap:.6rem; margin-bottom:1rem; }
+.suinos-form { max-width:850px; }.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }.form-grid label,.suinos-actions label { display:grid; gap:.35rem; }.form-grid .wide { grid-column:1/-1; }.form-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }
+.suinos-workspace { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1rem; align-items:start; }.suinos-actions { border:1px solid var(--border-color); border-radius:8px; background:var(--surface); padding:1rem; position:sticky; top:1rem; }.suinos-actions h2{font-size:1.05rem}.suinos-actions details{border-top:1px solid var(--border-color);padding:.7rem 0}.suinos-actions summary{font-weight:700;cursor:pointer}.suinos-actions form{display:grid;gap:.65rem;padding-top:.75rem}
+.suinos-timeline article { padding:.8rem 0; border-bottom:1px solid var(--border-color); }.suinos-timeline article>div { display:flex; justify-content:space-between; gap:1rem; }.suinos-timeline p { margin:.35rem 0; }.suinos-timeline small,time { color:var(--text-muted); }.suinos-related { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
+.suinos-health-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; align-items:center; gap:1rem; margin-bottom:1rem; }
+.suinos-health-summary span { display:block; color:var(--text-muted); font-size:.8rem; }
+.suinos-health-summary strong { font-size:1.25rem; }
+.suinos-health-summary a { justify-self:end; }
+.suinos-form section+section { border-top:1px solid var(--border-color); margin-top:1.25rem; padding-top:1.25rem; }
+.suinos-form h2 { font-size:1.05rem; margin-bottom:1rem; }
+.suinos-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.suinos-form-grid label { display:grid; gap:.35rem; }
+.suinos-form-grid label small { color:var(--text-muted); }
+.suinos-form-grid .span-2 { grid-column:1/-1; }
+.suinos-form-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1.25rem; }
+.suinos-follow-up { align-items:center; margin-top:.65rem; }
+.suinos-follow-up form { margin-left:auto; }
+@media(max-width:1100px){.suinos-metrics{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.suinos-heading{align-items:stretch;flex-direction:column}.suinos-metrics{grid-template-columns:repeat(2,1fr)}.suinos-workspace,.suinos-related,.form-grid,.suinos-filters,.suinos-form-grid,.suinos-health-summary{grid-template-columns:1fr}.form-grid .wide,.suinos-form-grid .span-2{grid-column:auto}.suinos-actions{position:static}.suinos-definition{grid-template-columns:1fr}.suinos-definition dd{margin-bottom:.4rem}.suinos-health-summary a{justify-self:start}.table{min-width:720px}}

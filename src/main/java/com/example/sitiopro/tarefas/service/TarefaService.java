@@ -174,6 +174,25 @@ public class TarefaService {
     }
 
     @Transactional
+    public void concluirAutomatica(String chaveAutomacao, UsuarioAtor ator) {
+        String chave = normalizarObrigatorio(chaveAutomacao, "Chave da automação");
+        Tarefa tarefa = tarefaRepository.buscarPorChaveAutomacaoParaAtualizacao(chave).orElse(null);
+        if (tarefa == null || tarefa.getStatus().finalizado()) {
+            return;
+        }
+        Usuario usuario = buscarAtor(ator);
+        LocalDateTime agora = LocalDateTime.now(clock);
+        if (tarefa.getDataInicio() == null) {
+            tarefa.setDataInicio(agora);
+        }
+        tarefa.setStatus(StatusTarefa.CONCLUIDA);
+        tarefa.setDataConclusao(agora);
+        historicoService.registrarTarefa(tarefa, TipoEventoOperacional.TAREFA_CONCLUIDA,
+                usuario, ator.ator(), "Marco automático atendido pela operação de origem.");
+        registrarLog("tarefa.completed", tarefa);
+    }
+
+    @Transactional
     public TarefaDetalhe atualizar(Long id, TarefaRequest request, UsuarioAtor ator) {
         Tarefa tarefa = buscarParaAtualizacao(id);
         autorizarAlteracao(tarefa, ator);

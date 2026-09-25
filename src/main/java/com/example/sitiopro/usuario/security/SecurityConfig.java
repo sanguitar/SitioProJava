@@ -91,6 +91,10 @@ public class SecurityConfig {
                                 "/api/v1/criacoes/aves/incubacoes/*/cancelar",
                                 "/api/v1/criacoes/aves/incubacoes/*/ajustar-previsao").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/aves/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/criacoes/suinos/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/suinos/lotes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/suinos/reproducao/animais").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/criacoes/suinos/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/integracoes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/compras", "/api/v1/compras/*/itens",
                                 "/api/v1/compras/*/confirmar", "/api/v1/fornecedores").authenticated()
@@ -155,8 +159,13 @@ public class SecurityConfig {
                                 "/sitio/criacoes/aves/instalacoes/*/editar",
                                 "/sitio/criacoes/aves/lotes/novo",
                                 "/sitio/criacoes/aves/lotes/*/editar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/criacoes/suinos/lotes/novo").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/criacoes/suinos/reproducao/animais/novo").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/criacoes/suinos/lotes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/criacoes/suinos/reproducao/animais").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/criacoes/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/sitio/criacoes/aves/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/sitio/criacoes/suinos/**").authenticated()
                         .requestMatchers("/gestao/**", "/criacoes/**", "/agricultura/**", "/agua/**",
                                 "/propriedade/**", "/ola", "/saudacao").authenticated()
                         .requestMatchers("/sitio/**", "/api/fipe/**").authenticated()

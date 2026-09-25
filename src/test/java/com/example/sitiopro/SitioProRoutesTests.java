@@ -609,7 +609,6 @@ class SitioProRoutesTests {
 
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/sitio/suinos",
                 "/sitio/piscicultura",
                 "/sitio/agua",
                 "/sitio/agua/reservatorios",
@@ -641,6 +640,14 @@ class SitioProRoutesTests {
                 "/sitio/abastecimentos/historico",
                 "/sitio/admin/roadmap"
         ));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/novo", "/detalhe", "/historico"})
+    void rotasLegadasDeSuinosApontamParaModuloFuncional(String sufixo) throws Exception {
+        mockMvc.perform(get("/sitio/suinos" + sufixo))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/criacoes/suinos"));
     }
 
     @ParameterizedTest

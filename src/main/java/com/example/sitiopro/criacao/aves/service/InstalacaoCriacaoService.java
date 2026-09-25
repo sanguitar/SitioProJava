@@ -7,6 +7,8 @@ import com.example.sitiopro.criacao.core.dto.InstalacaoCriacaoResumo;
 import com.example.sitiopro.criacao.core.entity.InstalacaoCriacao;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
+import com.example.sitiopro.criacao.suinos.entity.StatusLoteSuinos;
+import com.example.sitiopro.criacao.suinos.repository.LoteSuinosRepository;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,12 +32,14 @@ public class InstalacaoCriacaoService {
     private static final Logger log = LoggerFactory.getLogger(InstalacaoCriacaoService.class);
     private final InstalacaoCriacaoRepository repository;
     private final LoteAvesRepository loteRepository;
+    private final LoteSuinosRepository loteSuinosRepository;
     private final PropriedadeService propriedadeService;
 
     public InstalacaoCriacaoService(InstalacaoCriacaoRepository repository, LoteAvesRepository loteRepository,
-            PropriedadeService propriedadeService) {
+            ObjectProvider<LoteSuinosRepository> loteSuinosProvider, PropriedadeService propriedadeService) {
         this.repository = repository;
         this.loteRepository = loteRepository;
+        this.loteSuinosRepository = loteSuinosProvider.getIfAvailable();
         this.propriedadeService = propriedadeService;
     }
 
@@ -116,6 +121,22 @@ public class InstalacaoCriacaoService {
         return instalacao;
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public InstalacaoCriacao reservarCapacidadeSuinos(Long id, int quantidade, Long loteIgnorado) {
+        InstalacaoCriacao instalacao = repository.buscarParaAtualizacao(id)
+                .filter(InstalacaoCriacao::isAtivo)
+                .orElseThrow(() -> new AvesOperacaoException(
+                        "INSTALACAO_INVALIDA", "Instalação não encontrada ou inativa."));
+        if (instalacao.getCapacidade() != null) {
+            long projetada = ocupacaoAves(id, null) + ocupacaoSuinos(id, loteIgnorado) + quantidade;
+            if (projetada > instalacao.getCapacidade()) {
+                throw new AvesOperacaoException("CAPACIDADE_EXCEDIDA",
+                        "A instalação não possui capacidade para esse lote.", HttpStatus.CONFLICT);
+            }
+        }
+        return instalacao;
+    }
+
     public void validarCapacidade(InstalacaoCriacao instalacao, int quantidade, Long loteIgnorado) {
         if (instalacao.getCapacidade() == null) return;
         long projetada = ocupacao(instalacao.getId(), loteIgnorado) + quantidade;
@@ -126,7 +147,9 @@ public class InstalacaoCriacaoService {
 
     private InstalacaoCriacao buscar(Long id) { return repository.findById(id).orElseThrow(() -> naoEncontrada(id)); }
     private AvesOperacaoException naoEncontrada(Long id) { return new AvesOperacaoException("INSTALACAO_NAO_ENCONTRADA", "Instalação não encontrada: " + id, HttpStatus.NOT_FOUND); }
-    private long ocupacao(Long id, Long ignorar) { return loteRepository.somarOcupacao(id, StatusLoteAves.ATIVO, ignorar); }
+    private long ocupacao(Long id, Long ignorar) { return ocupacaoAves(id, ignorar) + ocupacaoSuinos(id, null); }
+    private long ocupacaoAves(Long id, Long ignorar) { return loteRepository.somarOcupacao(id, StatusLoteAves.ATIVO, ignorar); }
+    private long ocupacaoSuinos(Long id, Long ignorar) { return loteSuinosRepository == null ? 0L : loteSuinosRepository.somarOcupacao(id, StatusLoteSuinos.ATIVO, ignorar); }
     private void validar(InstalacaoCriacaoRequest r) { if (r.getTipo() == null) throw new AvesOperacaoException("TIPO_OBRIGATORIO", "Informe o tipo da instalação."); if (r.getCapacidade() != null && r.getCapacidade() < 1) throw new AvesOperacaoException("CAPACIDADE_INVALIDA", "Capacidade deve ser maior que zero."); }
     private void aplicar(InstalacaoCriacao i, InstalacaoCriacaoRequest r, String nome) {
         try {

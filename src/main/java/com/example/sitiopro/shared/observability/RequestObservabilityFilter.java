@@ -155,7 +155,8 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/criacoes")) {
             return "aves";
         }
-        if (path.startsWith("/sitio/suinos")) {
+        if (path.startsWith("/sitio/suinos") || path.startsWith("/sitio/criacoes/suinos")
+                || path.startsWith("/api/v1/criacoes/suinos")) {
             return "suinos";
         }
         if (path.startsWith("/sitio/piscicultura")) {

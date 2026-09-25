@@ -2,6 +2,7 @@ package com.example.sitiopro.shared.api;
 
 import com.example.sitiopro.compras.service.ComprasOperacaoException;
 import com.example.sitiopro.criacao.aves.service.AvesOperacaoException;
+import com.example.sitiopro.criacao.suinos.service.SuinosOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
@@ -31,6 +32,7 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.integracao.api",
         "com.example.sitiopro.tarefas.api",
         "com.example.sitiopro.criacao.aves.api",
+        "com.example.sitiopro.criacao.suinos.api",
         "com.example.sitiopro.dashboard.api",
         "com.example.sitiopro.propriedade.api",
         "com.example.sitiopro.agricultura.api"
@@ -79,6 +81,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AvesOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> criacoes(AvesOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(SuinosOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> suinos(SuinosOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
     }
 
     private ResponseEntity<ApiErrorResponse> negocio(String code, String message, HttpStatus status,

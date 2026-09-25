@@ -14,6 +14,7 @@ import com.example.sitiopro.tarefas.entity.StatusTarefa;
 import com.example.sitiopro.tarefas.entity.Tarefa;
 import com.example.sitiopro.tarefas.entity.TarefaRecorrencia;
 import com.example.sitiopro.tarefas.entity.TipoRecorrencia;
+import com.example.sitiopro.tarefas.entity.TipoEventoOperacional;
 import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
 import com.example.sitiopro.tarefas.repository.TarefaRepository;
 import com.example.sitiopro.usuario.entity.PerfilUsuario;
@@ -215,6 +216,25 @@ class TarefaServiceTests {
         assertThat(persistida.get().getReferenciaOrigem()).isEqualTo("INCUBACAO:1");
         assertThat(persistida.get().getChaveAutomacao()).isEqualTo(request.chaveAutomacao());
         verify(tarefaRepository, times(1)).save(any());
+    }
+
+    @Test
+    void concluiMarcoAutomaticoSemReprocessarTarefaFinalizada() {
+        UsuarioAtor ator = new UsuarioAtor(operador.getId(), "operador", false);
+        Tarefa tarefa = tarefa(80L, operador, operador);
+        tarefa.setOrigem(OrigemTarefa.AUTOMATICA);
+        tarefa.setChaveAutomacao("CRIACAO:SUINOS:SANIDADE:30:PROXIMA_ACAO");
+        when(tarefaRepository.buscarPorChaveAutomacaoParaAtualizacao(tarefa.getChaveAutomacao()))
+                .thenReturn(Optional.of(tarefa));
+        when(usuarioRepository.findById(operador.getId())).thenReturn(Optional.of(operador));
+
+        service.concluirAutomatica(tarefa.getChaveAutomacao(), ator);
+        service.concluirAutomatica(tarefa.getChaveAutomacao(), ator);
+
+        assertThat(tarefa.getStatus()).isEqualTo(StatusTarefa.CONCLUIDA);
+        assertThat(tarefa.getDataConclusao()).isEqualTo(AGORA);
+        verify(historicoService, times(1)).registrarTarefa(eq(tarefa),
+                eq(TipoEventoOperacional.TAREFA_CONCLUIDA), eq(operador), eq("operador"), any());
     }
 
     private TarefaRequest request(String titulo) {

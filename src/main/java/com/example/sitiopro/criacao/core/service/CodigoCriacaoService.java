@@ -42,6 +42,21 @@ public class CodigoCriacaoService {
         return proximo("INCUBACAO_AVES", "INC");
     }
 
+    @Transactional
+    public String proximoLoteSuinos() {
+        return proximo("LOTE_SUINOS", "SU");
+    }
+
+    @Transactional
+    public String proximoAnimalSuinos() {
+        return proximo("ANIMAL_SUINOS", "SR");
+    }
+
+    @Transactional
+    public String proximaReproducaoSuinos() {
+        return proximo("REPRODUCAO_SUINOS", "GES");
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void bloquearIdempotencia(String escopo, String chave) {
         adquirirLock("SITIOPRO:CRIACAO:IDEMP:" + escopo + ":" + chave);

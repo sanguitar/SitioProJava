@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sanidade de suínos')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/suinos.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-suinos suinos-page">
+    <div th:replace="~{fragments/ui :: topbar('Sanidade', 'Criações / Suínos / Sanidade')}"></div>
+    <header class="suinos-heading">
+        <div><small>HISTÓRICO E ACOMPANHAMENTO</small><h1>Sanidade de suínos</h1><p>Procedimentos realizados e próximas ações por lote ou animal.</p></div>
+        <div><a th:href="@{/sitio/criacoes/suinos}" class="btn btn-outline-dark">Suínos</a><a th:href="@{/sitio/criacoes/suinos/sanidade/novo(loteId=${loteId},animalId=${animalId})}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo registro</a></div>
+    </header>
+    <div th:if="${mensagem}" class="alert alert-success" th:text="${mensagem}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+    <section class="suinos-metrics">
+        <article><span>Registros em 30 dias</span><strong th:text="${resumo.registrosUltimos30Dias}">0</strong></article>
+        <article><span>Próximas ações</span><strong th:text="${resumo.proximasAcoes}">0</strong></article>
+        <article><span>Procedimentos vencidos</span><strong th:text="${resumo.procedimentosVencidos}">0</strong></article>
+    </section>
+    <section class="suinos-panel">
+        <div class="panel-title"><h2>Histórico sanitário</h2><span th:text="${registros.size() + ' registros'}">0 registros</span></div>
+        <div class="suinos-timeline">
+            <article th:each="r : ${registros}">
+                <div><strong th:text="${r.tipo.rotulo + ' · ' + r.procedimentoProduto}">Procedimento</strong><time th:text="${#temporals.format(r.dataProcedimento, 'dd/MM/yyyy')}">-</time></div>
+                <p><span th:text="${r.loteCodigo != null ? 'Lote ' + r.loteCodigo : 'Animal ' + r.animalCodigo + (r.animalIdentificacao == null ? '' : ' · ' + r.animalIdentificacao)}"></span><span th:if="${r.motivo}" th:text="${' · ' + r.motivo}"></span></p>
+                <small><span th:text="${'Responsável: ' + r.responsavel}"></span><span th:if="${r.quantidadeConsumida != null}" th:text="${' · consumo: ' + r.quantidadeConsumida + ' de ' + r.itemEstoqueNome}"></span></small>
+                <div class="suinos-follow-up" th:if="${r.proximaAcaoData != null}">
+                    <span th:text="${r.proximaAcao + ' · ' + #temporals.format(r.proximaAcaoData, 'dd/MM/yyyy')}"></span>
+                    <span th:if="${r.proximaAcaoConcluida}" class="status-badge status-functional">Concluída</span>
+                    <form th:if="${!r.proximaAcaoConcluida}" th:action="@{/sitio/criacoes/suinos/sanidade/{id}/concluir-proxima-acao(id=${r.id})}" method="post"><button class="btn btn-sm btn-outline-success">Concluir</button></form>
+                </div>
+            </article>
+            <div class="empty-state-card compact" th:if="${#lists.isEmpty(registros)}"><i class="fa-solid fa-shield-heart"></i><div><strong>Nenhum registro sanitário</strong><p>Inclua o primeiro procedimento para formar o histórico.</p></div></div>
+        </div>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

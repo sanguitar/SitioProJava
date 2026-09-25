@@ -65,6 +65,11 @@ import org.springframework.web.client.RestClient;
 })
 class SitioProApplicationTests {
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
+    @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosService suinosService;
+    @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosReproducaoService suinosReproducaoService;
+    @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosAlertasService suinosAlertasService;
+    @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosSanidadeService suinosSanidadeService;
+    @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
     @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;

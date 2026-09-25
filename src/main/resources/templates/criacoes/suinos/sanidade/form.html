@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Novo registro sanitário')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/suinos.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-suinos suinos-page">
+    <div th:replace="~{fragments/ui :: topbar('Novo registro sanitário', 'Criações / Suínos / Sanidade')}"></div>
+    <header class="suinos-heading"><div><small>REGISTRO OPERACIONAL</small><h1>Novo registro sanitário</h1><p>Registre o que foi realizado, sem prescrição automática de produto, dose ou protocolo.</p></div><a th:href="@{/sitio/criacoes/suinos/sanidade}" class="btn btn-outline-dark"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a></header>
+    <form th:action="@{/sitio/criacoes/suinos/sanidade}" th:object="${registroForm}" method="post" class="suinos-panel suinos-form">
+        <div class="alert alert-danger" th:if="${#fields.hasAnyErrors()}"><p th:each="e : ${#fields.allErrors()}" th:text="${e}"></p></div>
+        <input type="hidden" th:field="*{chaveIdempotencia}">
+        <section><h2>Alvo e procedimento</h2><div class="suinos-form-grid">
+            <label>Lote<select th:field="*{loteId}" class="form-select"><option value="">Nenhum</option><option th:each="l : ${lotes}" th:value="${l.id}" th:text="${l.codigo + ' · ' + l.categoria.rotulo}"></option></select><small>Selecione o lote ou o animal, nunca ambos.</small></label>
+            <label>Animal reprodutivo<select th:field="*{animalReprodutivoId}" class="form-select"><option value="">Nenhum</option><option th:each="a : ${animais}" th:value="${a.id}" th:text="${a.codigo + (a.identificacao == null ? '' : ' · ' + a.identificacao)}"></option></select></label>
+            <label>Tipo<select th:field="*{tipo}" class="form-select" required><option value="">Selecione</option><option th:each="t : ${tipos}" th:value="${t}" th:text="${t.rotulo}"></option></select></label>
+            <label>Data<input type="date" th:field="*{dataProcedimento}" class="form-control" required></label>
+            <label class="span-2">Procedimento ou produto<input th:field="*{procedimentoProduto}" maxlength="200" class="form-control" required></label>
+            <label>Motivo<input th:field="*{motivo}" maxlength="500" class="form-control"></label>
+            <label>Responsável<input th:field="*{responsavel}" maxlength="120" class="form-control" required></label>
+            <label class="span-2">Observação<textarea th:field="*{observacao}" maxlength="1000" class="form-control" rows="3"></textarea></label>
+            <label>Custo opcional<input type="number" min="0" step="0.01" th:field="*{custo}" class="form-control"></label>
+        </div></section>
+        <section><h2>Próxima ação</h2><div class="suinos-form-grid"><label>Próxima ação<input th:field="*{proximaAcao}" maxlength="250" class="form-control"></label><label>Data<input type="date" th:field="*{proximaAcaoData}" class="form-control"></label></div></section>
+        <section><h2>Consumo opcional de estoque</h2><div class="suinos-form-grid">
+            <label>Item<select th:field="*{itemEstoqueId}" class="form-select"><option value="">Sem consumo</option><option th:each="i : ${itensEstoque}" th:value="${i.id}" th:text="${i.nome + ' (' + i.unidadeMedida.sigla + ')'}"></option></select></label>
+            <label>Local<select th:field="*{localEstoqueId}" class="form-select"><option value="">Selecione</option><option th:each="l : ${locaisEstoque}" th:value="${l.id}" th:text="${l.nome}"></option></select></label>
+            <label>Quantidade<input type="number" min="0.0001" step="0.0001" th:field="*{quantidadeConsumida}" class="form-control"></label>
+            <label>Lote do estoque<input th:field="*{loteEstoqueCodigo}" maxlength="100" class="form-control"></label>
+        </div></section>
+        <div class="suinos-form-actions"><a th:href="@{/sitio/criacoes/suinos/sanidade}" class="btn btn-outline-dark">Cancelar</a><button class="btn btn-success">Registrar</button></div>
+    </form>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

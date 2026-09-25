@@ -2,6 +2,8 @@ package com.example.sitiopro.tarefas.service;
 
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
 import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
+import com.example.sitiopro.criacao.suinos.service.SuinosAlertasService;
+import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
@@ -35,19 +37,25 @@ public class RegrasAlertasService {
     private final AlertaService alertaService;
     private final TarefasAlertasProperties properties;
     private final AvesAlertasService avesAlertasService;
+    private final SuinosAlertasService suinosAlertasService;
+    private final SuinosSanidadeAlertasService suinosSanidadeAlertasService;
 
     public RegrasAlertasService(EstoqueMovimentoService estoqueService,
             IntegracaoPainelService integracaoService,
             ClimaConsultaService climaService,
             AlertaService alertaService,
             TarefasAlertasProperties properties,
-            AvesAlertasService avesAlertasService) {
+            AvesAlertasService avesAlertasService,
+            SuinosAlertasService suinosAlertasService,
+            SuinosSanidadeAlertasService suinosSanidadeAlertasService) {
         this.estoqueService = estoqueService;
         this.integracaoService = integracaoService;
         this.climaService = climaService;
         this.alertaService = alertaService;
         this.properties = properties;
         this.avesAlertasService = avesAlertasService;
+        this.suinosAlertasService = suinosAlertasService;
+        this.suinosSanidadeAlertasService = suinosSanidadeAlertasService;
     }
 
     public void avaliar() {
@@ -57,6 +65,8 @@ public class RegrasAlertasService {
         avaliarRegra("integracoes", this::avaliarIntegracoes);
         avaliarRegra("clima", this::avaliarChuva);
         avaliarRegra("criacoes-aves", avesAlertasService::avaliar);
+        avaliarRegra("criacoes-suinos", suinosAlertasService::avaliar);
+        avaliarRegra("criacoes-suinos-sanidade", suinosSanidadeAlertasService::avaliar);
     }
 
     private void avaliarEstoqueMinimo() {
