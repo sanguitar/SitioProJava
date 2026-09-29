@@ -48,6 +48,11 @@ public class CodigoCriacaoService {
     }
 
     @Transactional
+    public String proximoLotePeixes() {
+        return proximo("LOTE_PEIXES", "PX");
+    }
+
+    @Transactional
     public String proximoAnimalSuinos() {
         return proximo("ANIMAL_SUINOS", "SR");
     }

@@ -97,6 +97,17 @@ public class EstoqueMovimentoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoCriacaoPeixes(MovimentoEstoqueRequest request,
+            Long eventoId, Long lotePeixesId) {
+        if (eventoId == null || lotePeixesId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_CRIACAO_OBRIGATORIA",
+                    "Informe a alimentação e o lote de peixes de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "criacoes", eventoId,
+                "Alimentação do lote de peixes #" + lotePeixesId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public MovimentoEstoque registrarConsumoSanidadeSuinos(MovimentoEstoqueRequest request,
             Long registroSanitarioId, String alvo) {
         if (registroSanitarioId == null || !StringUtils.hasText(alvo)) {

@@ -151,16 +151,17 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
                 || path.startsWith("/sitio/tarefas") || path.startsWith("/sitio/alertas")) {
             return "tarefas";
         }
-        if (path.startsWith("/sitio/aves") || path.startsWith("/sitio/criacoes")
-                || path.startsWith("/api/v1/criacoes")) {
-            return "aves";
-        }
         if (path.startsWith("/sitio/suinos") || path.startsWith("/sitio/criacoes/suinos")
                 || path.startsWith("/api/v1/criacoes/suinos")) {
             return "suinos";
         }
-        if (path.startsWith("/sitio/piscicultura")) {
+        if (path.startsWith("/sitio/piscicultura") || path.startsWith("/sitio/criacoes/peixes")
+                || path.startsWith("/api/v1/criacoes/peixes")) {
             return "piscicultura";
+        }
+        if (path.startsWith("/sitio/aves") || path.startsWith("/sitio/criacoes")
+                || path.startsWith("/api/v1/criacoes")) {
+            return "aves";
         }
         if (path.startsWith("/sitio/agricultura")) {
             return "agricultura";

@@ -607,9 +607,16 @@ class SitioProRoutesTests {
                 .andExpect(status().isOk());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/novo", "/detalhe", "/historico"})
+    void pisciculturaLegadaRedirecionaParaModuloPeixes(String sufixo) throws Exception {
+        mockMvc.perform(get("/sitio/piscicultura" + sufixo))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/criacoes/peixes"));
+    }
+
     static Stream<String> rotasPlanejadas() {
         List<String> basesComFluxoPadrao = List.of(
-                "/sitio/piscicultura",
                 "/sitio/agua",
                 "/sitio/agua/reservatorios",
                 "/sitio/agua/bombas",

@@ -11,13 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/sitio")
 public class CriacoesPlanejamentoController {
 
-    @GetMapping({
-            "/piscicultura",
-            "/piscicultura/{acao}"
-    })
-    public String pagina(HttpServletRequest request, Model model) {
-        return PlanejamentoView.renderizar(request, model);
-    }
+    @GetMapping({"/piscicultura", "/piscicultura/{acao}"})
+    public String pisciculturaLegado() { return "redirect:/sitio/criacoes/peixes"; }
 
     @GetMapping({"/suinos", "/suinos/{acao}"})
     public String suinosLegado() {

@@ -35,6 +35,8 @@ import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeService;
 import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
 import com.example.sitiopro.criacao.suinos.dto.SanidadeSuinosResumo;
 import com.example.sitiopro.criacao.suinos.dto.ReproducaoSuinosResumo;
+import com.example.sitiopro.criacao.peixes.service.PeixesService;
+import com.example.sitiopro.criacao.peixes.dto.PeixesDashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
@@ -157,6 +159,7 @@ class SitioProSecurityTests {
     @MockBean private SuinosAlertasService suinosAlertasService;
     @MockBean private SuinosSanidadeService suinosSanidadeService;
     @MockBean private SuinosSanidadeAlertasService suinosSanidadeAlertasService;
+    @MockBean private PeixesService peixesService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -375,6 +378,10 @@ class SitioProSecurityTests {
         when(suinosReproducaoService.listarCiclos()).thenReturn(List.of());
         when(suinosReproducaoService.listarMatrizes()).thenReturn(List.of());
         when(suinosReproducaoService.listarReprodutores()).thenReturn(List.of());
+        when(peixesService.dashboard()).thenReturn(new PeixesDashboardResumo(
+                0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, 0));
+        when(peixesService.listar(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
         when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
                 1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
                 100, 0, true, 0, null, null, null, null));
@@ -1174,6 +1181,50 @@ class SitioProSecurityTests {
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/ciclos']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/animais/{id}/historico']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/sanidade']").exists());
+    }
+
+    @Test
+    void peixesPermiteConsultaAoOperadorMasCadastroSomenteAoAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/criacoes/peixes/resumo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lotesAtivos").value(0));
+        mockMvc.perform(post("/api/v1/criacoes/peixes/lotes")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paginasMvcDePeixesRenderizamEFormularioExigeAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/criacoes/peixes")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Biomassa estimada")));
+        mockMvc.perform(get("/sitio/criacoes/peixes/lotes")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/sitio/criacoes/peixes/lotes/novo")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/criacoes/peixes/lotes/novo")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("código PX será gerado")));
+    }
+
+    @Test
+    void operacaoDePeixesExigeCsrfEPermiteOperador() throws Exception {
+        String body = "{\"dataEvento\":\"2026-09-25T08:00:00\","
+                + "\"chaveIdempotencia\":\"entrada-px-1\",\"quantidade\":2}";
+        mockMvc.perform(post("/api/v1/criacoes/peixes/lotes/1/entradas")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/peixes/lotes/1/entradas")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
     }
 
     @Test

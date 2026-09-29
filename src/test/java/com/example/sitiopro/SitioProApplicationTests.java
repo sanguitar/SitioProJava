@@ -70,6 +70,7 @@ class SitioProApplicationTests {
     @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosAlertasService suinosAlertasService;
     @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosSanidadeService suinosSanidadeService;
     @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService suinosSanidadeAlertasService;
+    @MockBean private com.example.sitiopro.criacao.peixes.service.PeixesService peixesService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
     @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;

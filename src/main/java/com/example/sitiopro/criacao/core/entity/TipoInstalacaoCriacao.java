@@ -5,6 +5,7 @@ public enum TipoInstalacaoCriacao {
     CRIADOURO_PINTINHOS("Criadouro de pintinhos"),
     GALINHEIRO("Galinheiro"),
     PIQUETE("Piquete"),
+    TANQUE_PISCICULTURA("Tanque de piscicultura"),
     OUTRO("Outro");
 
     private final String rotulo;

@@ -7,6 +7,7 @@ import com.example.sitiopro.criacao.core.entity.InstalacaoCriacao;
 import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
 import com.example.sitiopro.criacao.suinos.repository.LoteSuinosRepository;
+import com.example.sitiopro.criacao.peixes.repository.LotePeixesRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +29,17 @@ class InstalacaoCriacaoServiceTests {
     @Mock private LoteAvesRepository loteRepository;
     @Mock private LoteSuinosRepository loteSuinosRepository;
     @Mock private ObjectProvider<LoteSuinosRepository> loteSuinosProvider;
+    @Mock private ObjectProvider<LotePeixesRepository> lotePeixesProvider;
+    @Mock private LotePeixesRepository lotePeixesRepository;
     private InstalacaoCriacaoService service;
 
     @BeforeEach
     void preparar() {
         lenient().when(loteSuinosRepository.somarOcupacao(any(), any(), any())).thenReturn(0L);
         lenient().when(loteSuinosProvider.getIfAvailable()).thenReturn(loteSuinosRepository);
-        service = new InstalacaoCriacaoService(repository, loteRepository, loteSuinosProvider,
+        lenient().when(lotePeixesProvider.getIfAvailable()).thenReturn(lotePeixesRepository);
+        lenient().when(lotePeixesRepository.somarOcupacao(any(), any(), any())).thenReturn(0L);
+        service = new InstalacaoCriacaoService(repository, loteRepository, loteSuinosProvider, lotePeixesProvider,
                 org.mockito.Mockito.mock(com.example.sitiopro.propriedade.service.PropriedadeService.class));
     }
 
@@ -82,6 +87,18 @@ class InstalacaoCriacaoServiceTests {
         when(loteRepository.somarOcupacao(2L, StatusLoteAves.ATIVO, 9L)).thenReturn(90L);
 
         assertThatThrownBy(() -> service.validarCapacidade(destino, 20, 9L))
+                .isInstanceOf(AvesOperacaoException.class)
+                .extracting("code").isEqualTo("CAPACIDADE_EXCEDIDA");
+    }
+
+    @Test
+    void reservaSomenteTanqueDePisciculturaComCapacidade() {
+        InstalacaoCriacao tanque = instalacao(3L, 120, true);
+        tanque.setTipo(TipoInstalacaoCriacao.TANQUE_PISCICULTURA);
+        when(repository.buscarParaAtualizacao(3L)).thenReturn(Optional.of(tanque));
+        when(lotePeixesRepository.somarOcupacao(3L,
+                com.example.sitiopro.criacao.peixes.entity.StatusLotePeixes.ATIVO, null)).thenReturn(100L);
+        assertThatThrownBy(() -> service.reservarCapacidadePeixes(3L, 30, null))
                 .isInstanceOf(AvesOperacaoException.class)
                 .extracting("code").isEqualTo("CAPACIDADE_EXCEDIDA");
     }

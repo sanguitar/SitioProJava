@@ -9,6 +9,8 @@ import com.example.sitiopro.criacao.core.entity.TipoInstalacaoCriacao;
 import com.example.sitiopro.criacao.core.repository.InstalacaoCriacaoRepository;
 import com.example.sitiopro.criacao.suinos.entity.StatusLoteSuinos;
 import com.example.sitiopro.criacao.suinos.repository.LoteSuinosRepository;
+import com.example.sitiopro.criacao.peixes.entity.StatusLotePeixes;
+import com.example.sitiopro.criacao.peixes.repository.LotePeixesRepository;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import com.example.sitiopro.propriedade.service.PropriedadeService;
@@ -33,13 +35,16 @@ public class InstalacaoCriacaoService {
     private final InstalacaoCriacaoRepository repository;
     private final LoteAvesRepository loteRepository;
     private final LoteSuinosRepository loteSuinosRepository;
+    private final LotePeixesRepository lotePeixesRepository;
     private final PropriedadeService propriedadeService;
 
     public InstalacaoCriacaoService(InstalacaoCriacaoRepository repository, LoteAvesRepository loteRepository,
-            ObjectProvider<LoteSuinosRepository> loteSuinosProvider, PropriedadeService propriedadeService) {
+            ObjectProvider<LoteSuinosRepository> loteSuinosProvider,
+            ObjectProvider<LotePeixesRepository> lotePeixesProvider, PropriedadeService propriedadeService) {
         this.repository = repository;
         this.loteRepository = loteRepository;
         this.loteSuinosRepository = loteSuinosProvider.getIfAvailable();
+        this.lotePeixesRepository = lotePeixesProvider.getIfAvailable();
         this.propriedadeService = propriedadeService;
     }
 
@@ -61,6 +66,12 @@ public class InstalacaoCriacaoService {
     public List<InstalacaoCriacaoResumo> listarIncubadorasAtivas() {
         return repository.findByAtivoTrueAndTipoOrderByNomeAsc(TipoInstalacaoCriacao.INCUBADORA).stream()
                 .map(this::resumo).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstalacaoCriacaoResumo> listarTanquesAtivos() {
+        return repository.findByAtivoTrueAndTipoOrderByNomeAsc(TipoInstalacaoCriacao.TANQUE_PISCICULTURA)
+                .stream().map(this::resumo).toList();
     }
 
     @Transactional(readOnly = true)
@@ -137,6 +148,23 @@ public class InstalacaoCriacaoService {
         return instalacao;
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public InstalacaoCriacao reservarCapacidadePeixes(Long id, int quantidade, Long loteIgnorado) {
+        InstalacaoCriacao instalacao = repository.buscarParaAtualizacao(id)
+                .filter(InstalacaoCriacao::isAtivo)
+                .filter(i -> i.getTipo() == TipoInstalacaoCriacao.TANQUE_PISCICULTURA)
+                .orElseThrow(() -> new AvesOperacaoException(
+                        "TANQUE_INVALIDO", "Tanque não encontrado, inativo ou incompatível."));
+        if (instalacao.getCapacidade() != null) {
+            long projetada = ocupacaoPeixes(id, loteIgnorado) + quantidade;
+            if (projetada > instalacao.getCapacidade()) {
+                throw new AvesOperacaoException("CAPACIDADE_EXCEDIDA",
+                        "O tanque não possui capacidade para esse lote.", HttpStatus.CONFLICT);
+            }
+        }
+        return instalacao;
+    }
+
     public void validarCapacidade(InstalacaoCriacao instalacao, int quantidade, Long loteIgnorado) {
         if (instalacao.getCapacidade() == null) return;
         long projetada = ocupacao(instalacao.getId(), loteIgnorado) + quantidade;
@@ -147,9 +175,10 @@ public class InstalacaoCriacaoService {
 
     private InstalacaoCriacao buscar(Long id) { return repository.findById(id).orElseThrow(() -> naoEncontrada(id)); }
     private AvesOperacaoException naoEncontrada(Long id) { return new AvesOperacaoException("INSTALACAO_NAO_ENCONTRADA", "Instalação não encontrada: " + id, HttpStatus.NOT_FOUND); }
-    private long ocupacao(Long id, Long ignorar) { return ocupacaoAves(id, ignorar) + ocupacaoSuinos(id, null); }
+    private long ocupacao(Long id, Long ignorar) { return ocupacaoAves(id, ignorar) + ocupacaoSuinos(id, null) + ocupacaoPeixes(id, null); }
     private long ocupacaoAves(Long id, Long ignorar) { return loteRepository.somarOcupacao(id, StatusLoteAves.ATIVO, ignorar); }
     private long ocupacaoSuinos(Long id, Long ignorar) { return loteSuinosRepository == null ? 0L : loteSuinosRepository.somarOcupacao(id, StatusLoteSuinos.ATIVO, ignorar); }
+    private long ocupacaoPeixes(Long id, Long ignorar) { return lotePeixesRepository == null ? 0L : lotePeixesRepository.somarOcupacao(id, StatusLotePeixes.ATIVO, ignorar); }
     private void validar(InstalacaoCriacaoRequest r) { if (r.getTipo() == null) throw new AvesOperacaoException("TIPO_OBRIGATORIO", "Informe o tipo da instalação."); if (r.getCapacidade() != null && r.getCapacidade() < 1) throw new AvesOperacaoException("CAPACIDADE_INVALIDA", "Capacidade deve ser maior que zero."); }
     private void aplicar(InstalacaoCriacao i, InstalacaoCriacaoRequest r, String nome) {
         try {
