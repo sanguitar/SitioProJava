@@ -36,6 +36,8 @@ import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
 import com.example.sitiopro.criacao.suinos.dto.SanidadeSuinosResumo;
 import com.example.sitiopro.criacao.suinos.dto.ReproducaoSuinosResumo;
 import com.example.sitiopro.criacao.peixes.service.PeixesService;
+import com.example.sitiopro.criacao.peixes.service.QualidadeAguaService;
+import com.example.sitiopro.criacao.peixes.dto.ConfiguracaoQualidadeAguaDto;
 import com.example.sitiopro.criacao.peixes.dto.PeixesDashboardResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
@@ -160,6 +162,7 @@ class SitioProSecurityTests {
     @MockBean private SuinosSanidadeService suinosSanidadeService;
     @MockBean private SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     @MockBean private PeixesService peixesService;
+    @MockBean private QualidadeAguaService qualidadeAguaService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -382,6 +385,14 @@ class SitioProSecurityTests {
                 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, 0));
         when(peixesService.listar(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        ConfiguracaoQualidadeAguaDto configAgua = new ConfiguracaoQualidadeAguaDto();
+        configAgua.setTemperaturaMin(new BigDecimal("24")); configAgua.setTemperaturaMax(new BigDecimal("32"));
+        configAgua.setPhMin(new BigDecimal("6.5")); configAgua.setPhMax(new BigDecimal("8.5"));
+        configAgua.setOxigenioMin(new BigDecimal("5")); configAgua.setTransparenciaMinCm(new BigDecimal("30"));
+        configAgua.setAmoniaMax(new BigDecimal("0.5")); configAgua.setNitritoMax(new BigDecimal("0.2"));
+        configAgua.setIntervaloMedicaoDias(7); configAgua.setVersao(0L);
+        when(qualidadeAguaService.configuracao()).thenReturn(configAgua);
+        when(qualidadeAguaService.listar(any(Long.class))).thenReturn(List.of());
         when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
                 1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
                 100, 0, true, 0, null, null, null, null));
@@ -1225,6 +1236,28 @@ class SitioProSecurityTests {
                         .with(user("operador").roles("OPERADOR")).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void qualidadeAguaPermiteMedicaoAoOperadorEConfiguraSomenteAdmin() throws Exception {
+        String medicao = "{\"medidoEm\":\"2026-09-30T08:00:00\",\"temperatura\":28,"
+                + "\"ph\":7.2,\"oxigenioDissolvido\":6,\"responsavel\":\"Operador\","
+                + "\"chaveIdempotencia\":\"agua-1\"}";
+        mockMvc.perform(post("/api/v1/criacoes/peixes/lotes/1/qualidade-agua")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(medicao))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/peixes/lotes/1/qualidade-agua")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(medicao))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/v1/criacoes/peixes/qualidade-agua/configuracao")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/criacoes/peixes/qualidade-agua/configuracao")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Limites da qualidade da água")));
     }
 
     @Test

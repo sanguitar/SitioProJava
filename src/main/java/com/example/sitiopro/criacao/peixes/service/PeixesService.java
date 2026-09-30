@@ -32,14 +32,16 @@ public class PeixesService {
     private final EstoqueMovimentoService estoque;
     private final TarefaService tarefas;
     private final AlertaService alertas;
+    private final QualidadeAguaService qualidadeAgua;
     private final Clock clock;
 
     public PeixesService(LotePeixesRepository lotes, EventoPeixesRepository eventos,
             InstalacaoCriacaoService instalacoes, CodigoCriacaoService codigos,
             EstoqueCatalogoService catalogo, EstoqueMovimentoService estoque,
-            TarefaService tarefas, AlertaService alertas, Clock clock) {
+            TarefaService tarefas, AlertaService alertas, QualidadeAguaService qualidadeAgua, Clock clock) {
         this.lotes=lotes; this.eventos=eventos; this.instalacoes=instalacoes; this.codigos=codigos;
-        this.catalogo=catalogo; this.estoque=estoque; this.tarefas=tarefas; this.alertas=alertas; this.clock=clock;
+        this.catalogo=catalogo; this.estoque=estoque; this.tarefas=tarefas; this.alertas=alertas;
+        this.qualidadeAgua=qualidadeAgua; this.clock=clock;
     }
 
     @Transactional(readOnly=true)
@@ -76,7 +78,7 @@ public class PeixesService {
                 escala(lotes.somarBiomassa(StatusLotePeixes.ATIVO)),escala(lotes.pesoMedio(StatusLotePeixes.ATIVO)),
                 escala(eventos.somarValorDesde(TipoEventoPeixes.ALIMENTACAO,inicio)),
                 Optional.ofNullable(eventos.somarQuantidadeDesde(List.of(TipoEventoPeixes.MORTALIDADE,TipoEventoPeixes.PERDA),inicio)).orElse(0L),
-                tarefasAbertas,alertasAbertos);
+                tarefasAbertas,alertasAbertos,qualidadeAgua.dashboard());
     }
 
     @Transactional

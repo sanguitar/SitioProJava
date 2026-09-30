@@ -2,6 +2,7 @@ package com.example.sitiopro.criacao.peixes.api;
 import com.example.sitiopro.criacao.peixes.dto.*;
 import com.example.sitiopro.criacao.peixes.entity.StatusLotePeixes;
 import com.example.sitiopro.criacao.peixes.service.PeixesService;
+import com.example.sitiopro.criacao.peixes.service.QualidadeAguaService;
 import com.example.sitiopro.tarefas.dto.PaginaResponse;
 import com.example.sitiopro.tarefas.service.UsuarioAtor;
 import jakarta.validation.Valid;
@@ -12,7 +13,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RestController
 @RequestMapping("/api/v1/criacoes/peixes")
 public class PeixesApiController {
-    private final PeixesService service; public PeixesApiController(PeixesService service){this.service=service;}
+    private final PeixesService service; private final QualidadeAguaService qualidade;
+    public PeixesApiController(PeixesService service,QualidadeAguaService qualidade){this.service=service;this.qualidade=qualidade;}
     @GetMapping("/resumo") public PeixesDashboardResumo resumo(){return service.dashboard();}
     @GetMapping("/lotes") public PaginaResponse<LotePeixesResumo> lotes(@RequestParam(required=false) StatusLotePeixes status,@RequestParam(required=false) String termo,@RequestParam(defaultValue="0") int pagina,@RequestParam(defaultValue="20") int tamanho){return service.listar(status,termo,pagina,tamanho);}
     @GetMapping("/lotes/{id}") public LotePeixesDetalhe lote(@PathVariable Long id){return service.detalhar(id);}
@@ -22,4 +24,8 @@ public class PeixesApiController {
     @PostMapping("/lotes/{id}/transferencias") public LotePeixesDetalhe transferencia(@PathVariable Long id,@Valid @RequestBody TransferenciaPeixesRequest r,Authentication a){return service.transferir(id,r,UsuarioAtor.de(a));}
     @PostMapping("/lotes/{id}/biometrias") public LotePeixesDetalhe biometria(@PathVariable Long id,@Valid @RequestBody BiometriaPeixesRequest r,Authentication a){return service.registrarBiometria(id,r,UsuarioAtor.de(a));}
     @PostMapping("/lotes/{id}/alimentacoes") public LotePeixesDetalhe alimentacao(@PathVariable Long id,@Valid @RequestBody AlimentacaoPeixesRequest r,Authentication a){return service.registrarAlimentacao(id,r,UsuarioAtor.de(a));}
+    @GetMapping("/lotes/{id}/qualidade-agua") public java.util.List<MedicaoQualidadeAguaResumo> qualidadeAgua(@PathVariable Long id){return qualidade.listar(id);}
+    @PostMapping("/lotes/{id}/qualidade-agua") public ResponseEntity<MedicaoQualidadeAguaResumo> medir(@PathVariable Long id,@Valid @RequestBody MedicaoQualidadeAguaRequest r,Authentication a){var medicao=qualidade.registrar(id,r,UsuarioAtor.de(a));var uri=ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/criacoes/peixes/lotes/{id}/qualidade-agua").buildAndExpand(id).toUri();return ResponseEntity.created(uri).body(medicao);}
+    @GetMapping("/qualidade-agua/configuracao") public ConfiguracaoQualidadeAguaDto configuracao(){return qualidade.configuracao();}
+    @PutMapping("/qualidade-agua/configuracao") public ConfiguracaoQualidadeAguaDto atualizarConfiguracao(@Valid @RequestBody ConfiguracaoQualidadeAguaDto r,Authentication a){return qualidade.atualizarConfiguracao(r,UsuarioAtor.de(a));}
 }
