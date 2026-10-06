@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Sanidade de peixes')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/piscicultura.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content main-content-wide domain-piscicultura peixes-page">
+    <div th:replace="~{fragments/ui :: topbar('Sanidade', 'Criações / Peixes / Sanidade')}"></div>
+    <header class="peixes-heading">
+        <div><small>HISTÓRICO E ACOMPANHAMENTO</small><h1>Sanidade de peixes</h1><p>Ocorrências, exames, manejos e próximas ações por lote.</p></div>
+        <div><a th:href="@{/sitio/criacoes/peixes}" class="btn btn-outline-dark">Peixes</a><a th:href="@{/sitio/criacoes/peixes/sanidade/novo(loteId=${loteId})}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo registro</a></div>
+    </header>
+    <div th:if="${mensagem}" class="alert alert-success" th:text="${mensagem}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+    <section class="peixes-metrics">
+        <article><span>Registros em 30 dias</span><strong th:text="${resumo.registrosUltimos30Dias}">0</strong></article>
+        <article><span>Próximas ações</span><strong th:text="${resumo.proximasAcoes}">0</strong></article>
+        <article><span>Ações pendentes</span><strong th:text="${resumo.acoesPendentes}">0</strong></article>
+    </section>
+    <section class="peixes-panel">
+        <div class="panel-title"><h2>Histórico sanitário</h2><span th:text="${registros.size() + ' registros'}">0 registros</span></div>
+        <div class="peixes-timeline health-history">
+            <article th:each="r : ${registros}">
+                <div><strong th:text="${r.tipo.rotulo + ' · ' + r.procedimentoProduto}">Procedimento</strong><time th:text="${#temporals.format(r.dataProcedimento, 'dd/MM/yyyy HH:mm')}">-</time></div>
+                <p><span th:text="${'Lote ' + r.loteCodigo}"></span><span th:if="${r.motivo}" th:text="${' · ' + r.motivo}"></span></p>
+                <small><span th:text="${'Responsável: ' + r.responsavel}"></span><span th:if="${r.quantidadeConsumida != null}" th:text="${' · consumo: ' + r.quantidadeConsumida + ' de ' + r.itemEstoqueNome}"></span></small>
+                <div class="health-follow-up" th:if="${r.proximaAcaoData != null}">
+                    <span th:text="${r.proximaAcao + ' · ' + #temporals.format(r.proximaAcaoData, 'dd/MM/yyyy HH:mm')}"></span>
+                    <span th:if="${r.proximaAcaoConcluida}" class="status-badge status-functional">Concluída</span>
+                    <form th:if="${!r.proximaAcaoConcluida}" th:action="@{/sitio/criacoes/peixes/sanidade/{id}/concluir-proxima-acao(id=${r.id})}" method="post"><button class="btn btn-sm btn-outline-success">Concluir</button></form>
+                </div>
+            </article>
+            <div class="empty-state-card compact" th:if="${#lists.isEmpty(registros)}"><i class="fa-solid fa-shield-heart"></i><div><strong>Nenhum registro sanitário</strong><p>Inclua o primeiro registro para formar o histórico do lote.</p></div></div>
+        </div>
+    </section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

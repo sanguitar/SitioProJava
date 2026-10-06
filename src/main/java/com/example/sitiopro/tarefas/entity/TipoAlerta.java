@@ -14,6 +14,7 @@ public enum TipoAlerta {
     CRIACAO_SUINOS_PARTO_ATRASADO("Parto suíno previsto em atraso"),
     CRIACAO_SUINOS_PROCEDIMENTO_SANITARIO_VENCIDO("Procedimento sanitário suíno vencido"),
     CRIACAO_PEIXES_QUALIDADE_AGUA("Qualidade da água fora dos limites"),
+    CRIACAO_PEIXES_ACAO_SANITARIA_PENDENTE("Ação sanitária de peixes pendente"),
     AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante");
 
     private final String rotulo;

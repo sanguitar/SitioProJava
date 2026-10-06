@@ -37,8 +37,12 @@ import com.example.sitiopro.criacao.suinos.dto.SanidadeSuinosResumo;
 import com.example.sitiopro.criacao.suinos.dto.ReproducaoSuinosResumo;
 import com.example.sitiopro.criacao.peixes.service.PeixesService;
 import com.example.sitiopro.criacao.peixes.service.QualidadeAguaService;
+import com.example.sitiopro.criacao.peixes.service.PeixesSanidadeService;
+import com.example.sitiopro.criacao.peixes.service.PeixesSanidadeAlertasService;
+import com.example.sitiopro.criacao.peixes.dto.SanidadePeixesResumo;
 import com.example.sitiopro.criacao.peixes.dto.ConfiguracaoQualidadeAguaDto;
 import com.example.sitiopro.criacao.peixes.dto.PeixesDashboardResumo;
+import com.example.sitiopro.criacao.peixes.dto.RegistroSanitarioPeixesResumo;
 import com.example.sitiopro.dashboard.service.DashboardService;
 import com.example.sitiopro.dashboard.service.DashboardTendenciasService;
 import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaRepository;
@@ -163,6 +167,8 @@ class SitioProSecurityTests {
     @MockBean private SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     @MockBean private PeixesService peixesService;
     @MockBean private QualidadeAguaService qualidadeAguaService;
+    @MockBean private PeixesSanidadeService peixesSanidadeService;
+    @MockBean private PeixesSanidadeAlertasService peixesSanidadeAlertasService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -393,6 +399,11 @@ class SitioProSecurityTests {
         configAgua.setIntervaloMedicaoDias(7); configAgua.setVersao(0L);
         when(qualidadeAguaService.configuracao()).thenReturn(configAgua);
         when(qualidadeAguaService.listar(any(Long.class))).thenReturn(List.of());
+        when(peixesSanidadeService.resumoOperacional()).thenReturn(SanidadePeixesResumo.vazio());
+        when(peixesSanidadeService.listar(any())).thenReturn(List.of());
+        RegistroSanitarioPeixesResumo registroSanitarioPeixes = org.mockito.Mockito.mock(RegistroSanitarioPeixesResumo.class);
+        when(registroSanitarioPeixes.id()).thenReturn(1L);
+        when(peixesSanidadeService.registrar(any(), any())).thenReturn(registroSanitarioPeixes);
         when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
                 1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
                 100, 0, true, 0, null, null, null, null));
@@ -1258,6 +1269,25 @@ class SitioProSecurityTests {
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Limites da qualidade da água")));
+    }
+
+    @Test
+    void sanidadePeixesPermiteOperadorComCsrfEProtegeMutacaoSemToken() throws Exception {
+        String registro = "{\"loteId\":1,\"tipo\":\"EXAME\",\"dataProcedimento\":\"2026-09-30T08:00:00\","
+                + "\"procedimentoProduto\":\"Avaliação visual\",\"responsavel\":\"Operador\","
+                + "\"chaveIdempotencia\":\"san-px-1\"}";
+        mockMvc.perform(post("/api/v1/criacoes/peixes/sanidade")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(registro))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/criacoes/peixes/sanidade")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(registro))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/sitio/criacoes/peixes/sanidade")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Sanidade de peixes")));
     }
 
     @Test

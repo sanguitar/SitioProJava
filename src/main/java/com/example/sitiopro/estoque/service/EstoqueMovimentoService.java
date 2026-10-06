@@ -119,6 +119,17 @@ public class EstoqueMovimentoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoSanidadePeixes(MovimentoEstoqueRequest request,
+            Long registroSanitarioId, Long lotePeixesId) {
+        if (registroSanitarioId == null || lotePeixesId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_SANITARIA_OBRIGATORIA",
+                    "Informe o registro sanitário e o lote de peixes de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "criacoes",
+                registroSanitarioId, "Sanidade do lote de peixes #" + lotePeixesId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public MovimentoEstoque registrarConsumoAgricultura(MovimentoEstoqueRequest request, Long cultivoId) {
         if (cultivoId == null) {
             throw new EstoqueOperacaoException("CULTIVO_OBRIGATORIO", "Informe o cultivo de origem.");
