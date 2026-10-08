@@ -119,6 +119,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/agricultura/ocorrencias/*")
                                 .hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/api/v1/agricultura/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/manutencao/**", "/api/v1/manutencao")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/manutencao/ativos").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/manutencao/ativos/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/manutencao/planos",
+                                "/api/v1/manutencao/planos/*/desativar",
+                                "/api/v1/manutencao/leituras/ajuste").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/manutencao/planos/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/manutencao/registros",
+                                "/api/v1/manutencao/registros/*/concluir-proxima",
+                                "/api/v1/manutencao/leituras").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/sitio/agricultura/ocorrencias/*/editar")
                                 .hasAnyRole("ADMIN", "OPERADOR")
@@ -138,6 +149,20 @@ public class SecurityConfig {
                                 "/sitio/propriedade/*/novo", "/sitio/propriedade/*/*/editar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/sitio/propriedade", "/sitio/propriedade/**").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/sitio/propriedade", "/sitio/propriedade/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/manutencao/ativos/novo",
+                                "/sitio/manutencao/ativos/*/editar",
+                                "/sitio/manutencao/ativos/*/planos/novo",
+                                "/sitio/manutencao/planos/*/editar",
+                                "/sitio/manutencao/ativos/*/leituras/ajuste").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/manutencao/ativos",
+                                "/sitio/manutencao/ativos/*", "/sitio/manutencao/planos",
+                                "/sitio/manutencao/planos/*", "/sitio/manutencao/planos/*/desativar",
+                                "/sitio/manutencao/leituras/ajuste").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/manutencao", "/sitio/manutencao/**",
+                                "/sitio/patrimonio").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/sitio/manutencao/registros",
+                                "/sitio/manutencao/registros/*/concluir-proxima",
+                                "/sitio/manutencao/leituras").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/administracao/**", "/configuracoes/roadmap").hasRole("ADMIN")
                         .requestMatchers("/sitio/admin", "/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/fornecedores/*").hasRole("ADMIN")

@@ -7,7 +7,8 @@ public enum ModuloOrigem {
     CLIMA("Clima"),
     COMPRAS("Compras"),
     CRIACOES("Criações"),
-    AGRICULTURA("Agricultura");
+    AGRICULTURA("Agricultura"),
+    MANUTENCAO("Manutenção");
 
     private final String rotulo;
 

@@ -16,8 +16,6 @@ public class PropriedadePlanejamentoController {
             "/casa/{acao}",
             "/despensa",
             "/despensa/{acao}",
-            "/manutencao",
-            "/manutencao/{acao}",
             "/ar-condicionado",
             "/ar-condicionado/{acao}",
             "/dedetizacao",
@@ -26,8 +24,6 @@ public class PropriedadePlanejamentoController {
             "/reformas/{acao}",
             "/deterioracoes",
             "/deterioracoes/{acao}",
-            "/patrimonio",
-            "/patrimonio/{acao}",
             "/seguranca",
             "/seguranca/{acao}"
     })

@@ -4,6 +4,7 @@ import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
 import com.example.sitiopro.criacao.suinos.service.SuinosAlertasService;
 import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
 import com.example.sitiopro.criacao.peixes.service.PeixesSanidadeAlertasService;
+import com.example.sitiopro.manutencao.service.ManutencaoAlertasService;
 import com.example.sitiopro.estoque.dto.ItemEstoqueResumo;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
@@ -56,6 +57,8 @@ class RegrasAlertasServiceTests {
     private SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     @Mock
     private PeixesSanidadeAlertasService peixesSanidadeAlertasService;
+    @Mock
+    private ManutencaoAlertasService manutencaoAlertasService;
 
     private RegrasAlertasService service;
 
@@ -66,7 +69,7 @@ class RegrasAlertasServiceTests {
         properties.setChuva24hLimiteMm(new BigDecimal("50"));
         service = new RegrasAlertasService(estoqueService, integracaoService, climaService,
                 alertaService, properties, avesAlertasService, suinosAlertasService,
-                suinosSanidadeAlertasService, peixesSanidadeAlertasService);
+                suinosSanidadeAlertasService, peixesSanidadeAlertasService, manutencaoAlertasService);
         lenient().when(estoqueService.listarItensComSaldo()).thenReturn(List.of());
         lenient().when(estoqueService.listarLotesProximosVencimento(15)).thenReturn(List.of());
         lenient().when(estoqueService.listarLotesVencidos()).thenReturn(List.of());

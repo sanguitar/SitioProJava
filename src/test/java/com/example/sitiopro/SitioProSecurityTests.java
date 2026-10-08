@@ -169,6 +169,9 @@ class SitioProSecurityTests {
     @MockBean private QualidadeAguaService qualidadeAguaService;
     @MockBean private PeixesSanidadeService peixesSanidadeService;
     @MockBean private PeixesSanidadeAlertasService peixesSanidadeAlertasService;
+    @MockBean private com.example.sitiopro.manutencao.service.ManutencaoService manutencaoService;
+    @MockBean private com.example.sitiopro.manutencao.service.ManutencaoAlertasService manutencaoAlertasService;
+    @MockBean private com.example.sitiopro.manutencao.service.ManutencaoPreventivaService manutencaoPreventivaService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -404,6 +407,21 @@ class SitioProSecurityTests {
         RegistroSanitarioPeixesResumo registroSanitarioPeixes = org.mockito.Mockito.mock(RegistroSanitarioPeixesResumo.class);
         when(registroSanitarioPeixes.id()).thenReturn(1L);
         when(peixesSanidadeService.registrar(any(), any())).thenReturn(registroSanitarioPeixes);
+        when(manutencaoService.dashboard()).thenReturn(
+                new com.example.sitiopro.manutencao.dto.ManutencaoDashboardResumo(
+                        0, 0, 0, 0, BigDecimal.ZERO, List.of()));
+        when(manutencaoService.listarAtivos()).thenReturn(List.of());
+        when(propriedadeService.listarEstruturaPropriedade(0, 100))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 100, 0, 0));
+        com.example.sitiopro.manutencao.dto.AtivoPatrimonialResumo ativoPatrimonial =
+                org.mockito.Mockito.mock(com.example.sitiopro.manutencao.dto.AtivoPatrimonialResumo.class);
+        when(ativoPatrimonial.id()).thenReturn(1L);
+        when(manutencaoService.criarAtivo(any())).thenReturn(ativoPatrimonial);
+        com.example.sitiopro.manutencao.dto.RegistroManutencaoResumo registroManutencao =
+                org.mockito.Mockito.mock(com.example.sitiopro.manutencao.dto.RegistroManutencaoResumo.class);
+        when(registroManutencao.id()).thenReturn(1L);
+        when(registroManutencao.ativoId()).thenReturn(1L);
+        when(manutencaoService.registrarManutencao(any(), any())).thenReturn(registroManutencao);
         when(instalacaoCriacaoService.criar(any())).thenReturn(new InstalacaoCriacaoResumo(
                 1L, "Galinheiro 1", TipoInstalacaoCriacao.GALINHEIRO, "Galinheiro", null,
                 100, 0, true, 0, null, null, null, null));
@@ -1519,6 +1537,51 @@ class SitioProSecurityTests {
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/sitio/tarefas/1"));
+    }
+
+    @Test
+    void adminEOperadorConsultamManutencaoMasCadastroPatrimonialExigeAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/manutencao").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/sitio/manutencao/ativos/novo").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/manutencao/ativos/novo").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/manutencao/ativos")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Bomba\",\"tipo\":\"BOMBA\",\"status\":\"ATIVO\",\"chaveIdempotencia\":\"pat-1\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void mutacoesDeManutencaoExigemCsrfEOperadorRegistraIntervencao() throws Exception {
+        String json = "{\"ativoId\":1,\"tipo\":\"PREVENTIVA\",\"dataManutencao\":\"2026-10-06T08:00:00\","
+                + "\"descricao\":\"Revisão\",\"responsavel\":\"Operador\",\"custo\":0,"
+                + "\"chaveIdempotencia\":\"man-1\",\"consumos\":[]}";
+        mockMvc.perform(post("/api/v1/manutencao/registros")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/manutencao/registros")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void planosEAjustesDeMedidorExigemAdminMasOperadorRegistraLeitura() throws Exception {
+        String leitura = "ativoId=1&dataLeitura=2026-10-06T08%3A00&horimetro=10&chaveIdempotencia=leitura-sec";
+        mockMvc.perform(post("/sitio/manutencao/leituras").with(user("operador").roles("OPERADOR"))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED).content(leitura))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/sitio/manutencao/leituras").with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED).content(leitura))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/sitio/manutencao/leituras/ajuste").with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/sitio/manutencao/planos").with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isForbidden());
     }
 
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {

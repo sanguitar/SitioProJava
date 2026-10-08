@@ -5,6 +5,7 @@ import com.example.sitiopro.criacao.aves.service.AvesAlertasService;
 import com.example.sitiopro.criacao.suinos.service.SuinosAlertasService;
 import com.example.sitiopro.criacao.suinos.service.SuinosSanidadeAlertasService;
 import com.example.sitiopro.criacao.peixes.service.PeixesSanidadeAlertasService;
+import com.example.sitiopro.manutencao.service.ManutencaoAlertasService;
 import com.example.sitiopro.estoque.dto.LoteEstoqueResumo;
 import com.example.sitiopro.estoque.service.EstoqueMovimentoService;
 import com.example.sitiopro.integracao.clima.dto.ClimaResumo;
@@ -41,6 +42,7 @@ public class RegrasAlertasService {
     private final SuinosAlertasService suinosAlertasService;
     private final SuinosSanidadeAlertasService suinosSanidadeAlertasService;
     private final PeixesSanidadeAlertasService peixesSanidadeAlertasService;
+    private final ManutencaoAlertasService manutencaoAlertasService;
 
     public RegrasAlertasService(EstoqueMovimentoService estoqueService,
             IntegracaoPainelService integracaoService,
@@ -50,7 +52,8 @@ public class RegrasAlertasService {
             AvesAlertasService avesAlertasService,
             SuinosAlertasService suinosAlertasService,
             SuinosSanidadeAlertasService suinosSanidadeAlertasService,
-            PeixesSanidadeAlertasService peixesSanidadeAlertasService) {
+            PeixesSanidadeAlertasService peixesSanidadeAlertasService,
+            ManutencaoAlertasService manutencaoAlertasService) {
         this.estoqueService = estoqueService;
         this.integracaoService = integracaoService;
         this.climaService = climaService;
@@ -60,6 +63,7 @@ public class RegrasAlertasService {
         this.suinosAlertasService = suinosAlertasService;
         this.suinosSanidadeAlertasService = suinosSanidadeAlertasService;
         this.peixesSanidadeAlertasService = peixesSanidadeAlertasService;
+        this.manutencaoAlertasService = manutencaoAlertasService;
     }
 
     public void avaliar() {
@@ -72,6 +76,7 @@ public class RegrasAlertasService {
         avaliarRegra("criacoes-suinos", suinosAlertasService::avaliar);
         avaliarRegra("criacoes-suinos-sanidade", suinosSanidadeAlertasService::avaliar);
         avaliarRegra("criacoes-peixes-sanidade", peixesSanidadeAlertasService::avaliar);
+        avaliarRegra("manutencao-vencida", manutencaoAlertasService::avaliar);
     }
 
     private void avaliarEstoqueMinimo() {

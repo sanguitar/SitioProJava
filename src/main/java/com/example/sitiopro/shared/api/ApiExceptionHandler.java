@@ -6,6 +6,7 @@ import com.example.sitiopro.criacao.suinos.service.SuinosOperacaoException;
 import com.example.sitiopro.criacao.peixes.service.PeixesOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
+import com.example.sitiopro.manutencao.service.ManutencaoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
 import com.example.sitiopro.tarefas.service.TarefaAlertaOperacaoException;
@@ -37,7 +38,8 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.criacao.peixes.api",
         "com.example.sitiopro.dashboard.api",
         "com.example.sitiopro.propriedade.api",
-        "com.example.sitiopro.agricultura.api"
+        "com.example.sitiopro.agricultura.api",
+        "com.example.sitiopro.manutencao.api"
 })
 public class ApiExceptionHandler {
 
@@ -92,6 +94,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(PeixesOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> peixes(PeixesOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(ManutencaoOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> manutencao(ManutencaoOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
     }
 
@@ -186,6 +193,9 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/painel")) {
             return "dashboard";
+        }
+        if (path.startsWith("/api/v1/manutencao")) {
+            return "manutencao";
         }
         return "api";
     }

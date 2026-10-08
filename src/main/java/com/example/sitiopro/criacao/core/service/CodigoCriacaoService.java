@@ -53,6 +53,11 @@ public class CodigoCriacaoService {
     }
 
     @Transactional
+    public String proximoAtivoPatrimonial() {
+        return proximo("PATRIMONIO_ATIVO", "PAT");
+    }
+
+    @Transactional
     public String proximoAnimalSuinos() {
         return proximo("ANIMAL_SUINOS", "SR");
     }

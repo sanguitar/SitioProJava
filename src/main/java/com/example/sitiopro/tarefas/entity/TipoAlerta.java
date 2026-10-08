@@ -15,7 +15,8 @@ public enum TipoAlerta {
     CRIACAO_SUINOS_PROCEDIMENTO_SANITARIO_VENCIDO("Procedimento sanitário suíno vencido"),
     CRIACAO_PEIXES_QUALIDADE_AGUA("Qualidade da água fora dos limites"),
     CRIACAO_PEIXES_ACAO_SANITARIA_PENDENTE("Ação sanitária de peixes pendente"),
-    AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante");
+    AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante"),
+    MANUTENCAO_VENCIDA("Manutenção vencida");
 
     private final String rotulo;
 

@@ -48,6 +48,9 @@ import com.example.sitiopro.integracao.core.dto.IntegracaoFonteResumo;
 import com.example.sitiopro.integracao.core.dto.IntegracaoPainelResumo;
 import com.example.sitiopro.integracao.core.service.IntegracaoOrquestrador;
 import com.example.sitiopro.integracao.core.service.IntegracaoPainelService;
+import com.example.sitiopro.manutencao.dto.ManutencaoDashboardResumo;
+import com.example.sitiopro.manutencao.service.ManutencaoService;
+import com.example.sitiopro.manutencao.web.ManutencaoController;
 import com.example.sitiopro.estoque.api.EstoqueApiController;
 import com.example.sitiopro.estoque.controller.EstoqueController;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
@@ -76,6 +79,7 @@ import com.example.sitiopro.planejamento.controller.VeiculosPlanejamentoControll
 import com.example.sitiopro.producao.controller.ProducaoController;
 import com.example.sitiopro.producao.dto.ProducaoForm;
 import com.example.sitiopro.producao.service.ProducaoService;
+import com.example.sitiopro.propriedade.service.PropriedadeService;
 import com.example.sitiopro.tarefas.controller.AlertaController;
 import com.example.sitiopro.tarefas.controller.TarefaController;
 import com.example.sitiopro.tarefas.dto.AlertaDetalhe;
@@ -163,7 +167,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         PlanejamentoRedirectController.class,
         UsuarioController.class,
         SistemaSaudeController.class,
-        IntegracaoAdminController.class
+        IntegracaoAdminController.class,
+        ManutencaoController.class
 })
 @WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
@@ -230,6 +235,9 @@ class SitioProRoutesTests {
     @MockBean private IncubacaoAcompanhamentoService incubacaoAcompanhamentoService;
     @MockBean private OvoscopiaIncubacaoAvesService ovoscopiaIncubacaoAvesService;
     @MockBean private FichaOvoscopiaPdfService fichaOvoscopiaPdfService;
+    @MockBean private ManutencaoService manutencaoService;
+    @MockBean private com.example.sitiopro.manutencao.service.ManutencaoPreventivaService manutencaoPreventivaService;
+    @MockBean private PropriedadeService propriedadeService;
     @MockBean private Clock clock;
 
     @BeforeEach
@@ -238,6 +246,8 @@ class SitioProRoutesTests {
         when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         when(dashboardService.montarResumo()).thenReturn(vazio());
         when(categoriaService.listarTodas()).thenReturn(List.of());
+        when(manutencaoService.dashboard()).thenReturn(
+                new ManutencaoDashboardResumo(0, 0, 0, 0, BigDecimal.ZERO, List.of()));
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
@@ -593,6 +603,14 @@ class SitioProRoutesTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Dias padrão de incubação de galinha")));
     }
 
+    @Test
+    void manutencaoRenderizaDashboardEPatrimonioRedirecionaAoInventario() throws Exception {
+        mockMvc.perform(get("/sitio/manutencao")).andExpect(status().isOk())
+                .andExpect(view().name("manutencao/dashboard"));
+        mockMvc.perform(get("/sitio/patrimonio")).andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sitio/manutencao/ativos"));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "/novo", "/detalhe", "/historico"})
     void dadosFisicosAntigosApontamParaPropriedade(String sufixo) throws Exception {
@@ -625,12 +643,10 @@ class SitioProRoutesTests {
                 "/sitio/agua/manutencoes",
                 "/sitio/casa",
                 "/sitio/despensa",
-                "/sitio/manutencao",
                 "/sitio/ar-condicionado",
                 "/sitio/dedetizacao",
                 "/sitio/reformas",
                 "/sitio/deterioracoes",
-                "/sitio/patrimonio",
                 "/sitio/seguranca",
                 "/sitio/admin/centros-custo",
                 "/sitio/admin/unidades-medida"

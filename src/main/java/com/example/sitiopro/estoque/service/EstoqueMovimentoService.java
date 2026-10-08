@@ -130,6 +130,17 @@ public class EstoqueMovimentoService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public MovimentoEstoque registrarConsumoManutencao(MovimentoEstoqueRequest request,
+            Long manutencaoId, Long ativoId) {
+        if (manutencaoId == null || ativoId == null) {
+            throw new EstoqueOperacaoException("ORIGEM_MANUTENCAO_OBRIGATORIA",
+                    "Informe a manutenção e o ativo de origem.");
+        }
+        return registrarMovimentoInterno(copiarComoConsumo(request), false, "manutencao",
+                manutencaoId, "Manutenção do ativo #" + ativoId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public MovimentoEstoque registrarConsumoAgricultura(MovimentoEstoqueRequest request, Long cultivoId) {
         if (cultivoId == null) {
             throw new EstoqueOperacaoException("CULTIVO_OBRIGATORIO", "Informe o cultivo de origem.");

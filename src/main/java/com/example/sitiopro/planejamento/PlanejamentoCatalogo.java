@@ -318,12 +318,12 @@ public final class PlanejamentoCatalogo {
                 "Histórico de consumo e reposição"));
 
         adicionar(modulos, modulo("Propriedade", "Manutenção", "/sitio/manutencao", "manutencao",
-                "manutencao.css", "domain-manutencao", "fa-screwdriver-wrench", StatusPlanejamento.PLANEJADO,
-                "Gestão das manutenções prediais, chamados, prioridades, custos e responsáveis.",
-                "Listagem de demandas abertas",
-                "Cadastro de manutenção",
-                "Detalhe com orçamento, peças e fotos",
-                "Histórico de reparos"));
+                "manutencao.css", "domain-manutencao", "fa-screwdriver-wrench", StatusPlanejamento.FUNCIONAL,
+                "Gestão operacional de ativos, manutenções, consumos, custos e responsáveis.",
+                "Dashboard de manutenção",
+                "Registro de manutenção",
+                "Detalhe do ativo e consumos",
+                "Histórico de intervenções"));
 
         adicionar(modulos, modulo("Propriedade", "Ar-condicionado", "/sitio/ar-condicionado", "manutencao",
                 "manutencao.css", "domain-manutencao", "fa-wind", StatusPlanejamento.PLANEJADO,
@@ -358,7 +358,7 @@ public final class PlanejamentoCatalogo {
                 "Histórico de correções"));
 
         adicionar(modulos, modulo("Propriedade", "Patrimônio", "/sitio/patrimonio", "patrimonio",
-                "patrimonio.css", "domain-patrimonio", "fa-box-archive", StatusPlanejamento.PLANEJADO,
+                "patrimonio.css", "domain-patrimonio", "fa-box-archive", StatusPlanejamento.FUNCIONAL,
                 "Inventário de bens, equipamentos, localização, valor, estado e manutenção.",
                 "Listagem patrimonial",
                 "Cadastro de bem",
