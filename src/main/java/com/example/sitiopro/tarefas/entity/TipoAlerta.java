@@ -16,7 +16,9 @@ public enum TipoAlerta {
     CRIACAO_PEIXES_QUALIDADE_AGUA("Qualidade da água fora dos limites"),
     CRIACAO_PEIXES_ACAO_SANITARIA_PENDENTE("Ação sanitária de peixes pendente"),
     AGRICULTURA_OCORRENCIA_FITOSSANITARIA("Ocorrência fitossanitária relevante"),
-    MANUTENCAO_VENCIDA("Manutenção vencida");
+    MANUTENCAO_VENCIDA("Manutenção vencida"),
+    AGUA_NIVEL_BAIXO("Nível de água baixo"),
+    AGUA_INSPECAO_VENCIDA("Inspeção hídrica vencida");
 
     private final String rotulo;
 

@@ -14,6 +14,7 @@ import com.example.sitiopro.tarefas.dto.TarefaAutomaticaRequest;
 import com.example.sitiopro.tarefas.entity.*;
 import com.example.sitiopro.tarefas.service.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -48,6 +49,28 @@ public class ManutencaoService {
     @Transactional(readOnly = true)
     public List<AtivoPatrimonialResumo> listarAtivos() {
         return ativos.findAllByOrderByNomeAsc().stream().map(this::resumo).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AtivoPatrimonialResumo> listarAtivosHidricos() {
+        return listarAtivos().stream().filter(this::ativoHidrico).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RegistroManutencaoResumo> listarManutencoesHidricas() {
+        Set<Long> ids = listarAtivosHidricos().stream().map(AtivoPatrimonialResumo::id)
+                .collect(java.util.stream.Collectors.toSet());
+        if (ids.isEmpty()) return List.of();
+        return registros.findByAtivoIdInOrderByDataManutencaoDescIdDesc(ids, PageRequest.of(0, 10))
+                .stream().map(this::resumo).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long contarManutencoesHidricasVencidas() {
+        Set<Long> ids = listarAtivosHidricos().stream().map(AtivoPatrimonialResumo::id)
+                .collect(java.util.stream.Collectors.toSet());
+        return registros.findByProximaManutencaoConcluidaFalseAndProximaManutencaoBefore(LocalDateTime.now(clock))
+                .stream().filter(r -> ids.contains(r.getAtivo().getId())).count();
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +275,9 @@ public class ManutencaoService {
                 r.getTipo(), r.getDataManutencao(), r.getDescricao(), r.getResponsavel(), r.getHorimetro(), r.getQuilometragem(),
                 r.getCusto(), r.getProximaManutencao(), r.isProximaManutencaoConcluida(), r.getProximaManutencaoConcluidaEm(),
                 r.getObservacao(), consumos, r.getVersao(), r.getCriadoEm(), r.getCriadoPor());
+    }
+    private boolean ativoHidrico(AtivoPatrimonialResumo ativo) {
+        return ativo.tipo() == TipoAtivoPatrimonial.BOMBA || ativo.estruturaId() != null;
     }
     public static String referencia(Long ativoId) { return "ATIVO_PATRIMONIAL:" + ativoId; }
     public static String chaveTarefa(Long registroId) { return "MANUTENCAO:REGISTRO:" + registroId + ":PROXIMA"; }

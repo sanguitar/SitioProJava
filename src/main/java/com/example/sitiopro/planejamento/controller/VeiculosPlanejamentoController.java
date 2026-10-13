@@ -13,17 +13,10 @@ public class VeiculosPlanejamentoController {
 
     @GetMapping({
             "/frota/detalhe",
-            "/frota/historico",
-            "/abastecimentos",
-            "/abastecimentos/detalhe",
-            "/abastecimentos/historico"
+            "/frota/historico"
     })
     public String pagina(HttpServletRequest request, Model model) {
         return PlanejamentoView.renderizar(request, model);
     }
 
-    @GetMapping("/abastecimentos/novo")
-    public String novoAbastecimento() {
-        return "redirect:/sitio/abastecimento/novo";
-    }
 }

@@ -7,6 +7,9 @@ import com.example.sitiopro.criacao.peixes.service.PeixesOperacaoException;
 import com.example.sitiopro.estoque.service.EstoqueOperacaoException;
 import com.example.sitiopro.integracao.core.IntegracaoOperacaoException;
 import com.example.sitiopro.manutencao.service.ManutencaoOperacaoException;
+import com.example.sitiopro.agua.service.AguaOperacaoException;
+import com.example.sitiopro.frota.service.FrotaOperacaoException;
+import com.example.sitiopro.abastecimento.service.AbastecimentoOperacaoException;
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
 import com.example.sitiopro.tarefas.service.TarefaAlertaOperacaoException;
@@ -39,7 +42,10 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.dashboard.api",
         "com.example.sitiopro.propriedade.api",
         "com.example.sitiopro.agricultura.api",
-        "com.example.sitiopro.manutencao.api"
+        "com.example.sitiopro.manutencao.api",
+        "com.example.sitiopro.agua.api",
+        "com.example.sitiopro.frota.api",
+        "com.example.sitiopro.abastecimento.api"
 })
 public class ApiExceptionHandler {
 
@@ -99,6 +105,21 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ManutencaoOperacaoException.class)
     public ResponseEntity<ApiErrorResponse> manutencao(ManutencaoOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(AguaOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> agua(AguaOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(FrotaOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> frota(FrotaOperacaoException ex, HttpServletRequest request) {
+        return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(AbastecimentoOperacaoException.class)
+    public ResponseEntity<ApiErrorResponse> abastecimento(AbastecimentoOperacaoException ex, HttpServletRequest request) {
         return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
     }
 
@@ -196,6 +217,15 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/manutencao")) {
             return "manutencao";
+        }
+        if (path.startsWith("/api/v1/agua")) {
+            return "agua";
+        }
+        if (path.startsWith("/api/v1/frota")) {
+            return "frota";
+        }
+        if (path.startsWith("/api/v1/abastecimentos")) {
+            return "abastecimento";
         }
         return "api";
     }

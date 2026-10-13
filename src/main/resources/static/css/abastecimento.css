@@ -26,3 +26,14 @@
     display: flex;
     font-weight: 700;
 }
+.module-filterbar {
+    display: grid;
+    grid-template-columns: auto minmax(12rem, 24rem) auto;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 576px) {
+    .module-filterbar { grid-template-columns: 1fr; }
+}

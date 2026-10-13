@@ -378,13 +378,14 @@ public final class PlanejamentoCatalogo {
                 "Gestão dos veículos cadastrados, consulta FIPE e documentação operacional.",
                 links(
                         link("Listagem funcional", "/sitio/frota", "fa-list"),
-                        link("Novo veículo funcional", "/sitio/frota/novo", "fa-plus")
+                        link("Novo veículo funcional", "/sitio/frota/novo", "fa-plus"),
+                        link("Histórico de abastecimentos", "/sitio/abastecimentos", "fa-clock-rotate-left")
                 ),
                 List.of(
                         acao("detalhe", "Detalhe planejado", "/sitio/frota/detalhe",
-                                "Tela futura para consultar documento, FIPE, manutenção e custos do veículo."),
+                                "A listagem funcional abre o detalhe operacional de cada veículo."),
                         acao("historico", "Histórico planejado", "/sitio/frota/historico",
-                                "Tela futura para reunir abastecimentos, consultas FIPE e manutenções.")
+                                "O histórico funcional está disponível por veículo e em Abastecimentos.")
                 ),
                 "Detalhe operacional de cada veículo",
                 "Histórico de FIPE, abastecimentos e custos",
@@ -392,21 +393,21 @@ public final class PlanejamentoCatalogo {
                 "Resumo de custo por veículo"));
 
         adicionar(modulos, moduloComAcoes("Veículos", "Abastecimentos", "/sitio/abastecimentos", "abastecimento",
-                "abastecimento.css", "domain-abastecimento", "fa-gas-pump", StatusPlanejamento.EM_DESENVOLVIMENTO,
+                "abastecimento.css", "domain-abastecimento", "fa-gas-pump", StatusPlanejamento.FUNCIONAL,
                 "Registro e acompanhamento dos abastecimentos vinculados à frota.",
                 links(
-                        link("Novo abastecimento funcional", "/sitio/abastecimento/novo", "fa-plus"),
+                        link("Novo abastecimento funcional", "/sitio/abastecimentos/novo", "fa-plus"),
                         link("Frota funcional", "/sitio/frota", "fa-truck-pickup")
                 ),
                 List.of(
-                        acao("listagem", "Listagem planejada", "/sitio/abastecimentos",
-                                "Tela futura para consultar abastecimentos por veículo, período e local."),
+                        acao("listagem", "Listagem funcional", "/sitio/abastecimentos",
+                                "Consulta paginada por veículo com leituras, valores e local."),
                         acao("cadastro", "Cadastro funcional", "/sitio/abastecimentos/novo",
-                                "Atalho para o formulário funcional de novo abastecimento."),
-                        acao("detalhe", "Detalhe planejado", "/sitio/abastecimentos/detalhe",
-                                "Tela futura para revisar litros, valor, hodômetro e média."),
-                        acao("historico", "Histórico planejado", "/sitio/abastecimentos/historico",
-                                "Tela futura para analisar consumo e custos recorrentes.")
+                                "Registro idempotente com medidor validado e valores decimais."),
+                        acao("detalhe", "Detalhe funcional", "/sitio/abastecimentos/detalhe",
+                                "A listagem abre os detalhes de litros, valor, medidor e responsável."),
+                        acao("historico", "Histórico funcional", "/sitio/abastecimentos/historico",
+                                "Histórico paginado para análise de consumo e custos recorrentes.")
                 ),
                 "Listagem dos abastecimentos registrados",
                 "Detalhe de abastecimento com médias e custo",

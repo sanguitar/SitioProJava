@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/head :: commonHead('Configuração hídrica')}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/agua.css}">
+</head>
+<body>
+<aside th:replace="~{fragments/sidebar :: sidebar(${active})}"></aside>
+<main class="main-content domain-agua water-page">
+    <div th:replace="~{fragments/ui :: topbar('Configuração operacional', ${'Água / ' + recurso.nome})}"></div>
+    <header class="water-heading">
+        <div>
+            <small>MONITORAMENTO</small>
+            <h1 th:text="${recurso.nome}">Recurso</h1>
+            <p th:text="${recurso.capacidadeLitros != null ? 'Capacidade: ' + recurso.capacidadeLitros + ' L' : 'Capacidade não informada'}">Capacidade</p>
+        </div>
+    </header>
+    <form class="water-panel water-form"
+          th:action="@{/sitio/agua/recursos/{id}/configuracao(id=${recurso.id})}"
+          th:object="${configForm}" method="post">
+        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger"
+             th:each="e:${#fields.globalErrors()}" th:text="${e}"></div>
+        <input type="hidden" th:field="*{versao}">
+        <div class="water-form-grid">
+            <div>
+                <label for="nivel">Nível mínimo de alerta (L)</label>
+                <input id="nivel" class="form-control" type="number" min="0" step="0.001"
+                       th:field="*{nivelMinimoAlertaLitros}">
+                <small class="water-help">Em branco usa 20% da capacidade cadastrada.</small>
+                <div class="text-danger" th:errors="*{nivelMinimoAlertaLitros}"></div>
+            </div>
+            <div>
+                <label for="intervalo">Intervalo de inspeção (dias)</label>
+                <input id="intervalo" class="form-control" type="number" min="1" max="365"
+                       th:field="*{intervaloInspecaoDias}">
+                <div class="text-danger" th:errors="*{intervaloInspecaoDias}"></div>
+            </div>
+            <div class="wide">
+                <label for="proxima">Próxima inspeção</label>
+                <input id="proxima" class="form-control" type="datetime-local" th:field="*{proximaInspecao}">
+                <div class="text-danger" th:errors="*{proximaInspecao}"></div>
+            </div>
+        </div>
+        <div class="water-form-actions">
+            <a th:href="@{/sitio/agua/recursos/{id}(id=${recurso.id})}" class="btn btn-outline-dark">Cancelar</a>
+            <button class="btn btn-success" type="submit">Salvar configuração</button>
+        </div>
+    </form>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
+</body>
+</html>

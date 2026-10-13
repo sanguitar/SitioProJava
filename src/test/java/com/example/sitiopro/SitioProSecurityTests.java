@@ -139,6 +139,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -172,6 +173,8 @@ class SitioProSecurityTests {
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoService manutencaoService;
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoAlertasService manutencaoAlertasService;
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoPreventivaService manutencaoPreventivaService;
+    @MockBean private com.example.sitiopro.agua.service.AguaService aguaService;
+    @MockBean private com.example.sitiopro.agua.service.AguaAlertasService aguaAlertasService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
@@ -337,6 +340,19 @@ class SitioProSecurityTests {
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
+        when(abastecimentoService.resumoFrota()).thenReturn(List.of());
+        when(abastecimentoService.listar(org.mockito.ArgumentMatchers.nullable(Long.class), anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
+        when(veiculoService.criar(any())).thenReturn(new com.example.sitiopro.frota.dto.VeiculoResumo(
+                1L, "TRATOR", null, "3", null, null, null,
+                com.example.sitiopro.frota.model.TipoMedidorVeiculo.HORIMETRO, null, BigDecimal.ZERO,
+                "DISPONIVEL", null, null, "fa-truck", null, null, null, 0));
+        when(abastecimentoService.registrar(any(), any())).thenReturn(
+                new com.example.sitiopro.abastecimento.dto.AbastecimentoResumo(
+                        1L, 1L, "TRATOR", LocalDate.of(2026, 10, 8), BigDecimal.TEN,
+                        new BigDecimal("6.0000"), new BigDecimal("60.00"), BigDecimal.TEN,
+                        null, com.example.sitiopro.frota.model.TipoMedidorVeiculo.QUILOMETRAGEM,
+                        "Posto", 0, null, "operador"));
         when(usuarioService.listarTodos()).thenReturn(List.of());
         when(usuarioService.contarAtivos()).thenReturn(2L);
         when(usuarioService.contarAdministradoresAtivos()).thenReturn(1L);
@@ -411,6 +427,29 @@ class SitioProSecurityTests {
                 new com.example.sitiopro.manutencao.dto.ManutencaoDashboardResumo(
                         0, 0, 0, 0, BigDecimal.ZERO, List.of()));
         when(manutencaoService.listarAtivos()).thenReturn(List.of());
+        com.example.sitiopro.agua.dto.RecursoHidricoOperacionalResumo recursoAgua =
+                new com.example.sitiopro.agua.dto.RecursoHidricoOperacionalResumo(
+                        10L, "Caixa", com.example.sitiopro.propriedade.entity.TipoRecursoHidrico.CAIXA_DAGUA, true,
+                        new BigDecimal("1000"), new BigDecimal("500"), new BigDecimal("50"),
+                        new BigDecimal("200"), false, true, 7, null,
+                        LocalDateTime.now().plusDays(7), false, null, 0);
+        when(aguaService.dashboard()).thenReturn(new com.example.sitiopro.agua.dto.AguaDashboardResumo(
+                1, 1, 0, 0, 0, 0, List.of(recursoAgua), List.of(), List.of(), List.of()));
+        when(aguaService.listarRecursos()).thenReturn(List.of(recursoAgua));
+        when(aguaService.detalharRecurso(10L)).thenReturn(recursoAgua);
+        com.example.sitiopro.agua.dto.RecursoHidricoOperacaoConfigRequest configRecursoAgua =
+                new com.example.sitiopro.agua.dto.RecursoHidricoOperacaoConfigRequest();
+        configRecursoAgua.setIntervaloInspecaoDias(7);
+        configRecursoAgua.setProximaInspecao(LocalDateTime.now().plusDays(7));
+        configRecursoAgua.setVersao(0L);
+        when(aguaService.formularioConfiguracao(10L)).thenReturn(configRecursoAgua);
+        when(aguaService.configurar(eq(10L), any(), any())).thenReturn(recursoAgua);
+        com.example.sitiopro.agua.dto.OperacaoAguaResumo operacaoAgua =
+                new com.example.sitiopro.agua.dto.OperacaoAguaResumo(
+                        30L, com.example.sitiopro.agua.entity.TipoOperacaoAgua.MEDICAO_NIVEL,
+                        LocalDateTime.now(), 10L, "Caixa", null, null, new BigDecimal("500"),
+                        null, new BigDecimal("500"), null, null, null, 0, null, "operador");
+        when(aguaService.registrar(any(), any())).thenReturn(operacaoAgua);
         when(propriedadeService.listarEstruturaPropriedade(0, 100))
                 .thenReturn(new PaginaResponse<>(List.of(), 0, 100, 0, 0));
         com.example.sitiopro.manutencao.dto.AtivoPatrimonialResumo ativoPatrimonial =
@@ -622,11 +661,13 @@ class SitioProSecurityTests {
                         .param("id", "999")
                         .param("nome", "Trator")
                         .param("tipo", "3")
+                        .param("tipoMedidor", "HORIMETRO")
+                        .param("chaveIdempotencia", "frota-sec-1")
                         .param("situacao", "CAMPO_FORCADO")
                         .param("icone", "CAMPO_FORCADO"))
                 .andExpect(status().is3xxRedirection());
-        verify(veiculoService).salvar(argThat(veiculo -> veiculo.getId() == null
-                && "DISPONIVEL".equals(veiculo.getSituacao()) && veiculo.getIcone() == null));
+        verify(veiculoService).criar(argThat(request -> request.getNome().equals("Trator")
+                && request.getTipoMedidor() == com.example.sitiopro.frota.model.TipoMedidorVeiculo.HORIMETRO));
     }
 
     @Test
@@ -1581,6 +1622,74 @@ class SitioProSecurityTests {
         mockMvc.perform(post("/sitio/manutencao/leituras/ajuste").with(user("operador").roles("OPERADOR")).with(csrf()))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/sitio/manutencao/planos").with(user("operador").roles("OPERADOR")).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminEOperadorConsultamAguaMasConfiguracaoExigeAdmin() throws Exception {
+        mockMvc.perform(get("/sitio/agua").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/agua").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/sitio/agua/recursos/10/configuracao")
+                        .with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/sitio/agua/recursos/10/configuracao")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/v1/agua/recursos/10/configuracao")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"intervaloInspecaoDias\":7,\"proximaInspecao\":\"2026-10-20T08:00:00\",\"versao\":0}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void operadorRegistraAguaComCsrfENaoSemCsrf() throws Exception {
+        String json = "{\"recursoOrigemId\":10,\"tipo\":\"MEDICAO_NIVEL\"," +
+                "\"dataOperacao\":\"2026-10-08T08:00:00\",\"quantidadeLitros\":500," +
+                "\"chaveIdempotencia\":\"agua-sec-1\"}";
+        mockMvc.perform(post("/api/v1/agua/operacoes")
+                        .with(user("operador").roles("OPERADOR"))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/agua/operacoes")
+                        .with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void adminEOperadorConsultamFrotaMasSomenteAdminCadastraVeiculo() throws Exception {
+        mockMvc.perform(get("/sitio/frota").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/frota").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/sitio/frota/novo").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/frota").with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Trator\",\"tipo\":\"3\",\"tipoMedidor\":\"HORIMETRO\",\"chaveIdempotencia\":\"frota-sec-2\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void operadorRegistraAbastecimentoComCsrfENaoSemCsrf() throws Exception {
+        String json = "{\"veiculoId\":1,\"data\":\"2026-10-08\",\"litros\":10,\"precoPorLitro\":6,"
+                + "\"kmNoAto\":100,\"local\":\"Posto\",\"chaveIdempotencia\":\"ab-sec-1\"}";
+        mockMvc.perform(post("/api/v1/abastecimentos").with(user("operador").roles("OPERADOR"))
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/abastecimentos").with(user("operador").roles("OPERADOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/sitio/abastecimentos").with(user("operador").roles("OPERADOR")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void apiFipeLegadaNaoEhMaisExposta() throws Exception {
+        mockMvc.perform(get("/api/fipe/marcas?tipo=1").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isForbidden());
     }
 

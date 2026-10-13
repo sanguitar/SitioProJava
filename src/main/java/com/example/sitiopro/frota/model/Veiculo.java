@@ -3,14 +3,20 @@ package com.example.sitiopro.frota.model;
 import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.persistence.Version;
+import com.example.sitiopro.manutencao.entity.AtivoPatrimonial;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "veiculos")
@@ -20,14 +26,12 @@ public class Veiculo extends AuditableEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Nome é obrigatório")
     @Column(nullable = false, length = 100)
     private String nome;
 
     @Column(length = 20)
     private String placa;
 
-    @NotBlank(message = "Tipo é obrigatório")
     @Column(nullable = false, length = 30)
     private String tipo;
 
@@ -35,15 +39,34 @@ public class Veiculo extends AuditableEntity implements Serializable {
     private String modeloFipe;
     private Integer anoModelo;
 
-    @PositiveOrZero(message = "KM não pode ser negativa")
-    private Double kmAtual;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal kmAtual;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private TipoMedidorVeiculo tipoMedidor = TipoMedidorVeiculo.QUILOMETRAGEM;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal horimetroAtual;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ativo_patrimonial_id")
+    private AtivoPatrimonial ativoPatrimonial;
 
     @Column(nullable = false, length = 30)
     private String situacao = "DISPONIVEL";
 
-    private Double valorFipe;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal valorFipe;
     private String ultimaConsultaFipe;
     private String icone;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String chaveIdempotencia;
+
+    @Version
+    @Column(nullable = false)
+    private long versao;
 
     public Veiculo() {
     }
@@ -104,13 +127,20 @@ public class Veiculo extends AuditableEntity implements Serializable {
         this.anoModelo = anoModelo;
     }
 
-    public Double getKmAtual() {
+    public BigDecimal getKmAtual() {
         return kmAtual;
     }
 
-    public void setKmAtual(Double kmAtual) {
+    public void setKmAtual(BigDecimal kmAtual) {
         this.kmAtual = kmAtual;
     }
+
+    public TipoMedidorVeiculo getTipoMedidor() { return tipoMedidor; }
+    public void setTipoMedidor(TipoMedidorVeiculo tipoMedidor) { this.tipoMedidor = tipoMedidor; }
+    public BigDecimal getHorimetroAtual() { return horimetroAtual; }
+    public void setHorimetroAtual(BigDecimal horimetroAtual) { this.horimetroAtual = horimetroAtual; }
+    public AtivoPatrimonial getAtivoPatrimonial() { return ativoPatrimonial; }
+    public void setAtivoPatrimonial(AtivoPatrimonial ativoPatrimonial) { this.ativoPatrimonial = ativoPatrimonial; }
 
     public String getSituacao() {
         return situacao;
@@ -120,11 +150,11 @@ public class Veiculo extends AuditableEntity implements Serializable {
         this.situacao = situacao;
     }
 
-    public Double getValorFipe() {
+    public BigDecimal getValorFipe() {
         return valorFipe;
     }
 
-    public void setValorFipe(Double valorFipe) {
+    public void setValorFipe(BigDecimal valorFipe) {
         this.valorFipe = valorFipe;
     }
 
@@ -143,6 +173,10 @@ public class Veiculo extends AuditableEntity implements Serializable {
     public void setIcone(String icone) {
         this.icone = icone;
     }
+
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
+    public long getVersao() { return versao; }
 
     @Override
     public boolean equals(Object o) {

@@ -19,6 +19,14 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
 
     List<Veiculo> findByTipo(String tipo);
 
+    List<Veiculo> findAllByOrderByNomeAsc();
+
+    Optional<Veiculo> findByChaveIdempotencia(String chaveIdempotencia);
+
+    boolean existsByAtivoPatrimonialIdAndIdNot(Long ativoPatrimonialId, Long id);
+
+    boolean existsByAtivoPatrimonialId(Long ativoPatrimonialId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Veiculo v where v.id = :id")
     Optional<Veiculo> buscarParaAtualizacao(@Param("id") Long id);

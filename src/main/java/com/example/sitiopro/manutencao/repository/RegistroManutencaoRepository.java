@@ -3,6 +3,7 @@ package com.example.sitiopro.manutencao.repository;
 import com.example.sitiopro.manutencao.entity.RegistroManutencao;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +13,8 @@ public interface RegistroManutencaoRepository extends JpaRepository<RegistroManu
     Optional<RegistroManutencao> findByChaveIdempotencia(String chave);
     List<RegistroManutencao> findByAtivoIdOrderByDataManutencaoDescIdDesc(Long ativoId);
     List<RegistroManutencao> findTop10ByOrderByDataManutencaoDescIdDesc();
+    List<RegistroManutencao> findByAtivoIdInOrderByDataManutencaoDescIdDesc(
+            Collection<Long> ativoIds, Pageable pageable);
     List<RegistroManutencao> findByProximaManutencaoConcluidaFalseAndProximaManutencaoBefore(LocalDateTime data);
     long countByProximaManutencaoConcluidaFalseAndProximaManutencaoBefore(LocalDateTime data);
     long countByProximaManutencaoConcluidaFalseAndProximaManutencaoBetween(LocalDateTime inicio, LocalDateTime fim);

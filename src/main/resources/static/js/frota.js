@@ -1,8 +1,8 @@
-const API_URL = "/api/fipe";
+const FIPE_API = "/api/v1/frota/fipe";
 
 document.addEventListener("DOMContentLoaded", () => {
     configurarFormularioFipe();
-    configurarCardsFrota();
+    configurarMedidor();
 });
 
 function configurarFormularioFipe() {
@@ -10,80 +10,62 @@ function configurarFormularioFipe() {
     const marca = document.getElementById("marca");
     const modelo = document.getElementById("modelo");
     const ano = document.getElementById("ano");
+    if (!tipo || !marca || !modelo || !ano) return;
 
-    if (!tipo || !marca || !modelo || !ano) {
-        return;
-    }
-
-    tipo.addEventListener("change", async function () {
-        resetCampos(["marca", "modelo", "ano"]);
-        if (!this.value) {
-            return;
-        }
-
-        const data = await fetch(`${API_URL}/marcas?tipo=${this.value}`).then((response) => response.json());
-        popularSelect("marca", data);
+    tipo.addEventListener("change", async () => {
+        resetSelects([marca, modelo, ano]);
+        if (!tipo.value) return;
+        popularSelect(marca, await consultar(`${FIPE_API}/marcas?tipo=${tipo.value}`));
     });
-
-    marca.addEventListener("change", async function () {
-        resetCampos(["modelo", "ano"]);
-        const data = await fetch(`${API_URL}/modelos?tipo=${tipo.value}&marca=${this.value}`).then((response) => response.json());
-        popularSelect("modelo", data);
+    marca.addEventListener("change", async () => {
+        resetSelects([modelo, ano]);
+        document.getElementById("marcaFipe").value = textoSelecionado(marca);
+        if (!marca.value) return;
+        popularSelect(modelo, await consultar(`${FIPE_API}/modelos?tipo=${tipo.value}&marca=${marca.value}`));
     });
-
-    modelo.addEventListener("change", async function () {
-        resetCampos(["ano"]);
-        const data = await fetch(`${API_URL}/anos?tipo=${tipo.value}&marca=${marca.value}&modelo=${this.value}`).then((response) => response.json());
-
-        ano.innerHTML = '<option value="">Selecione o Ano...</option>';
-        data.forEach((veiculo) => {
-            ano.insertAdjacentHTML("beforeend", `<option value="${veiculo.id}">${veiculo.ano_modelo} - ${veiculo.combustivel}</option>`);
-        });
-        ano.disabled = false;
+    modelo.addEventListener("change", async () => {
+        resetSelects([ano]);
+        document.getElementById("modeloFipe").value = textoSelecionado(modelo);
+        if (!modelo.value) return;
+        const dados = await consultar(`${FIPE_API}/anos?tipo=${tipo.value}&marca=${marca.value}&modelo=${modelo.value}`);
+        popularSelect(ano, dados.map(item => ({id: item.id, nome: `${item.anoModelo} - ${item.combustivel || ""}`})));
     });
-
-    ano.addEventListener("change", async function () {
-        if (!this.value) {
-            return;
-        }
-
-        const data = await fetch(`${API_URL}/detalhes/${this.value}`).then((response) => response.json());
-        document.getElementById("valorFipe").value = data.valor;
-        document.getElementById("historicoFipeJson").value = data.historicoJson || JSON.stringify(data.historico);
-
-        const modeloSelecionado = modelo.options[modelo.selectedIndex];
-        document.getElementById("nomeSugerido").value = modeloSelecionado ? modeloSelecionado.text : "";
-        document.getElementById("secaoFinal").classList.remove("d-none");
+    ano.addEventListener("change", async () => {
+        if (!ano.value) return;
+        const detalhe = await consultar(`${FIPE_API}/detalhes/${ano.value}`);
+        document.getElementById("fipeReferenciaId").value = ano.value;
+        document.getElementById("anoModelo").value = detalhe.anoModelo ? String(detalhe.anoModelo).substring(0, 4) : "";
     });
 }
 
-function configurarCardsFrota() {
-    document.querySelectorAll("[data-veiculo-card]").forEach((card) => {
-        card.addEventListener("click", () => abrirAnalise(card));
-    });
+function configurarMedidor() {
+    const tipo = document.getElementById("tipoMedidor");
+    if (!tipo) return;
+    const atualizar = () => {
+        const horimetro = tipo.value === "HORIMETRO";
+        document.querySelector("[data-km-group]")?.classList.toggle("d-none", horimetro);
+        document.querySelector("[data-horimetro-group]")?.classList.toggle("d-none", !horimetro);
+    };
+    tipo.addEventListener("change", atualizar);
+    atualizar();
 }
 
-function abrirAnalise(card) {
-    const historico = card.dataset.historico;
-    if (historico) {
-        console.info("Histórico FIPE disponível para", card.dataset.nome);
-    }
+async function consultar(url) {
+    const response = await fetch(url, {headers: {"Accept": "application/json"}});
+    if (!response.ok) throw new Error("Consulta FIPE indisponível.");
+    return response.json();
 }
 
-function popularSelect(id, lista) {
-    const element = document.getElementById(id);
-    element.innerHTML = '<option value="">Selecione...</option>';
-    lista.forEach((item) => {
-        element.insertAdjacentHTML("beforeend", `<option value="${item.id}">${item.nome}</option>`);
-    });
+function popularSelect(element, itens) {
+    element.replaceChildren(new Option("Selecione", ""));
+    itens.forEach(item => element.appendChild(new Option(item.nome || "", item.id || "")));
     element.disabled = false;
 }
 
-function resetCampos(ids) {
-    ids.forEach((id) => {
-        const element = document.getElementById(id);
-        element.innerHTML = "";
-        element.disabled = true;
-    });
-    document.getElementById("secaoFinal")?.classList.add("d-none");
+function resetSelects(elements) {
+    elements.forEach(element => { element.replaceChildren(new Option("Selecione", "")); element.disabled = true; });
+}
+
+function textoSelecionado(element) {
+    return element.selectedIndex >= 0 ? element.options[element.selectedIndex].text : "";
 }

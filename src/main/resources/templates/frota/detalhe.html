@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Veículo')}"></th:block><link rel="stylesheet" th:href="@{/css/frota.css}"></head>
+<body><aside th:replace="~{fragments/sidebar :: sidebar('frota')}"></aside><main class="main-content main-content-wide" th:with="v=${resumo.veiculo}">
+    <div th:replace="~{fragments/ui :: topbar(${v.nome}, 'Frota')}"></div>
+    <div class="page-heading"><div><a th:href="@{/sitio/frota}" class="text-muted">Frota</a><h1 th:text="${v.nome}"></h1></div><div class="d-flex gap-2"><a class="btn btn-outline-secondary" th:href="@{/sitio/frota/{id}/editar(id=${v.id})}">Editar</a><a class="btn btn-success" th:href="@{/sitio/abastecimentos/novo(veiculoId=${v.id})}">Abastecer</a></div></div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3"><div class="summary-card"><small>Leitura atual</small><strong><span th:text="${v.leituraAtual != null ? #numbers.formatDecimal(v.leituraAtual,1,2) : '—'}"></span> <span th:text="${v.tipoMedidor.unidade}"></span></strong></div></div>
+        <div class="col-6 col-lg-3"><div class="summary-card"><small>Litros</small><strong th:text="${#numbers.formatDecimal(resumo.litros,1,3)}">0</strong></div></div>
+        <div class="col-6 col-lg-3"><div class="summary-card"><small>Custo acumulado</small><strong th:text="${'R$ ' + #numbers.formatDecimal(resumo.custoTotal,1,'POINT',2,'COMMA')}"></strong></div></div>
+        <div class="col-6 col-lg-3"><div class="summary-card"><small>Consumo médio</small><strong><span th:text="${resumo.consumoMedio != null ? #numbers.formatDecimal(resumo.consumoMedio,1,2) : '—'}"></span> <span th:text="${resumo.unidadeConsumo}"></span></strong></div></div>
+    </div>
+    <section class="module-section"><h2 class="h5">Últimos abastecimentos</h2><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Data</th><th>Litros</th><th>Leitura</th><th>Total</th><th></th></tr></thead><tbody><tr th:each="a : ${historico.conteudo}"><td th:text="${#temporals.format(a.data,'dd/MM/yyyy')}"></td><td th:text="${#numbers.formatDecimal(a.litros,1,3)}"></td><td th:text="${a.leitura != null ? #numbers.formatDecimal(a.leitura,1,2) + ' ' + a.tipoMedidor.unidade : '—'}"></td><td th:text="${'R$ ' + #numbers.formatDecimal(a.valorTotal,1,'POINT',2,'COMMA')}"></td><td><a th:href="@{/sitio/abastecimentos/{id}(id=${a.id})}" aria-label="Abrir abastecimento"><i class="fa-solid fa-arrow-right"></i></a></td></tr><tr th:if="${#lists.isEmpty(historico.conteudo)}"><td colspan="5">Nenhum abastecimento registrado.</td></tr></tbody></table></div></section>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main><th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block></body></html>

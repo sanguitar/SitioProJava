@@ -12,9 +12,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class AguaPlanejamentoController {
 
     @GetMapping({
-            "",
-            "/{modulo}",
-            "/{modulo}/{acao}"
+            "/novo",
+            "/detalhe",
+            "/historico",
+            "/reservatorios/novo",
+            "/reservatorios/detalhe",
+            "/reservatorios/historico",
+            "/bombas/novo",
+            "/bombas/detalhe",
+            "/bombas/historico",
+            "/irrigacao",
+            "/irrigacao/novo",
+            "/irrigacao/detalhe",
+            "/irrigacao/historico",
+            "/registros/detalhe",
+            "/registros/historico",
+            "/manutencoes/novo",
+            "/manutencoes/detalhe",
+            "/manutencoes/historico"
     })
     public String pagina(HttpServletRequest request, Model model) {
         return PlanejamentoView.renderizar(request, model);

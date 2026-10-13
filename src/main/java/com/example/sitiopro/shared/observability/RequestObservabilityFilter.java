@@ -132,10 +132,11 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
                 || path.startsWith("/logout")) {
             return "usuario";
         }
-        if (path.startsWith("/sitio/frota")) {
+        if (path.startsWith("/sitio/frota") || path.startsWith("/api/v1/frota")) {
             return "frota";
         }
-        if (path.startsWith("/sitio/abastecimento") || path.startsWith("/sitio/abastecimentos")) {
+        if (path.startsWith("/sitio/abastecimento") || path.startsWith("/sitio/abastecimentos")
+                || path.startsWith("/api/v1/abastecimentos")) {
             return "abastecimento";
         }
         if (path.startsWith("/sitio/configuracoes")) {

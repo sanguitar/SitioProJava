@@ -1,81 +1,53 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Minha Frota')}"></th:block>
+    <th:block th:replace="~{fragments/head :: commonHead('Sítio Guaratinguetá - Frota')}"></th:block>
     <link rel="stylesheet" th:href="@{/css/frota.css}">
 </head>
 <body>
-    <aside th:replace="~{fragments/sidebar :: sidebar('frota')}"></aside>
-
-    <main class="main-content main-content-wide">
-        <div th:replace="~{fragments/ui :: topbar('Frota do Sítio', 'Veículos')}"></div>
-        <nav aria-label="breadcrumb" class="module-breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a th:href="@{/sitio/painel}">
-                        <i class="fa-solid fa-house me-1"></i> Início
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Frota</li>
-            </ol>
-        </nav>
-
-        <div class="page-heading">
-            <h1><i class="fa-solid fa-truck-pickup text-agro me-2"></i>Frota do Sítio</h1>
-            <a th:href="@{/sitio/frota/novo}" class="btn btn-success px-4">
-                <i class="fa-solid fa-plus me-2"></i>Novo Veículo
-            </a>
+<aside th:replace="~{fragments/sidebar :: sidebar('frota')}"></aside>
+<main class="main-content main-content-wide">
+    <div th:replace="~{fragments/ui :: topbar('Frota do Sítio', 'Veículos')}"></div>
+    <nav aria-label="breadcrumb" class="module-breadcrumb"><ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a th:href="@{/sitio/painel}">Início</a></li>
+        <li class="breadcrumb-item active">Frota</li>
+    </ol></nav>
+    <div class="page-heading">
+        <h1><i class="fa-solid fa-truck-pickup text-agro me-2"></i>Frota do Sítio</h1>
+        <div class="d-flex gap-2">
+            <a th:href="@{/sitio/abastecimentos}" class="btn btn-outline-secondary"><i class="fa-solid fa-clock-rotate-left me-2"></i>Histórico</a>
+            <a th:href="@{/sitio/frota/novo}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>Novo veículo</a>
         </div>
-
-        <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
-
-        <div class="empty-state-card frota-empty" th:if="${#lists.isEmpty(veiculos)}">
-            <i class="fa-solid fa-truck-pickup"></i>
-            <div>
-                <strong>Nenhum veículo cadastrado</strong>
-                <p>Os veículos aparecerão aqui após o primeiro cadastro funcional da frota.</p>
-            </div>
-        </div>
-
-        <div class="row g-4" th:if="${!#lists.isEmpty(veiculos)}">
-            <div class="col-md-4" th:each="v : ${veiculos}">
-                <div class="card-veiculo p-4"
-                     data-veiculo-card
-                     th:data-id="${v.id}"
-                     th:data-nome="${v.nome}"
-                     th:data-historico="${v.ultimaConsultaFipe}">
-
-                    <div class="d-flex justify-content-between mb-3">
-                        <div class="icon-box"><i th:class="'fa-solid ' + ${v.icone}"></i></div>
-                        <span class="badge-status status-funcional" th:text="${v.situacao}">Ativo</span>
-                    </div>
-
-                    <h4 class="fw-bold mb-1" th:text="${v.nome}">Palio Attractive</h4>
-                    <p class="text-muted small mb-0">
-                        <i class="fa-solid fa-barcode me-1"></i>
-                        <span th:text="${v.placa}">ABC-1234</span>
-                    </p>
-
-                    <div class="row mt-4 border-top pt-3">
-                        <div class="col-6 border-end text-center">
-                            <small class="text-muted d-block small">KM ATUAL</small>
-                            <strong class="fs-5" th:text="${v.kmAtual}">0.0</strong>
-                        </div>
-                        <div class="col-6 ps-3 text-center">
-                            <small class="text-muted d-block small">VALOR FIPE</small>
-                            <strong class="text-success fs-5"
-                                    th:text="${v.valorFipe != null ? 'R$ ' + #numbers.formatDecimal(v.valorFipe, 1, 'POINT', 2, 'COMMA') : 'R$ 0,00'}">
-                            </strong>
-                        </div>
-                    </div>
+    </div>
+    <div class="alert alert-success" th:if="${mensagem}" th:text="${mensagem}"></div>
+    <div class="empty-state-card frota-empty" th:if="${#lists.isEmpty(veiculos)}">
+        <i class="fa-solid fa-truck-pickup"></i><div><strong>Nenhum veículo cadastrado</strong><p>Cadastre o primeiro veículo para iniciar o controle operacional.</p></div>
+    </div>
+    <div class="row g-3" th:if="${!#lists.isEmpty(veiculos)}">
+        <div class="col-12 col-md-6 col-xl-4" th:each="item : ${veiculos}" th:with="v=${item.veiculo}">
+            <article class="card-veiculo p-4 h-100">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="icon-box"><i th:class="'fa-solid ' + ${v.icone}"></i></div>
+                    <span class="badge-status status-funcional" th:text="${v.situacao}">DISPONÍVEL</span>
                 </div>
-            </div>
+                <h2 class="h5 fw-bold mb-1" th:text="${v.nome}">Veículo</h2>
+                <p class="text-muted small mb-3" th:text="${v.placa != null ? v.placa : 'Sem placa informada'}"></p>
+                <dl class="frota-metricas mb-3">
+                    <div><dt th:text="${v.tipoMedidor.rotulo}">Leitura</dt><dd><span th:text="${v.leituraAtual != null ? #numbers.formatDecimal(v.leituraAtual,1,2) : '—'}"></span> <small th:text="${v.tipoMedidor.unidade}"></small></dd></div>
+                    <div><dt>Abastecimentos</dt><dd th:text="${item.abastecimentos}">0</dd></div>
+                    <div><dt>Custo</dt><dd th:text="${'R$ ' + #numbers.formatDecimal(item.custoTotal,1,'POINT',2,'COMMA')}">R$ 0,00</dd></div>
+                    <div><dt>Consumo médio</dt><dd><span th:text="${item.consumoMedio != null ? #numbers.formatDecimal(item.consumoMedio,1,2) : '—'}"></span> <small th:text="${item.unidadeConsumo}"></small></dd></div>
+                </dl>
+                <p class="small text-muted" th:if="${v.ativoPatrimonialCodigo != null}"><i class="fa-solid fa-screwdriver-wrench me-1"></i><span th:text="${v.ativoPatrimonialCodigo + ' · ' + v.ativoPatrimonialNome}"></span></p>
+                <div class="d-flex gap-2 mt-auto">
+                    <a class="btn btn-outline-secondary flex-fill" th:href="@{/sitio/frota/{id}(id=${v.id})}">Detalhes</a>
+                    <a class="btn btn-success flex-fill" th:href="@{/sitio/abastecimentos/novo(veiculoId=${v.id})}"><i class="fa-solid fa-gas-pump me-1"></i>Abastecer</a>
+                </div>
+            </article>
         </div>
-
-        <div th:replace="~{fragments/ui :: appFooter}"></div>
-    </main>
-
-    <th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
-    <script th:src="@{/js/frota.js}"></script>
+    </div>
+    <div th:replace="~{fragments/ui :: appFooter}"></div>
+</main>
+<th:block th:replace="~{fragments/scripts :: commonScripts}"></th:block>
 </body>
 </html>

@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "fipe_cache")
@@ -17,7 +18,8 @@ public class FipeCache implements Serializable {
     private String marca;
     private String modelo;
     private String anoModelo;
-    private Double valor;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal valor;
 
     @Column(columnDefinition = "nvarchar(max)")
     private String historicoJson;
@@ -62,11 +64,11 @@ public class FipeCache implements Serializable {
         this.anoModelo = anoModelo;
     }
 
-    public Double getValor() {
+    public BigDecimal getValor() {
         return valor;
     }
 
-    public void setValor(Double valor) {
+    public void setValor(BigDecimal valor) {
         this.valor = valor;
     }
 

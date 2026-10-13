@@ -12,11 +12,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.persistence.Column;
+import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -29,25 +28,33 @@ public class Abastecimento extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "veiculo_id", nullable = false)
-    @NotNull(message = "Veículo é obrigatório")
     private Veiculo veiculo;
 
-    @NotNull(message = "Data é obrigatória")
     private LocalDate data;
 
-    @Positive(message = "Quantidade de litros deve ser positiva")
-    private Double litros;
+    @Column(precision = 19, scale = 3)
+    private BigDecimal litros;
 
-    @Positive(message = "Preço deve ser positivo")
-    private Double precoPorLitro;
+    @Column(precision = 19, scale = 4)
+    private BigDecimal precoPorLitro;
 
-    private Double valorTotal;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal valorTotal;
 
-    @PositiveOrZero(message = "KM não pode ser negativa")
-    private Double kmNoAto;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal kmNoAto;
 
-    @NotBlank(message = "Local é obrigatório")
+    @Column(precision = 19, scale = 2)
+    private BigDecimal horimetroNoAto;
+
     private String local;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String chaveIdempotencia;
+
+    @Version
+    @Column(nullable = false)
+    private long versao;
 
     public Abastecimento() {
     }
@@ -76,29 +83,32 @@ public class Abastecimento extends AuditableEntity {
         this.data = data;
     }
 
-    public Double getLitros() {
+    public BigDecimal getLitros() {
         return litros;
     }
 
-    public void setLitros(Double litros) {
+    public void setLitros(BigDecimal litros) {
         this.litros = litros;
     }
 
-    public Double getPrecoPorLitro() {
+    public BigDecimal getPrecoPorLitro() {
         return precoPorLitro;
     }
 
-    public void setPrecoPorLitro(Double precoPorLitro) {
+    public void setPrecoPorLitro(BigDecimal precoPorLitro) {
         this.precoPorLitro = precoPorLitro;
     }
 
-    public Double getKmNoAto() {
+    public BigDecimal getKmNoAto() {
         return kmNoAto;
     }
 
-    public void setKmNoAto(Double kmNoAto) {
+    public void setKmNoAto(BigDecimal kmNoAto) {
         this.kmNoAto = kmNoAto;
     }
+
+    public BigDecimal getHorimetroNoAto() { return horimetroNoAto; }
+    public void setHorimetroNoAto(BigDecimal horimetroNoAto) { this.horimetroNoAto = horimetroNoAto; }
 
     public String getLocal() {
         return local;
@@ -108,15 +118,20 @@ public class Abastecimento extends AuditableEntity {
         this.local = local;
     }
 
-    public Double getValorTotal() {
+    public BigDecimal getValorTotal() {
         return valorTotal;
     }
+
+    public void setValorTotal(BigDecimal valorTotal) { this.valorTotal = valorTotal; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
+    public long getVersao() { return versao; }
 
     @PrePersist
     @PreUpdate
     public void calcularTotal() {
         if (litros != null && precoPorLitro != null) {
-            valorTotal = litros * precoPorLitro;
+            valorTotal = litros.multiply(precoPorLitro).setScale(2, java.math.RoundingMode.HALF_UP);
         }
     }
 }

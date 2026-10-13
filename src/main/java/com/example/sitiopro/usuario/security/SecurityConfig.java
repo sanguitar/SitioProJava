@@ -130,6 +130,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/manutencao/registros",
                                 "/api/v1/manutencao/registros/*/concluir-proxima",
                                 "/api/v1/manutencao/leituras").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agua", "/api/v1/agua/**")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/agua/operacoes")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/agua/recursos/*/configuracao").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/frota", "/api/v1/frota/**",
+                                "/api/v1/abastecimentos", "/api/v1/abastecimentos/**")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/frota").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/frota/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/abastecimentos")
+                                .hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/sitio/agricultura/ocorrencias/*/editar")
                                 .hasAnyRole("ADMIN", "OPERADOR")
@@ -163,6 +175,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/sitio/manutencao/registros",
                                 "/sitio/manutencao/registros/*/concluir-proxima",
                                 "/sitio/manutencao/leituras").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.GET, "/sitio/agua/recursos/*/configuracao").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/agua/recursos/*/configuracao").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/agua", "/sitio/agua/**")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/sitio/agua/registros")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.GET, "/sitio/frota/novo", "/sitio/frota/*/editar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sitio/frota/salvar", "/sitio/frota/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/sitio/frota", "/sitio/frota/**",
+                                "/sitio/abastecimento/**", "/sitio/abastecimentos", "/sitio/abastecimentos/**")
+                                .hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/sitio/abastecimento/salvar", "/sitio/abastecimentos")
+                                .hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/administracao/**", "/configuracoes/roadmap").hasRole("ADMIN")
                         .requestMatchers("/sitio/admin", "/sitio/admin/**", "/sitio/configuracoes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/sitio/compras/fornecedores/*").hasRole("ADMIN")
@@ -203,7 +228,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/sitio/criacoes/peixes/**").authenticated()
                         .requestMatchers("/gestao/**", "/criacoes/**", "/agricultura/**", "/agua/**",
                                 "/propriedade/**", "/ola", "/saudacao").authenticated()
-                        .requestMatchers("/sitio/**", "/api/fipe/**").authenticated()
+                        .requestMatchers("/sitio/**").authenticated()
                         .anyRequest().denyAll())
                 .formLogin(form -> form
                         .loginPage("/login")

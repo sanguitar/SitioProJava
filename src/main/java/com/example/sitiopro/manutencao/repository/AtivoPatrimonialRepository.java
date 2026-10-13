@@ -11,6 +11,7 @@ public interface AtivoPatrimonialRepository extends JpaRepository<AtivoPatrimoni
     List<AtivoPatrimonial> findAllByOrderByNomeAsc();
     long countByStatusIn(Collection<StatusAtivoPatrimonial> status);
     long countByStatus(StatusAtivoPatrimonial status);
+    List<AtivoPatrimonial> findByStatusInOrderByNomeAsc(Collection<StatusAtivoPatrimonial> status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from AtivoPatrimonial a where a.id=:id")
     Optional<AtivoPatrimonial> buscarParaAtualizacao(@Param("id") Long id);

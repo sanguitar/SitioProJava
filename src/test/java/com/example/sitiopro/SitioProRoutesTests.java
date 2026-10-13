@@ -51,6 +51,8 @@ import com.example.sitiopro.integracao.core.service.IntegracaoPainelService;
 import com.example.sitiopro.manutencao.dto.ManutencaoDashboardResumo;
 import com.example.sitiopro.manutencao.service.ManutencaoService;
 import com.example.sitiopro.manutencao.web.ManutencaoController;
+import com.example.sitiopro.agua.web.AguaController;
+import com.example.sitiopro.agua.service.AguaService;
 import com.example.sitiopro.estoque.api.EstoqueApiController;
 import com.example.sitiopro.estoque.controller.EstoqueController;
 import com.example.sitiopro.estoque.dto.EstoqueDashboardResumo;
@@ -168,7 +170,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         UsuarioController.class,
         SistemaSaudeController.class,
         IntegracaoAdminController.class,
-        ManutencaoController.class
+        ManutencaoController.class,
+        AguaController.class
 })
 @WithMockUser(roles = "ADMIN")
 class SitioProRoutesTests {
@@ -236,6 +239,7 @@ class SitioProRoutesTests {
     @MockBean private OvoscopiaIncubacaoAvesService ovoscopiaIncubacaoAvesService;
     @MockBean private FichaOvoscopiaPdfService fichaOvoscopiaPdfService;
     @MockBean private ManutencaoService manutencaoService;
+    @MockBean private AguaService aguaService;
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoPreventivaService manutencaoPreventivaService;
     @MockBean private PropriedadeService propriedadeService;
     @MockBean private Clock clock;
@@ -248,9 +252,17 @@ class SitioProRoutesTests {
         when(categoriaService.listarTodas()).thenReturn(List.of());
         when(manutencaoService.dashboard()).thenReturn(
                 new ManutencaoDashboardResumo(0, 0, 0, 0, BigDecimal.ZERO, List.of()));
+        when(aguaService.dashboard()).thenReturn(new com.example.sitiopro.agua.dto.AguaDashboardResumo(
+                0, 0, 0, 0, 0, 0, List.of(), List.of(), List.of(), List.of()));
+        when(aguaService.listarRecursos()).thenReturn(List.of());
+        when(aguaService.listarOperacoes(anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 30, 0, 0));
         when(categoriaService.nova()).thenReturn(new Categoria());
         when(producaoService.novoFormulario()).thenReturn(new ProducaoForm());
         when(veiculoService.listarTodos()).thenReturn(List.of());
+        when(abastecimentoService.resumoFrota()).thenReturn(List.of());
+        when(abastecimentoService.listar(org.mockito.ArgumentMatchers.nullable(Long.class), anyInt(), anyInt()))
+                .thenReturn(new PaginaResponse<>(List.of(), 0, 20, 0, 0));
         when(usuarioService.listarTodos()).thenReturn(List.of());
         when(estoqueMovimentoService.montarResumo()).thenReturn(new EstoqueDashboardResumo(
                 0, 0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of()));
@@ -324,6 +336,10 @@ class SitioProRoutesTests {
             "/sitio/frota",
             "/sitio/frota/novo",
             "/sitio/abastecimento/novo",
+            "/sitio/abastecimentos",
+            "/sitio/abastecimentos/novo",
+            "/sitio/abastecimentos/detalhe",
+            "/sitio/abastecimentos/historico",
             "/sitio/admin/usuarios",
             "/sitio/admin/usuarios/novo",
             "/sitio/estoque",
@@ -658,9 +674,6 @@ class SitioProRoutesTests {
         return Stream.concat(fluxosPadrao, Stream.of(
                 "/sitio/frota/detalhe",
                 "/sitio/frota/historico",
-                "/sitio/abastecimentos",
-                "/sitio/abastecimentos/detalhe",
-                "/sitio/abastecimentos/historico",
                 "/sitio/admin/roadmap"
         ));
     }
@@ -691,8 +704,7 @@ class SitioProRoutesTests {
             "/propriedade/seguranca-cameras",
             "/administracao/usuarios",
             "/configuracoes/roadmap",
-            "/sitio/abastecimento",
-            "/sitio/abastecimentos/novo"
+            "/sitio/abastecimento"
     })
     void rotasAntigasOuAliasesRedirecionam(String rota) throws Exception {
         mockMvc.perform(get(rota))

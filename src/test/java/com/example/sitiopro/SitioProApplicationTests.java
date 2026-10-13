@@ -30,6 +30,7 @@ import com.example.sitiopro.integracao.clima.repository.PrevisaoClimaticaReposit
 import com.example.sitiopro.integracao.core.repository.IntegracaoEstadoRepository;
 import com.example.sitiopro.integracao.core.repository.IntegracaoExecucaoRepository;
 import com.example.sitiopro.integracao.embrapa.agrofit.repository.AgrofitCulturaRepository;
+import com.example.sitiopro.manutencao.repository.AtivoPatrimonialRepository;
 import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.producao.repository.ProducaoRepository;
 import com.example.sitiopro.propriedade.repository.PerimetroSpatialRepository;
@@ -77,6 +78,9 @@ class SitioProApplicationTests {
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoService manutencaoService;
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoAlertasService manutencaoAlertasService;
     @MockBean private com.example.sitiopro.manutencao.service.ManutencaoPreventivaService manutencaoPreventivaService;
+    @MockBean private AtivoPatrimonialRepository ativoPatrimonialRepository;
+    @MockBean private com.example.sitiopro.agua.service.AguaService aguaService;
+    @MockBean private com.example.sitiopro.agua.service.AguaAlertasService aguaAlertasService;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
     @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;
