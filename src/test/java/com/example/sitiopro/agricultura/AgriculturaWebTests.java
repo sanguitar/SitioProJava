@@ -40,6 +40,7 @@ class AgriculturaWebTests {
     @MockBean EstoqueCatalogoService estoque;
     @MockBean TarefaService tarefas;
     @MockBean org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
+    @MockBean org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder;
     @MockBean org.springframework.data.jpa.mapping.JpaMetamodelMappingContext metamodel;
     LocalDate data=LocalDate.of(2026,8,1);
     SafraResumo safra=new SafraResumo(2L,1L,"Safra MVC",2026,2026,data,null,StatusSafra.EM_ANDAMENTO,"Nota",0);

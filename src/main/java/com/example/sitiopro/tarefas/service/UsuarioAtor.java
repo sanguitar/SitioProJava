@@ -3,6 +3,7 @@ package com.example.sitiopro.tarefas.service;
 import com.example.sitiopro.usuario.security.UsuarioPrincipal;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 public record UsuarioAtor(Long id, String login, boolean admin) {
 
@@ -12,7 +13,9 @@ public record UsuarioAtor(Long id, String login, boolean admin) {
         }
         Long id = authentication.getPrincipal() instanceof UsuarioPrincipal principal
                 ? principal.getId()
-                : null;
+                : authentication.getPrincipal() instanceof Jwt jwt
+                        ? claimLong(jwt, "uid")
+                        : null;
         boolean admin = authentication.getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
         return new UsuarioAtor(id, authentication.getName(), admin);
@@ -20,5 +23,10 @@ public record UsuarioAtor(Long id, String login, boolean admin) {
 
     public String ator() {
         return login == null || login.isBlank() ? "sistema" : login;
+    }
+
+    private static Long claimLong(Jwt jwt, String nome) {
+        Object value = jwt.getClaim(nome);
+        return value instanceof Number number ? number.longValue() : null;
     }
 }

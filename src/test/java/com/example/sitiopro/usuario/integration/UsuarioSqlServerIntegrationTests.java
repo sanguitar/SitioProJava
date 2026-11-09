@@ -4,12 +4,18 @@ import com.example.sitiopro.observability.service.SistemaSaudeService;
 import com.example.sitiopro.usuario.dto.CriarUsuarioRequest;
 import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
+import com.example.sitiopro.usuario.mobile.MobileAuthService;
+import com.example.sitiopro.usuario.mobile.dto.MobileLoginRequest;
+import com.example.sitiopro.usuario.mobile.dto.MobileTokenResponse;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestClient;
@@ -53,6 +59,48 @@ class UsuarioSqlServerIntegrationTests {
 
     @Autowired private UsuarioService usuarioService;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private MobileAuthService mobileAuthService;
+    @Autowired private JwtDecoder jwtDecoder;
+    @Autowired private JdbcTemplate jdbc;
+
+    @Test
+    void v34PersisteSomenteHashPermiteRotacaoERevogacao() {
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM dbo.flyway_schema_history WHERE version='34' AND success=1",
+                Integer.class)).isOne();
+
+        String login = "mobile-sql-" + System.nanoTime();
+        String senha = "SenhaMobileMuitoForte123!";
+        CriarUsuarioRequest cadastro = request(login);
+        cadastro.setPerfil(PerfilUsuario.OPERADOR);
+        cadastro.setSenhaInicial(senha);
+        Usuario usuario = usuarioService.criar(cadastro);
+
+        MobileLoginRequest credenciais = new MobileLoginRequest();
+        credenciais.setLogin(login);
+        credenciais.setPassword(senha);
+        MobileTokenResponse primeiraSessao = mobileAuthService.login(credenciais);
+        String primeiroHash = MobileAuthService.hash(primeiraSessao.refreshToken());
+
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM dbo.mobile_refresh_tokens WHERE token_hash=?",
+                Integer.class, primeiroHash)).isOne();
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM dbo.mobile_refresh_tokens WHERE token_hash=?",
+                Integer.class, primeiraSessao.refreshToken())).isZero();
+
+        MobileTokenResponse rotacionado = mobileAuthService.refresh(primeiraSessao.refreshToken());
+        assertThat(rotacionado.refreshToken()).isNotEqualTo(primeiraSessao.refreshToken());
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM dbo.mobile_refresh_tokens WHERE token_hash=? AND revogado_em IS NOT NULL AND motivo_revogacao='ROTACIONADO'",
+                Integer.class, primeiroHash)).isOne();
+
+        Jwt accessToken = jwtDecoder.decode(rotacionado.accessToken());
+        mobileAuthService.logout(usuario.getId(), accessToken.getClaimAsString("sid"), rotacionado.refreshToken());
+        assertThat(jdbc.queryForObject(
+                "SELECT COUNT(*) FROM dbo.mobile_refresh_tokens WHERE token_hash=? AND revogado_em IS NOT NULL AND motivo_revogacao='LOGOUT'",
+                Integer.class, MobileAuthService.hash(rotacionado.refreshToken()))).isOne();
+    }
 
     @Test
     void desativacoesConcorrentesPreservamUmAdministradorAtivo() throws Exception {

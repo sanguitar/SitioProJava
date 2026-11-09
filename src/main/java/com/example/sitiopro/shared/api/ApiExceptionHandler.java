@@ -13,6 +13,7 @@ import com.example.sitiopro.abastecimento.service.AbastecimentoOperacaoException
 import com.example.sitiopro.shared.observability.MdcScope;
 import com.example.sitiopro.shared.observability.RequestCorrelation;
 import com.example.sitiopro.tarefas.service.TarefaAlertaOperacaoException;
+import com.example.sitiopro.usuario.mobile.MobileAuthException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.regex.Pattern;
@@ -45,7 +47,8 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.manutencao.api",
         "com.example.sitiopro.agua.api",
         "com.example.sitiopro.frota.api",
-        "com.example.sitiopro.abastecimento.api"
+        "com.example.sitiopro.abastecimento.api",
+        "com.example.sitiopro.usuario.mobile"
 })
 public class ApiExceptionHandler {
 
@@ -123,6 +126,12 @@ public class ApiExceptionHandler {
         return negocio(ex.getCodigo(), ex.getMessage(), ex.getStatus(), request);
     }
 
+    @ExceptionHandler(MobileAuthException.class)
+    public ResponseEntity<ApiErrorResponse> autenticacaoMobile(MobileAuthException ex,
+            HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
     private ResponseEntity<ApiErrorResponse> negocio(String code, String message, HttpStatus status,
             HttpServletRequest request) {
         String requestId = RequestCorrelation.currentRequestId();
@@ -144,6 +153,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> validacao(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String requestId = RequestCorrelation.currentRequestId();
+        List<ApiFieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(erro -> new ApiFieldError(erro.getField(),
+                        erro.getCode() == null ? "INVALID" : erro.getCode(), erro.getDefaultMessage()))
+                .toList();
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(this::formatarErroCampo)
                 .collect(Collectors.joining("; "));
@@ -158,7 +171,7 @@ public class ApiExceptionHandler {
         }
         return ResponseEntity.badRequest()
                 .body(new ApiErrorResponse(Instant.now(), HttpStatus.BAD_REQUEST.value(), "VALIDACAO_INVALIDA",
-                        message, request.getRequestURI(), requestId));
+                        message, request.getRequestURI(), requestId, fieldErrors));
     }
 
     @ExceptionHandler({

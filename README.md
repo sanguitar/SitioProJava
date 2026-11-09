@@ -480,7 +480,7 @@ O usuário `sa` deve ficar restrito ao SQL Server e ao `sqlserver-init`. A aplic
 
 ## Segurança e usuários
 
-A interface Thymeleaf usa Spring Security com sessão, login por formulário e CSRF habilitado. Não há JWT, OAuth, API pública autenticável ou frontend SPA.
+A interface Thymeleaf continua usando Spring Security com sessão, login por formulário e CSRF habilitado. Em paralelo, `/api/v1/**` aceita access token JWT Bearer para clientes iOS/Android. O login mobile reutiliza o mesmo `UsuarioDetailsService`, `PasswordEncoder` e usuários persistidos no SQL Server; não existe uma segunda base de credenciais.
 
 Regras principais:
 
@@ -489,10 +489,29 @@ Regras principais:
 - `/actuator/info` e `/actuator/metrics/**` exigem perfil `ADMIN`;
 - `/sitio/**`, aliases web antigos e `/api/fipe/**` exigem autenticação;
 - `/sitio/admin/**`, `/sitio/configuracoes/**`, `/administracao/**` e `/configuracoes/roadmap` exigem perfil `ADMIN`;
-- `/api/v1/estoque/**` exige autenticação; POSTs continuam protegidos por CSRF enquanto a autenticação mobile definitiva não for definida;
+- `/api/v1/auth/login` e `/api/v1/auth/refresh` recebem JSON sem cookie; `/api/v1/auth/logout` exige Bearer válido;
+- `/api/v1/**` sem autenticação retorna erro JSON 401, sem redirecionar para HTML;
+- requisições Bearer não dependem de CSRF; requisições autenticadas por sessão continuam protegidas por CSRF;
+- `/api/v1/estoque/**` e as demais APIs autorizadas preservam as regras `ADMIN`/`OPERADOR` existentes;
 - demais rotas `/api/v1/**` permanecem negadas;
 - `/swagger-ui.html`, `/swagger-ui/**` e `/v3/api-docs/**` exigem perfil `ADMIN`;
 - logout é feito por `POST /logout` com CSRF.
+
+### Autenticação mobile
+
+Endpoints oficiais:
+
+```text
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+```
+
+O access token é JWT HS256 e expira em 15 minutos por padrão. O refresh token é opaco, aleatório, rotacionado a cada uso e expira em 30 dias por padrão. Somente o SHA-256 do refresh token é persistido em `mobile_refresh_tokens`; logout, desativação do usuário e troca de senha revogam a sessão mobile. Access tokens são vinculados à sessão persistida, portanto deixam de ser aceitos imediatamente após revogação.
+
+Em produção, `SITIOPRO_MOBILE_JWT_SECRET_BASE64` é obrigatório e deve conter pelo menos 32 bytes aleatórios codificados em Base64. Gere e armazene o valor no gerenciador de secrets do ambiente; nunca o versione. `SITIOPRO_MOBILE_ACCESS_TOKEN_TTL` e `SITIOPRO_MOBILE_REFRESH_TOKEN_TTL` aceitam durações do Spring, como `15m` e `30d`. Em desenvolvimento sem chave configurada, a aplicação gera uma chave efêmera e invalida access tokens ao reiniciar.
+
+O Swagger/OpenAPI em `/swagger-ui.html` e `/v3/api-docs` é o contrato oficial da API v1, exige `ADMIN` e declara o esquema `bearerAuth`. Login e refresh são operações públicas; as demais operações herdam o requisito Bearer conforme autorização do servidor.
 
 Perfis disponíveis:
 
@@ -542,7 +561,7 @@ GET  /api/v1/estoque/movimentos/{id}
 POST /api/v1/estoque/movimentos
 ```
 
-Não há JWT nesta etapa. A API usa a sessão Spring Security atual e permanece protegida por CSRF nos métodos mutáveis. A documentação OpenAPI fica disponível para ADMIN em `/swagger-ui.html` e `/v3/api-docs`.
+A API aceita tanto a sessão web existente quanto Bearer mobile. CSRF continua obrigatório nas mutações autenticadas por sessão e é dispensado somente para Bearer. A documentação OpenAPI oficial fica disponível para ADMIN em `/swagger-ui.html` e `/v3/api-docs`.
 
 ## Compras
 

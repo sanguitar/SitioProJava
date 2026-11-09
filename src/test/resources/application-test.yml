@@ -1,3 +1,8 @@
 sitiopro:
+  security:
+    mobile:
+      access-token-ttl: 15m
+      refresh-token-ttl: 30d
+      signing-secret-base64: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
   tarefas:
     scheduler-enabled: false

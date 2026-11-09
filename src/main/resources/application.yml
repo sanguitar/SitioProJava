@@ -23,19 +23,7 @@ server:
 
 springdoc:
   paths-to-match:
-    - /api/v1/estoque/**
-    - /api/v1/compras
-    - /api/v1/compras/**
-    - /api/v1/fornecedores
-    - /api/v1/fornecedores/**
-    - /api/v1/clima/**
-    - /api/v1/admin/integracoes
-    - /api/v1/tarefas/**
-    - /api/v1/alertas/**
-    - /api/v1/painel/**
-    - /api/v1/criacoes/**
-    - /api/v1/propriedade/**
-    - /api/v1/agricultura/**
+    - /api/v1/**
   swagger-ui:
     path: /swagger-ui.html
 
@@ -78,6 +66,13 @@ info:
     environment: ${SITIOPRO_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:dev}}
 
 sitiopro:
+  security:
+    mobile:
+      issuer: ${SITIOPRO_MOBILE_JWT_ISSUER:sitiopro}
+      audience: ${SITIOPRO_MOBILE_JWT_AUDIENCE:sitiopro-mobile}
+      access-token-ttl: ${SITIOPRO_MOBILE_ACCESS_TOKEN_TTL:15m}
+      refresh-token-ttl: ${SITIOPRO_MOBILE_REFRESH_TOKEN_TTL:30d}
+      signing-secret-base64: ${SITIOPRO_MOBILE_JWT_SECRET_BASE64:}
   configuracao-operacional:
     inicial:
       nome-propriedade: ${SITIO_NOME_PROPRIEDADE:Sítio Guaratinguetá}

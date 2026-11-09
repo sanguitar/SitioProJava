@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.authentication.event.LogoutSuccessEvent;
+import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -29,13 +30,23 @@ public class SecurityEventLogger {
 
     @EventListener
     public void loginFalhou(AbstractAuthenticationFailureEvent event) {
-        String userName = event.getAuthentication() == null ? "unknown" : String.valueOf(event.getAuthentication().getPrincipal());
+        String userName = failedPrincipal(event);
         try (MdcScope ignored = MdcScope.with(Map.of(
                 "event.action", "LOGIN_FAILURE",
                 "module", "usuario",
                 "user.name", sanitizeUserName(userName)))) {
             log.warn("Falha de login.");
         }
+    }
+
+    private String failedPrincipal(AbstractAuthenticationFailureEvent event) {
+        if (event.getAuthentication() == null) {
+            return "unknown";
+        }
+        if (event.getAuthentication() instanceof BearerTokenAuthenticationToken) {
+            return "bearer-token-redacted";
+        }
+        return String.valueOf(event.getAuthentication().getPrincipal());
     }
 
     @EventListener

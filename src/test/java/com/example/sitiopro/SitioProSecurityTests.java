@@ -96,6 +96,9 @@ import com.example.sitiopro.tarefas.service.TarefaService;
 import com.example.sitiopro.usuario.entity.PerfilUsuario;
 import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
+import com.example.sitiopro.usuario.mobile.RefreshTokenMobileRepository;
+import com.example.sitiopro.usuario.mobile.RefreshTokenMobile;
+import com.example.sitiopro.usuario.mobile.MobileAuthService;
 import com.example.sitiopro.usuario.security.UsuarioSessaoService;
 import com.example.sitiopro.usuario.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,19 +116,29 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.client.RestClient;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -161,6 +174,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class SitioProSecurityTests {
+    @MockBean private RefreshTokenMobileRepository refreshTokenMobileRepository;
     @MockBean private SuinosService suinosService;
     @MockBean private SuinosReproducaoService suinosReproducaoService;
     @MockBean private SuinosAlertasService suinosAlertasService;
@@ -188,6 +202,12 @@ class SitioProSecurityTests {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private JwtEncoder jwtEncoder;
 
     @Autowired
     private UsuarioSessaoService usuarioSessaoService;
@@ -766,15 +786,15 @@ class SitioProSecurityTests {
     @Test
     void apiEstoqueExigeAutenticacao() throws Exception {
         mockMvc.perform(get("/api/v1/estoque/resumo"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
     }
 
     @Test
     void apiPainelExigeAutenticacaoEAceitaAdminEOperador() throws Exception {
         mockMvc.perform(get("/api/v1/painel/resumo"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
 
         mockMvc.perform(get("/api/v1/painel/resumo")
                         .with(user("operador").roles("OPERADOR")))
@@ -789,14 +809,15 @@ class SitioProSecurityTests {
     @Test
     void apiComprasExigeAutenticacao() throws Exception {
         mockMvc.perform(get("/api/v1/compras"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
     }
 
     @Test
     void apiClimaExigeAutenticacaoEConsultaSomenteDadosLocais() throws Exception {
         mockMvc.perform(get("/api/v1/clima/resumo"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
 
         mockMvc.perform(get("/api/v1/clima/resumo")
                         .with(user("operador").roles("OPERADOR")))
@@ -1032,7 +1053,8 @@ class SitioProSecurityTests {
     @Test
     void criacoesAvesExigeAutenticacaoEPermiteConsultaAoOperador() throws Exception {
         mockMvc.perform(get("/api/v1/criacoes/aves/resumo"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
 
         mockMvc.perform(get("/api/v1/criacoes/aves/resumo").with(user("operador").roles("OPERADOR")))
                 .andExpect(status().isOk())
@@ -1248,7 +1270,16 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/v3/api-docs")
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/painel/resumo']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/painel/resumo'].get.responses['401'].content['application/json'].schema['$ref']")
+                        .value("#/components/schemas/ApiErrorResponse"))
+                .andExpect(jsonPath("$.paths['/api/v1/painel/resumo'].get.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/painel/resumo'].get.responses['500']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/estoque/resumo']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/compras']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/fornecedores']").exists())
@@ -1261,7 +1292,8 @@ class SitioProSecurityTests {
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/lotes']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/ciclos']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/reproducao/animais/{id}/historico']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/sanidade']").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/criacoes/suinos/sanidade']").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse").exists());
     }
 
     @Test
@@ -1466,8 +1498,8 @@ class SitioProSecurityTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
         mockMvc.perform(get("/api/v1/alertas"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
     }
 
     @Test
@@ -1691,6 +1723,209 @@ class SitioProSecurityTests {
     void apiFipeLegadaNaoEhMaisExposta() throws Exception {
         mockMvc.perform(get("/api/fipe/marcas?tipo=1").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void loginMobileValidoRetornaBearerRefreshExpiracaoEUsuario() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.ADMIN);
+
+        JsonNode resposta = loginMobile();
+
+        assertThat(resposta.path("accessToken").asText()).isNotBlank();
+        assertThat(resposta.path("refreshToken").asText()).isNotBlank();
+        assertThat(resposta.path("tokenType").asText()).isEqualTo("Bearer");
+        assertThat(resposta.path("expiresIn").asLong()).isEqualTo(900);
+        assertThat(resposta.path("refreshExpiresIn").asLong()).isEqualTo(2_592_000);
+        assertThat(resposta.at("/user/login").asText()).isEqualTo("mobile");
+        assertThat(resposta.at("/user/role").asText()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    void loginMobileInvalidoRetornaErroRestSemExporCredencial() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.ADMIN);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"login\":\"mobile\",\"password\":\"incorreta\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("CREDENCIAIS_INVALIDAS"))
+                .andExpect(jsonPath("$.code").value("CREDENCIAIS_INVALIDAS"))
+                .andExpect(jsonPath("$.fieldErrors").isArray());
+    }
+
+    @Test
+    void apiSemTokenRetorna401JsonEmVezDeRedirectHtml() throws Exception {
+        mockMvc.perform(get("/api/v1/painel/resumo"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
+    }
+
+    @Test
+    void accessTokenValidoAutorizaApiSemCookie() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        String accessToken = loginMobile().path("accessToken").asText();
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void accessTokenExpiradoEhRecusado(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+        Usuario usuario = prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        when(refreshTokenMobileRepository
+                .existsBySessaoIdAndUsuarioIdAndRevogadoEmIsNullAndExpiraEmAfter(
+                        org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong(), any()))
+                .thenReturn(true);
+        String expirado = tokenExpirado(usuario);
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .header("Authorization", "Bearer " + expirado))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("NAO_AUTENTICADO"));
+        assertThat(output).doesNotContain(expirado);
+    }
+
+    @Test
+    void refreshValidoRotacionaTokenEInvalidaOAnterior() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        JsonNode login = loginMobile();
+        String refreshAnterior = login.path("refreshToken").asText();
+
+        MvcResult renovacao = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshAnterior))))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode renovado = objectMapper.readTree(renovacao.getResponse().getContentAsString());
+        assertThat(renovado.path("refreshToken").asText()).isNotEqualTo(refreshAnterior);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshAnterior))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("REFRESH_TOKEN_INVALIDO"));
+    }
+
+    @Test
+    void refreshInexistenteOuRevogadoEhRecusado() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"token-que-nao-existe\"}"))
+                .andExpect(status().isUnauthorized());
+
+        JsonNode login = loginMobile();
+        String access = login.path("accessToken").asText();
+        String refresh = login.path("refreshToken").asText();
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer " + access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refresh))))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refresh))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void logoutRevogaImediatamenteRefreshEAccessDaSessao() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        JsonNode login = loginMobile();
+        String access = login.path("accessToken").asText();
+        String refresh = login.path("refreshToken").asText();
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer " + access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refresh))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/painel/resumo")
+                        .header("Authorization", "Bearer " + access))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void roleDoBearerRestringeAdminESemAfetarOperador() throws Exception {
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        String operador = loginMobile().path("accessToken").asText();
+        mockMvc.perform(get("/api/v1/admin/integracoes")
+                        .header("Authorization", "Bearer " + operador))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("ACESSO_NEGADO"));
+
+        org.mockito.Mockito.reset(usuarioRepository, refreshTokenMobileRepository);
+        prepararAutenticacaoMobile(PerfilUsuario.ADMIN);
+        String admin = loginMobile().path("accessToken").asText();
+        mockMvc.perform(get("/api/v1/admin/integracoes")
+                        .header("Authorization", "Bearer " + admin))
+                .andExpect(status().isOk());
+    }
+
+    private Usuario prepararAutenticacaoMobile(PerfilUsuario perfil) {
+        Usuario usuario = usuario(900L, "Usuário Mobile", "mobile", perfil, true);
+        Map<String, RefreshTokenMobile> tokens = new ConcurrentHashMap<>();
+        when(usuarioRepository.findByLogin("mobile")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(900L)).thenReturn(Optional.of(usuario));
+        when(refreshTokenMobileRepository.save(any(RefreshTokenMobile.class))).thenAnswer(invocation -> {
+            RefreshTokenMobile token = invocation.getArgument(0);
+            tokens.put(token.getTokenHash(), token);
+            return token;
+        });
+        when(refreshTokenMobileRepository.buscarPorHashParaAtualizacao(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> Optional.ofNullable(tokens.get(invocation.getArgument(0))));
+        when(refreshTokenMobileRepository.existsBySessaoIdAndUsuarioIdAndRevogadoEmIsNullAndExpiraEmAfter(
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong(), any()))
+                .thenAnswer(invocation -> tokens.values().stream().anyMatch(token ->
+                        token.getSessaoId().equals(invocation.getArgument(0))
+                                && token.getUsuario().getId().equals(invocation.getArgument(1))
+                                && token.estaAtivo(invocation.getArgument(2))));
+        when(refreshTokenMobileRepository.revogarSessao(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyLong(), any(), org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> {
+                    int alterados = 0;
+                    for (RefreshTokenMobile token : tokens.values()) {
+                        if (token.getSessaoId().equals(invocation.getArgument(0))
+                                && token.getUsuario().getId().equals(invocation.getArgument(1))
+                                && token.getRevogadoEm() == null) {
+                            token.revogar(invocation.getArgument(2), invocation.getArgument(3), null);
+                            alterados++;
+                        }
+                    }
+                    return alterados;
+                });
+        return usuario;
+    }
+
+    private JsonNode loginMobile() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"login\":\"mobile\",\"password\":\"" + SENHA_VALIDA + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private String tokenExpirado(Usuario usuario) {
+        Instant agora = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("sitiopro")
+                .subject(usuario.getLogin())
+                .audience(List.of("sitiopro-mobile"))
+                .issuedAt(agora.minusSeconds(7200))
+                .expiresAt(agora.minusSeconds(3600))
+                .id(UUID.randomUUID().toString())
+                .claim("uid", usuario.getId())
+                .claim("sid", UUID.randomUUID().toString())
+                .claim("roles", List.of(usuario.getPerfil().name()))
+                .claim("token_type", "access")
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).type("at+jwt").build(), claims)).getTokenValue();
     }
 
     private Usuario usuario(Long id, String nome, String login, PerfilUsuario perfil, boolean ativo) {

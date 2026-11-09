@@ -41,6 +41,7 @@ import com.example.sitiopro.tarefas.repository.TarefaRecorrenciaRepository;
 import com.example.sitiopro.tarefas.repository.TarefaRepository;
 import com.example.sitiopro.tarefas.service.SqlServerApplicationLock;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
+import com.example.sitiopro.usuario.mobile.RefreshTokenMobileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -105,6 +106,9 @@ class SitioProApplicationTests {
 
     @MockBean
     private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private RefreshTokenMobileRepository refreshTokenMobileRepository;
 
     @MockBean
     private CompraRepository compraRepository;

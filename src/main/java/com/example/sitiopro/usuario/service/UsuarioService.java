@@ -9,12 +9,14 @@ import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.security.UsuarioPrincipal;
 import com.example.sitiopro.usuario.security.UsuarioSessaoService;
+import com.example.sitiopro.usuario.mobile.RefreshTokenMobileRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,13 +27,16 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final SenhaPolicy senhaPolicy;
     private final UsuarioSessaoService usuarioSessaoService;
+    private final RefreshTokenMobileRepository refreshTokenRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-            SenhaPolicy senhaPolicy, UsuarioSessaoService usuarioSessaoService) {
+            SenhaPolicy senhaPolicy, UsuarioSessaoService usuarioSessaoService,
+            RefreshTokenMobileRepository refreshTokenRepository) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.senhaPolicy = senhaPolicy;
         this.usuarioSessaoService = usuarioSessaoService;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     public List<Usuario> listarTodos() {
@@ -106,6 +111,7 @@ public class UsuarioService {
         usuario.setAtivo(request.isAtivo());
         Usuario atualizado = usuarioRepository.save(usuario);
         if (foiDesativado) {
+            revogarTokensMobile(usuario.getId(), "USUARIO_DESATIVADO");
             usuarioSessaoService.revogarAposCommit(usuario.getId());
         }
         return atualizado;
@@ -117,6 +123,7 @@ public class UsuarioService {
         Usuario usuario = buscarPorId(id);
         usuario.setSenhaHash(passwordEncoder.encode(request.getNovaSenha()));
         usuarioRepository.save(usuario);
+        revogarTokensMobile(usuario.getId(), "SENHA_ALTERADA");
     }
 
     @Transactional
@@ -128,6 +135,7 @@ public class UsuarioService {
         }
         usuario.setSenhaHash(passwordEncoder.encode(request.getNovaSenha()));
         usuarioRepository.save(usuario);
+        revogarTokensMobile(usuario.getId(), "SENHA_ALTERADA");
     }
 
     @Transactional
@@ -138,6 +146,7 @@ public class UsuarioService {
         usuario.setAtivo(false);
         usuarioRepository.save(usuario);
         if (estavaAtivo) {
+            revogarTokensMobile(usuario.getId(), "USUARIO_DESATIVADO");
             usuarioSessaoService.revogarAposCommit(usuario.getId());
         }
     }
@@ -177,5 +186,9 @@ public class UsuarioService {
             throw new UsuarioOperacaoException("Nome é obrigatório.");
         }
         return texto.trim();
+    }
+
+    private void revogarTokensMobile(Long usuarioId, String motivo) {
+        refreshTokenRepository.revogarTodosDoUsuario(usuarioId, LocalDateTime.now(ZoneOffset.UTC), motivo);
     }
 }

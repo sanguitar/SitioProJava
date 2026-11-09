@@ -12,18 +12,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.time.Instant;
 import java.util.Map;
@@ -36,8 +46,23 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper,
-            SessionRegistry sessionRegistry) throws Exception {
+            SessionRegistry sessionRegistry,
+            Converter<Jwt, ? extends AbstractAuthenticationToken> mobileJwtAuthenticationConverter) throws Exception {
+        ApiAuthenticationEntryPoint apiAuthenticationEntryPoint = new ApiAuthenticationEntryPoint(objectMapper);
         RequestMatcher apiMatcher = new AntPathRequestMatcher("/api/**");
+        RequestMatcher bearerRequest = request -> {
+            String authorization = request.getHeader("Authorization");
+            return authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7);
+        };
+        LoginUrlAuthenticationEntryPoint webAuthenticationEntryPoint =
+                new LoginUrlAuthenticationEntryPoint("/login");
+        AuthenticationEntryPoint delegatingAuthenticationEntryPoint = (request, response, exception) -> {
+            if (apiMatcher.matches(request)) {
+                apiAuthenticationEntryPoint.commence(request, response, exception);
+                return;
+            }
+            webAuthenticationEntryPoint.commence(request, response, exception);
+        };
         AccessDeniedHandlerImpl pageAccessDeniedHandler = new AccessDeniedHandlerImpl();
         pageAccessDeniedHandler.setErrorPage("/403");
         AccessDeniedHandler apiAccessDeniedHandler = (request, response, accessDeniedException) -> {
@@ -77,6 +102,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/info", "/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/estoque/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/itens").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/movimentos").authenticated()
@@ -230,6 +257,13 @@ public class SecurityConfig {
                                 "/propriedade/**", "/ola", "/saudacao").authenticated()
                         .requestMatchers("/sitio/**").authenticated()
                         .anyRequest().denyAll())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        bearerRequest,
+                        new AntPathRequestMatcher("/api/v1/auth/login", "POST"),
+                        new AntPathRequestMatcher("/api/v1/auth/refresh", "POST")))
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(mobileJwtAuthenticationConverter))
+                        .authenticationEntryPoint(delegatingAuthenticationEntryPoint))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
@@ -247,7 +281,9 @@ public class SecurityConfig {
                         .maxSessionsPreventsLogin(false)
                         .expiredUrl("/login?expired")
                         .sessionRegistry(sessionRegistry))
-                .exceptionHandling(exceptions -> exceptions.accessDeniedHandler(delegatingAccessDeniedHandler));
+                .exceptionHandling(exceptions -> exceptions
+                        .defaultAuthenticationEntryPointFor(apiAuthenticationEntryPoint, apiMatcher)
+                        .accessDeniedHandler(delegatingAccessDeniedHandler));
 
         return http.build();
     }
@@ -255,6 +291,22 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public Converter<Jwt, ? extends AbstractAuthenticationToken> mobileJwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName("roles");
+        authorities.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setPrincipalClaimName("sub");
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
     }
 
     @Bean

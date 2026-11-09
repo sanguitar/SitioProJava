@@ -23,6 +23,11 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
 
+sitiopro:
+  security:
+    mobile:
+      require-configured-signing-secret: true
+
 server:
   forward-headers-strategy: native
   servlet:

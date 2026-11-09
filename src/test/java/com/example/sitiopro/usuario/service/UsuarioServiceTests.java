@@ -8,6 +8,7 @@ import com.example.sitiopro.usuario.entity.Usuario;
 import com.example.sitiopro.usuario.repository.UsuarioRepository;
 import com.example.sitiopro.usuario.security.UsuarioPrincipal;
 import com.example.sitiopro.usuario.security.UsuarioSessaoService;
+import com.example.sitiopro.usuario.mobile.RefreshTokenMobileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,12 +41,15 @@ class UsuarioServiceTests {
     @Mock
     private UsuarioSessaoService usuarioSessaoService;
 
+    @Mock
+    private RefreshTokenMobileRepository refreshTokenRepository;
+
     private UsuarioService usuarioService;
 
     @BeforeEach
     void configurar() {
         usuarioService = new UsuarioService(usuarioRepository, passwordEncoder, new SenhaPolicy(),
-                usuarioSessaoService);
+                usuarioSessaoService, refreshTokenRepository);
     }
 
     @Test

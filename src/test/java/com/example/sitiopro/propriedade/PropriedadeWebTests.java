@@ -32,6 +32,7 @@ class PropriedadeWebTests {
     @MockBean PropriedadeService service;
     @MockBean PerimetroService perimetros;
     @MockBean org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
+    @MockBean org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder;
     @MockBean org.springframework.data.jpa.mapping.JpaMetamodelMappingContext jpaMetamodelMappingContext;
     CadastroFisicoResumo registro = new CadastroFisicoResumo(7L,42L,null,null,null,"Nome cadastrado","OUTRO",
             null,null,null,null,"Observação",true,"ATIVO",0);
