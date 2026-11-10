@@ -190,6 +190,9 @@ class SitioProSecurityTests {
     @MockBean private com.example.sitiopro.agua.service.AguaService aguaService;
     @MockBean private com.example.sitiopro.agua.service.AguaAlertasService aguaAlertasService;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
+    @MockBean private com.example.sitiopro.sync.SyncService syncService;
+    @MockBean private com.example.sitiopro.sync.SyncCommandService syncCommandService;
+    @MockBean private com.example.sitiopro.sync.SyncSnapshotMapper syncSnapshotMapper;
     @MockBean private com.example.sitiopro.propriedade.service.PropriedadeService propriedadeService;
     @MockBean private com.example.sitiopro.propriedade.service.PerimetroService perimetroService;
     @MockBean private PerimetroSpatialRepository perimetroSpatialRepository;
@@ -353,6 +356,8 @@ class SitioProSecurityTests {
 
     @BeforeEach
     void configurarMocks() {
+        when(syncService.bootstrap()).thenReturn(new com.example.sitiopro.sync.SyncDtos.BootstrapResponse(
+                List.of(), 0, Instant.parse("2026-11-09T12:00:00Z")));
         when(configuracaoOperacionalService.obter()).thenReturn(
                 com.example.sitiopro.administracao.configuracao.ConfiguracaoOperacionalTestFixture.padrao());
         when(dashboardService.montarResumo()).thenReturn(vazio());
@@ -1769,6 +1774,29 @@ class SitioProSecurityTests {
         mockMvc.perform(get("/api/v1/painel/resumo")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void syncExigeBearerValidoEPerfisDoPiloto() throws Exception {
+        mockMvc.perform(get("/api/v1/sync/bootstrap")
+                        .header("Authorization", "Bearer token-invalido"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/sync/bootstrap").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/sync/bootstrap").with(
+                        org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                        "ROLE_VISITANTE"))))
+                .andExpect(status().isForbidden());
+
+        prepararAutenticacaoMobile(PerfilUsuario.OPERADOR);
+        String accessToken = loginMobile().path("accessToken").asText();
+        mockMvc.perform(get("/api/v1/sync/bootstrap")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cursor").value(0));
     }
 
     @Test

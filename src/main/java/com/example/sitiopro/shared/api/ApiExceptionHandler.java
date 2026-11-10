@@ -48,7 +48,8 @@ import java.util.regex.Pattern;
         "com.example.sitiopro.agua.api",
         "com.example.sitiopro.frota.api",
         "com.example.sitiopro.abastecimento.api",
-        "com.example.sitiopro.usuario.mobile"
+        "com.example.sitiopro.usuario.mobile",
+        "com.example.sitiopro.sync"
 })
 public class ApiExceptionHandler {
 
@@ -128,6 +129,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MobileAuthException.class)
     public ResponseEntity<ApiErrorResponse> autenticacaoMobile(MobileAuthException ex,
+            HttpServletRequest request) {
+        return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
+    }
+
+    @ExceptionHandler(com.example.sitiopro.sync.SyncException.class)
+    public ResponseEntity<ApiErrorResponse> sincronizacao(com.example.sitiopro.sync.SyncException ex,
             HttpServletRequest request) {
         return negocio(ex.getCode(), ex.getMessage(), ex.getStatus(), request);
     }
@@ -239,6 +246,9 @@ public class ApiExceptionHandler {
         }
         if (path.startsWith("/api/v1/abastecimentos")) {
             return "abastecimento";
+        }
+        if (path.startsWith("/api/v1/sync")) {
+            return "sync";
         }
         return "api";
     }

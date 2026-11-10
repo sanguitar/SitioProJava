@@ -109,6 +109,16 @@ public class AguaService {
 
     @Transactional
     public OperacaoAguaResumo registrar(OperacaoAguaRequest request, UsuarioAtor ator) {
+        return registrar(request, null, ator);
+    }
+
+    @Transactional
+    public OperacaoAguaResumo registrarOffline(OperacaoAguaRequest request, UUID publicId, UsuarioAtor ator) {
+        if (publicId == null) throw erro("PUBLIC_ID_OBRIGATORIO", "O UUID público é obrigatório.");
+        return registrar(request, publicId, ator);
+    }
+
+    private OperacaoAguaResumo registrar(OperacaoAguaRequest request, UUID publicId, UsuarioAtor ator) {
         validarRequest(request);
         String chave = request.getChaveIdempotencia().trim();
         locks.bloquearIdempotencia("AGUA_OPERACAO", chave);
@@ -133,6 +143,7 @@ public class AguaService {
         if (destino != null) validarAtivo(destino);
 
         OperacaoAgua operacao = new OperacaoAgua();
+        operacao.setPublicId(publicId);
         operacao.setRecursoOrigem(origem);
         operacao.setRecursoDestino(destino);
         operacao.setTipo(request.getTipo());
@@ -146,6 +157,13 @@ public class AguaService {
         sincronizarTarefaInspecao(origem, ator);
         alertas.avaliar();
         return resumo(operacao);
+    }
+
+    @Transactional(readOnly = true)
+    public OperacaoAguaResumo detalharOperacaoPorPublicId(UUID publicId) {
+        return operacoes.findByPublicId(publicId).map(this::resumo)
+                .orElseThrow(() -> erro("OPERACAO_AGUA_NAO_ENCONTRADA",
+                        "Operação de água não encontrada.", HttpStatus.NOT_FOUND));
     }
 
     private void aplicar(OperacaoAgua operacao, RecursoHidrico origem, RecursoHidrico destino, UsuarioAtor ator) {

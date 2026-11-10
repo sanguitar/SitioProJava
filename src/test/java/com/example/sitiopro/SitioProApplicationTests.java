@@ -66,6 +66,15 @@ import org.springframework.web.client.RestClient;
                 + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
 })
 class SitioProApplicationTests {
+
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.example.sitiopro.sync.SyncService syncService;
+
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.example.sitiopro.sync.SyncCommandService syncCommandService;
+
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.example.sitiopro.sync.SyncSnapshotMapper syncSnapshotMapper;
     @MockBean private com.example.sitiopro.agricultura.service.AgriculturaService agriculturaService;
     @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosService suinosService;
     @MockBean private com.example.sitiopro.criacao.suinos.service.SuinosReproducaoService suinosReproducaoService;

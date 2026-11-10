@@ -23,6 +23,8 @@ import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -104,6 +106,15 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
+                        .requestMatchers("/api/v1/sync", "/api/v1/sync/**")
+                        .access((authentication, context) -> {
+                            Authentication atual = authentication.get();
+                            boolean perfilPermitido = atual.getAuthorities().stream().anyMatch(authority ->
+                                    "ROLE_ADMIN".equals(authority.getAuthority())
+                                            || "ROLE_OPERADOR".equals(authority.getAuthority()));
+                            return new AuthorizationDecision(atual instanceof JwtAuthenticationToken
+                                    && perfilPermitido);
+                        })
                         .requestMatchers(HttpMethod.GET, "/api/v1/estoque/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/itens").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/estoque/movimentos").authenticated()

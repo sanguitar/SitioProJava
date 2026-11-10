@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
 
@@ -66,6 +67,17 @@ public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
     @Override
     @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario", "recorrenciaOrigem"})
     Optional<Tarefa> findById(Long id);
+
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario", "recorrenciaOrigem"})
+    Optional<Tarefa> findByPublicId(UUID publicId);
+
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario", "recorrenciaOrigem"})
+    List<Tarefa> findAllByOrderByIdAsc();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario", "recorrenciaOrigem"})
+    @Query("select t from Tarefa t where t.publicId = :publicId")
+    Optional<Tarefa> buscarPorPublicIdParaAtualizacao(@Param("publicId") UUID publicId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"responsavel", "criadoPorUsuario", "recorrenciaOrigem"})

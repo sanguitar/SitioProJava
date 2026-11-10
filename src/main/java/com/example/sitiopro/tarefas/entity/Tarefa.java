@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tarefas")
@@ -24,6 +25,9 @@ public class Tarefa extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId;
 
     @Column(nullable = false, length = 160)
     private String titulo;
@@ -86,6 +90,21 @@ public class Tarefa extends AuditableEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public UUID getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(UUID publicId) {
+        this.publicId = publicId;
+    }
+
+    @jakarta.persistence.PrePersist
+    void garantirPublicId() {
+        if (publicId == null) {
+            publicId = UUID.randomUUID();
+        }
     }
 
     public String getTitulo() {

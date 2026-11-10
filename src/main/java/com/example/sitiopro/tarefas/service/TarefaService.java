@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 public class TarefaService {
@@ -105,14 +106,36 @@ public class TarefaService {
 
     @Transactional
     public TarefaDetalhe criar(TarefaRequest request, UsuarioAtor ator) {
+        return criar(request, ator, null);
+    }
+
+    @Transactional
+    public TarefaDetalhe criarOffline(TarefaRequest request, UUID publicId, UsuarioAtor ator) {
+        if (publicId == null) {
+            throw new TarefaAlertaOperacaoException("PUBLIC_ID_OBRIGATORIO", "O UUID público é obrigatório.");
+        }
+        return criar(request, ator, publicId);
+    }
+
+    private TarefaDetalhe criar(TarefaRequest request, UsuarioAtor ator, UUID publicId) {
         Usuario criador = buscarAtor(ator);
         Tarefa tarefa = novaTarefa(request, criador, resolverResponsavel(request.getResponsavelId(), ator, criador));
+        tarefa.setPublicId(publicId);
         tarefa.setOrigem(OrigemTarefa.MANUAL);
         tarefa = tarefaRepository.save(tarefa);
         TarefaRecorrencia recorrencia = configurarRecorrencia(tarefa, request, null);
         historicoService.registrarTarefa(tarefa, TipoEventoOperacional.TAREFA_CRIADA, criador, ator.ator(),
                 "Tarefa manual criada.");
         registrarLog("tarefa.created", tarefa);
+        return detalhe(tarefa, recorrencia, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public TarefaDetalhe detalharPorPublicId(UUID publicId) {
+        Tarefa tarefa = tarefaRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new TarefaAlertaOperacaoException("TAREFA_NAO_ENCONTRADA",
+                        "Tarefa não encontrada.", HttpStatus.NOT_FOUND));
+        TarefaRecorrencia recorrencia = recorrenciaRepository.findByTarefaModeloId(tarefa.getId()).orElse(null);
         return detalhe(tarefa, recorrencia, LocalDateTime.now(clock));
     }
 

@@ -5,12 +5,16 @@ import com.example.sitiopro.shared.audit.AuditableEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "agua_operacoes")
 public class OperacaoAgua extends AuditableEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recurso_origem_id", nullable = false)
@@ -52,6 +56,9 @@ public class OperacaoAgua extends AuditableEntity {
     private long versao;
 
     public Long getId() { return id; }
+    public UUID getPublicId() { return publicId; }
+    public void setPublicId(UUID publicId) { this.publicId = publicId; }
+    @PrePersist void garantirPublicId() { if (publicId == null) publicId = UUID.randomUUID(); }
     public RecursoHidrico getRecursoOrigem() { return recursoOrigem; }
     public void setRecursoOrigem(RecursoHidrico recursoOrigem) { this.recursoOrigem = recursoOrigem; }
     public RecursoHidrico getRecursoDestino() { return recursoDestino; }
